@@ -1,0 +1,9 @@
+[project]
+name = "fwp-ml"
+version = "0.1.0"
+description = "FwP: bài tập lớn huấn luyện mô hình học máy (ranking, compatibility, conversation health)"
+requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

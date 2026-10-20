@@ -1,0 +1,24 @@
+# Cài xong lần đầu: chạy `pip freeze > requirements.lock.txt` và commit để pin phiên bản (yêu cầu tái lập).
+numpy>=1.26
+pandas>=2.1
+scikit-learn>=1.4
+imbalanced-learn>=0.12
+xgboost>=2.0
+lightgbm>=4.3
+scipy>=1.11
+matplotlib>=3.8
+shap>=0.45
+optuna>=3.6
+pyyaml>=6.0
+joblib>=1.3
+pytest>=8.0
+# NLP / Module 2-3 (cài khi cần)
+# torch
+# transformers
+# sentence-transformers
+# underthesea
+# surprise  (CF Libimseti; có thể dùng implicit)
+# Serving
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6

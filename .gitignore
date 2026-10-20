@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.ipynb_checkpoints/
+.pytest_cache/
+.ruff_cache/
+# Dữ liệu: KHÔNG đưa dữ liệu thô/pilot (có thể nhạy cảm, nặng, có license) lên repo
+data/raw/*
+data/interim/*
+data/processed/*
+data/pilot/*
+!data/**/.gitkeep
+!data/checksums.txt
+# Model nặng
+models/**/*.pkl
+models/**/*.onnx
+models/**/*.pt
+models/**/*.bin
+!models/**/metadata.json
+# Thí nghiệm lớn
+reports/*
+!reports/.gitkeep
+mlruns/
+wandb/
+# Secret / OS
+.env
+.DS_Store
+Thumbs.db

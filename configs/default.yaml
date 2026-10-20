@@ -1,0 +1,14 @@
+# Giao thức mặc định — xem docs/01_CHUAN_BAO_CAO_AUDITABLE.md §2
+seeds: [42, 43, 44, 45, 46]
+test_seed: 42
+test_fraction: 0.20
+cv:
+  outer_k: 5
+  repeats: 3
+  inner_k: 3
+bootstrap:
+  B: 2000
+  ci: 0.95
+  method: cluster_percentile
+imbalance_strategies: [none, class_weight, undersample, oversample, smote]
+calibration: [platt, isotonic]
