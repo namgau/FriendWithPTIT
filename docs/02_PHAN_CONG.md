@@ -48,13 +48,14 @@
 | A2b | **Nhãn Head A** (nhận từ B): sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring, thống kê N hiệu dụng & prevalence | 06/11 | Định nghĩa nhãn sai = toàn bộ kết quả sai ; dễ rò rỉ tương lai vào đặc trưng |
 | A2c | **Nhãn Head B** (nhận từ B): cắt tiền tố G1 **trước** lượt công kích, giữ cặp ghép cùng phần, gộp nhãn H1 (OFFENSIVE + HATE) | 06/11 | Cắt tiền tố sai = mô hình "nhìn thấy" lượt công kích → kết quả ảo |
 | A5 | Head A: baseline (đa số, rule gốc, `time_since_last`) + LR + LightGBM ; 5 phương án mất cân bằng (X2) ; calibration + τ1/τ2 | 13/11 | Kết quả chính của bài |
-| A5b | **Imbalance trên H2 (UIT-ViCTSD)** (nhận từ B): 5 phương án none / class_weight / under / over / SMOTE cho bộ phân loại độc hại của C ; chọn **τ_B theo FPR** cho Head B | 16/11 | Under/oversampling, SMOTE là nội dung thầy nhấn mạnh → A làm thống nhất cho cả 2 head |
-| A6 | Head A: survival (Cox, Random Survival Forest) (X3) ; TabPFN (X7) ; conformal (X8) nếu kịp | 18/11 | Điểm cộng |
+| A5b | **Imbalance trên H2 (UIT-ViCTSD)** — phần **chạy CPU**: 5 phương án none / class_weight / under / over / SMOTE với TF-IDF + LR và với embedding đã cache (do B tính) + LR ; tổng hợp cùng kết quả GPU của B (B10) ; chọn **τ_B theo FPR** cho Head B | 18/11 | Under/oversampling, SMOTE là nội dung thầy nhấn mạnh → A thiết kế & kết luận thống nhất cho cả 2 head |
+| A6 | Head A: survival (Cox, Random Survival Forest) (X3) ; conformal (X8) nếu kịp — đều chạy CPU | 18/11 | Điểm cộng |
 | A7 | Ablation T1→T5 (X1), độ nhạy Δ (X5) | 19/11 | Trả lời RQ1 |
 | A8 | **Chạy lại toàn bộ từ config + seed** sau khi mở test ; đối chiếu số với báo cáo | 22/11 | Tiêu chí "auditable" |
 | A9 | Phân tích lỗi cả 2 head (`06_*` §5b) + **Practical limits** (`06_*` §6) | 25/11 | Thầy yêu cầu phân tích lỗi & điểm yếu |
 | A10 | **Ghép báo cáo cuối** theo mẫu `01_*` §4 + checklist §5 ; slide | nháp 27/11 ; bản cuối 29/11 | Một người chịu trách nhiệm tổng thể |
-> Ước lượng khối lượng: **A ≈ 28 người-ngày**, B ≈ 20, C ≈ 20 (5 tuần ≈ 25 ngày làm việc). A nặng nhất theo yêu cầu ; nếu A quá tải, trả **A5b** về B trước tiên.
+> **Nguyên tắc tài nguyên:** việc nào **tốn GPU hoặc token (API LLM)** giao cho B/C ; A chỉ chạy việc CPU để dành thời gian kiểm soát chất lượng. Mọi lần chạy GPU vẫn phải ghi config + seed vào `experiments/ledger.csv` để A kiểm tra.
+> Ước lượng khối lượng: **A ≈ 25 người-ngày**, B ≈ 24, C ≈ 20 (5 tuần ≈ 25 ngày làm việc).
 
 ## 3. Người B — dữ liệu, đặc trưng hành vi, backend + Swipe
 
@@ -65,6 +66,9 @@
 | B4 | Đặc trưng **T1** (hành vi thời gian) + **T2** (bề mặt văn bản, từ điển Anh/Việt) | 10/11 |
 | B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) | 13/11 |
 | B6 | Đánh giá bộ phát hiện câu hỏi/tin cụt trên DailyDialog (có nhãn dialog act) (X6) | 18/11 |
+| B8 | **[GPU]** Tính & **cache embedding** (mô hình C1 chọn) cho mọi tin nhắn của E1, E2, G1, H1, H2 → file `.npy` dùng chung (C cho T4/T5, A cho imbalance) ; ghi thời gian chạy, phần cứng | 09/11 |
+| B9 | **[GPU]** **TabPFN v2** cho Head A (X7) — nhận từ A ; so với LightGBM của A theo kích thước train ; dùng split/khung đánh giá của A | 18/11 |
+| B10 | **[GPU]** Phần imbalance cần GPU trên H2: fine-tune PhoBERT/XLM-R (pipeline của C2) với weighted loss và với oversampling ; giao kết quả cho A tổng hợp (A5b) | 18/11 |
 | B7 | Viết phần **Objective and data** + mô tả dữ liệu trong báo cáo ; duyệt chéo phần của C | 27/11 |
 | B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo hợp đồng API của A | 16/11 |
 | B-app2 | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng | 23/11 |
