@@ -52,3 +52,20 @@ Xem lịch 6 tuần trong `02_PHAN_CONG.md` §3. Mốc tuần 1: schema + hợp 
 - Chọn gì cho việc X? → xem mục "Công việc chi tiết" của module và `01_*` §2 (giao thức mặc định).
 - Thiếu thời gian? → xem tầng P0/P1/P2 trong `02_*`.
 - Dataset không tải được? → xem bảng rủi ro `02_*` §5.
+
+## 7. Sản phẩm demo đã dựng (Android + backend)
+
+Phần ML ở trên vẫn là nguồn chân lý cho báo cáo. Bên cạnh đó repo có sản phẩm chạy được:
+
+- `android/` — app Kotlin/Compose, dữ liệu demo 20 hồ sơ, fallback M1/M2/M3 và gọi FastAPI
+  qua `-PFWP_AI_BASE_URL`. Màn hình **Quanh bạn** dùng Google Maps khi truyền
+  `-PMAPS_API_KEY=...`, nếu không sẽ hiển thị radar mô phỏng. Build:
+  `.\gradlew.bat :app:assembleDebug`.
+- `serving/` — FastAPI đã có `/healthz`, `/m1/rank`, `/m2/compat`, `/m3/health`
+  (alias `/rank`, `/compat/update`, `/health/score`) + model registry `models/<module>/<version>`.
+  Chạy `uvicorn serving.app:app --port 8000`; test `pytest`.
+- `backend/` — NestJS + PostgreSQL/PostGIS, OTP demo `123456`, 20 hồ sơ seed,
+  swipe/match/chat/notification/report/block. Chạy `docker compose up --build` trong `backend/`.
+- Tài khoản demo dùng chung: `demo@ptit.edu.vn`, OTP `123456`, mật khẩu `Fwp@123456`.
+- Khi chưa có artifact huấn luyện, API trả `model_source = "fallback_rules"` và app ghi rõ
+  `"Quy tắc FwP (fallback)"`; không được trình bày số liệu fallback như kết quả model thật.

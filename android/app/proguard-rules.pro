@@ -1,0 +1,5 @@
+-keepattributes Signature
+-keepattributes *Annotation*
+-keep class vn.ptit.fwp.core.data.remote.** { *; }
+-dontwarn okhttp3.**
+-dontwarn retrofit2.**

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="fwp_red">#C62828</color>
+    <color name="fwp_red_dark">#8E1B1B</color>
+    <color name="fwp_gold">#FFC107</color>
+    <color name="fwp_white">#FFFFFF</color>
+    <color name="fwp_ink">#212121</color>
+    <color name="transparent">#00000000</color>
+</resources>

@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: fwp-postgres
+    environment:
+      POSTGRES_USER: fwp
+      POSTGRES_PASSWORD: fwp
+      POSTGRES_DB: fwp
+    ports:
+      - "5432:5432"
+    volumes:
+      - fwp-pgdata:/var/lib/postgresql/data
+      - ./docker/init.sql:/docker-entrypoint-initdb.d/01-postgis.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U fwp -d fwp"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: .
+    container_name: fwp-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PORT: 3000
+      DATABASE_URL: postgresql://fwp:fwp@db:5432/fwp
+      JWT_SECRET: fwp-local-docker-secret
+      JWT_EXPIRES_IN: 30d
+      DEMO_OTP: "123456"
+      SEED_DEMO: "true"
+      DB_SYNCHRONIZE: "true"
+      AI_BASE_URL: http://host.docker.internal:8000
+    ports:
+      - "3000:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  fwp-pgdata:
