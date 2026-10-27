@@ -9,8 +9,8 @@
 
 | | Người A (trưởng nhóm) | Người B | Người C |
 |---|---|---|---|
-| Module 3 | Khung đánh giá, Head A dạng bảng + survival, phân tích lỗi, báo cáo | Dữ liệu, nhãn, đặc trưng hành vi + phong cách (T1–T3), ViCTSD + thí nghiệm imbalance | Đọc nội dung (NLP), Head B, API |
-| Module 1+2 (app) | Luật lọc/xếp hạng + luật blur ở backend, hợp đồng API | Màn Swipe (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
+| Module 3 | Khung đánh giá, **định nghĩa nhãn cả 2 head**, Head A dạng bảng + survival, **toàn bộ thí nghiệm imbalance**, phân tích lỗi, báo cáo | Tải & làm sạch dữ liệu, đặc trưng hành vi + phong cách (T1–T3) | Đọc nội dung (NLP), Head B, API |
+| Module 1+2 (app) | Hợp đồng API (không code app) | **Backend luật** (lọc/xếp hạng M1 + luật blur M2) + **màn Swipe** (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
 | Họ tên | ________ | ________ | ________ |
 
 ## 0. Cắt bớt so với kế hoạch đầy đủ (vì còn 5 tuần + làm app)
@@ -45,48 +45,49 @@
 | A2 | **Khung đánh giá** `src/eval/`: split theo thời gian/nhóm, nested CV, cluster + paired bootstrap, calibration, chọn ngưỡng ; **test chống rò rỉ** chạy trong CI | split + bootstrap 02/11 ; còn lại 06/11 | Rò rỉ dữ liệu là lỗi mất điểm nặng nhất |
 | A3 | **Tạo & khóa tập test** cho mọi dataset (chỉ A giữ index test) ; **chỉ A mở test, đúng 1 lần, ngày 20/11** | tạo 06/11 ; mở 20/11 | Không ai vô tình chọn mô hình trên test |
 | A4 | **Review & merge mọi PR** theo checklist rò rỉ (`01_*` §3) ; kiểm tra mỗi thí nghiệm có dòng trong `experiments/ledger.csv` | liên tục, ≤ 24h mỗi PR | Một cửa kiểm soát |
+| A2b | **Nhãn Head A** (nhận từ B): sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring, thống kê N hiệu dụng & prevalence | 06/11 | Định nghĩa nhãn sai = toàn bộ kết quả sai ; dễ rò rỉ tương lai vào đặc trưng |
+| A2c | **Nhãn Head B** (nhận từ B): cắt tiền tố G1 **trước** lượt công kích, giữ cặp ghép cùng phần, gộp nhãn H1 (OFFENSIVE + HATE) | 06/11 | Cắt tiền tố sai = mô hình "nhìn thấy" lượt công kích → kết quả ảo |
 | A5 | Head A: baseline (đa số, rule gốc, `time_since_last`) + LR + LightGBM ; 5 phương án mất cân bằng (X2) ; calibration + τ1/τ2 | 13/11 | Kết quả chính của bài |
+| A5b | **Imbalance trên H2 (UIT-ViCTSD)** (nhận từ B): 5 phương án none / class_weight / under / over / SMOTE cho bộ phân loại độc hại của C ; chọn **τ_B theo FPR** cho Head B | 16/11 | Under/oversampling, SMOTE là nội dung thầy nhấn mạnh → A làm thống nhất cho cả 2 head |
 | A6 | Head A: survival (Cox, Random Survival Forest) (X3) ; TabPFN (X7) ; conformal (X8) nếu kịp | 18/11 | Điểm cộng |
 | A7 | Ablation T1→T5 (X1), độ nhạy Δ (X5) | 19/11 | Trả lời RQ1 |
 | A8 | **Chạy lại toàn bộ từ config + seed** sau khi mở test ; đối chiếu số với báo cáo | 22/11 | Tiêu chí "auditable" |
 | A9 | Phân tích lỗi cả 2 head (`06_*` §5b) + **Practical limits** (`06_*` §6) | 25/11 | Thầy yêu cầu phân tích lỗi & điểm yếu |
 | A10 | **Ghép báo cáo cuối** theo mẫu `01_*` §4 + checklist §5 ; slide | nháp 27/11 ; bản cuối 29/11 | Một người chịu trách nhiệm tổng thể |
-| A-app | Backend app: **luật lọc cứng + xếp hạng** M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + **hàm luật blur** M2 (theo số tin & số ngày chat) + test đơn vị | 16/11 | Nhẹ, để A còn sức kiểm soát chất lượng |
+> Ước lượng khối lượng: **A ≈ 28 người-ngày**, B ≈ 20, C ≈ 20 (5 tuần ≈ 25 ngày làm việc). A nặng nhất theo yêu cầu ; nếu A quá tải, trả **A5b** về B trước tiên.
 
-## 3. Người B — dữ liệu & đặc trưng hành vi
+## 3. Người B — dữ liệu, đặc trưng hành vi, backend + Swipe
 
 | Mã | Việc | Hạn |
 |---|---|---|
 | B1 | Tải, kiểm tra, parse **E1 Ubuntu + E2 Twitter CSKH** ; Data Card (N, đơn vị độc lập, prevalence, license, sha256) | 02/11 |
-| B2 | Tải, làm sạch **G1 (Conversations Gone Awry – Wiki)** + **H1 (ViHSD)** (+ H2 ViCTSD nếu kịp) ; Data Card | 04/11 |
-| B3 | Head A: sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring ; thống kê N hiệu dụng | 06/11 |
+| B2 | Tải, làm sạch **G1 (Conversations Gone Awry – Wiki)** + **H1 (ViHSD)** + **H2 (ViCTSD)** ; Data Card. Giao dữ liệu sạch cho A gán nhãn (A2b, A2c) | 04/11 |
 | B4 | Đặc trưng **T1** (hành vi thời gian) + **T2** (bề mặt văn bản, từ điển Anh/Việt) | 10/11 |
-| B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) — chuyển từ C sang | 13/11 |
-| B5b | **H2 (UIT-ViCTSD)** + so sánh **5 phương án mất cân bằng** (none / class_weight / under / over / SMOTE) trên bộ phân loại độc hại (phần imbalance của X12) | 16/11 |
+| B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) | 13/11 |
 | B6 | Đánh giá bộ phát hiện câu hỏi/tin cụt trên DailyDialog (có nhãn dialog act) (X6) | 18/11 |
 | B7 | Viết phần **Objective and data** + mô tả dữ liệu trong báo cáo ; duyệt chéo phần của C | 27/11 |
-| B-app | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng luật của A | 23/11 |
+| B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo hợp đồng API của A | 16/11 |
+| B-app2 | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng | 23/11 |
 
 ## 4. Người C — đọc nội dung, Head B, tích hợp
 
 | Mã | Việc | Hạn |
 |---|---|---|
 | C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) |
-| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do B làm) | 13/11 |
+| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do A làm) | 13/11 |
 | C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 |
 | C5 | **Cross-lingual Head B** (X14): điểm độc hại từ bộ phân loại tiếng Việt làm đặc trưng cho G1 ; hỗ trợ A chạy cross-domain Head A E1 ↔ E2 (X4) | 23/11 |
 | C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 |
 | C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 |
-| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của A (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 |
+| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 |
 
 ## 5. Phụ thuộc (điểm dễ nghẽn — A theo dõi)
 ```
 A1 hợp đồng (30/10) ──► mọi người
 A2 khung đánh giá (02–06/11) ──► A5, A6, C4
-B1–B3 dữ liệu + nhãn Head A (06/11) ──► A5, A6
-B2 G1/H1 (04/11) ──► C2, C4
-C2 bộ phân loại độc hại (13/11) ──► B5b imbalance, C5 cross-lingual   ← nghẽn chính
-A-app API luật (16/11) ──► B-app, C-app
+B1, B2 dữ liệu sạch (02–04/11) ──► A2b, A2c nhãn (06/11) ──► A5, A6, C2, C4   ← nghẽn chính: A vừa làm khung đánh giá vừa gán nhãn tuần 1–2
+C2 bộ phân loại độc hại (13/11) ──► A5b imbalance, C5 cross-lingual
+B-app1 API luật (16/11) ──► B-app2, C-app
 C6 API Module 3 (20/11) ──► C-app
 ```
 
