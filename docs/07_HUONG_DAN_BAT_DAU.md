@@ -19,7 +19,7 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 
 ## 3. Việc cần làm ngay trong tuần 1 (bài nộp = Module 3, đọc `06_*` trước)
 
-### Người A — khung đánh giá
+### Người A — khung đánh giá (+ chuẩn bị survival)
 1. `src/eval/splits.py`: `held_out_time_split` (20% hội thoại bắt đầu muộn nhất), `forward_chaining(K=5)`, `group_kfold(groups, K)` (theo hội thoại / người đóng góp), `nested_cv`. **Viết `tests/test_splits_no_leak.py` thật** (bỏ `skip`): assert không group nào ở cả train và test, và hội thoại train bắt đầu sớm hơn validation.
 2. `src/eval/bootstrap.py` (cluster bootstrap, B = 2000), rồi `imbalance.py` (5 chiến lược), `calibration.py`, `threshold.py` (τ1, τ2 theo chi phí FN:FP), `report.py`.
 3. Chốt giao diện hàm của `src/eval` trong 2 ngày đầu, báo B và C.
@@ -28,12 +28,14 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 1. Tải & kiểm tra **E1 Ubuntu Dialogue Corpus** (bản có timestamp) và **E2 Customer Support on Twitter**: có đúng cột timestamp, người gửi, nối được thành hội thoại 2 người không? Viết `docs/data_cards/DATA_CARD_E1.md`, `..._E2.md` (nguồn, license, N, đơn vị độc lập, sha256 → `data/checksums.txt`). Bộ nào không dùng được → báo nhóm ngay.
 2. Bản nháp `src/m3_health/labels.py`: sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring (`06_*` §1.2).
 3. Soạn Google Form đồng ý cho dữ liệu V1 và bản nháp script trích đặc trưng local (`08_*`).
+4. Head B: `pip install convokit`, tải `conversations-gone-awry-corpus` (G1); tải ViHSD (H1) từ GitHub/HuggingFace. In N hội thoại/bình luận, prevalence, kiểm tra cấu trúc cặp ghép của G1.
 
 ### Người C — đặc trưng ngữ nghĩa + hạ tầng
 1. Chốt cùng B interface `extract_features(messages) -> DataFrame` trong `src/m3_health/features.py` (mỗi tầng T1..T4 một hàm con).
 2. Thử `paraphrase-multilingual-MiniLM-L12-v2` trên vài câu Anh/Việt: tốc độ CPU, kích thước; chọn mô hình embedding. PCA cố định: **fit trên DailyDialog (E4)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2, V1.
 3. `serving/schemas.py` + `serving/app.py`: FastAPI khung với `/healthz` và `/health/score` trả giá trị giả; chạy `uvicorn serving.app:app`.
 4. Bản nháp danh sách từ chức năng tiếng Việt cho LSM (đại từ, trợ từ, liên từ).
+5. Head B: chạy thử TF-IDF+LR trên ViHSD (H1) làm baseline ; thử fine-tune PhoBERT/XLM-R 1 epoch trên Colab để biết thời gian/GPU cần.
 
 ## 4. Mốc cần đạt
 Xem lịch 6 tuần trong `02_PHAN_CONG.md` §4. Mốc tuần 1: interface đặc trưng + khung split/bootstrap có test + Data Card E1/E2 + Form đồng ý V1.

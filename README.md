@@ -1,7 +1,7 @@
 # FwP — Bài tập lớn Huấn luyện mô hình học máy
 
 App kết nối bạn bè/hẹn hò giữa sinh viên nhiều trường (đang học / đã tốt nghiệp).
-**Bài nộp môn Học máy: Module 3 — dự đoán hội thoại sắp "tắt"** (4 tầng đặc trưng, survival analysis, chuyển miền Anh → Việt). Module 1 (xếp hạng swipe) và Module 2 (ảnh rõ dần) làm bản luật cho app mobile.
+**Bài nộp môn Học máy: Module 3 — Conversation Intelligence**: dự báo hội thoại sắp "tắt" (survival + conformal) và sắp trở nên độc hại (CRAFT-like, PhoBERT/XLM-R), chung bộ mã hóa đọc hành vi + nội dung, chuyển miền Anh → Việt. Module 1 (xếp hạng swipe) và Module 2 (ảnh rõ dần) làm bản luật cho app mobile.
 
 - Thiết kế bài nộp: [`docs/06_MODULE_3_HEALTH_MONITOR.md`](docs/06_MODULE_3_HEALTH_MONITOR.md)
 

@@ -24,7 +24,7 @@ Input : thư mục export (Messenger hoặc Telegram) trên máy người đóng
 Bước  : 1. Đọc JSON, sửa font, bỏ hội thoại nhóm (> 2 người) và hội thoại < 10 tin
         2. Đổi tên người → hash(salt_local + tên); người đóng góp = "self"
         3. Với mỗi tin: timestamp, sender_hash, n_words, n_chars, is_question, is_short_reply,
-           n_emoji, has_laugh, các đếm từ chức năng (cho LSM), embedding MiniLM (384 chiều,
+           n_emoji, has_laugh, các đếm từ chức năng (cho LSM), điểm độc hại từ bộ phân loại tiếng Việt của nhóm (Head B, `06_*` T5), embedding MiniLM (384 chiều,
            có thể giảm còn 32 chiều bằng PCA cố định do nhóm cung cấp, fit trên DailyDialog), điểm cảm xúc
         4. Ghi ra features_<donor_hash>.parquet — KHÔNG có cột văn bản
         5. In ra màn hình 5 dòng đầu để người đóng góp TỰ KIỂM TRA không có chữ

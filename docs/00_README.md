@@ -3,7 +3,7 @@
 Ứng dụng kết nối bạn bè/hẹn hò giữa sinh viên nhiều trường (có trạng thái **đang học / đã tốt nghiệp**). Mô tả sản phẩm gốc: `reference/AI_ML_FWP.md`. Bộ tài liệu này biến mô tả đó thành kế hoạch thực nghiệm **auditable** theo tiêu chuẩn của môn (`reference/tieuchuan.jpg`).
 
 ## Quyết định phạm vi
-**Bài nộp môn Học máy = Module 3 — Conversation Health Monitor** (`06_*`), cả 3 người cùng làm. Module 1, 2 làm bản luật/đơn giản cho app mobile.
+**Bài nộp môn Học máy = Module 3 — Conversation Intelligence** (`06_*`), cả 3 người cùng làm: **Head A** dự báo hội thoại sắp tắt, **Head B** dự báo hội thoại sắp trở nên độc hại, chung một bộ mã hóa đọc hành vi + nội dung. Module 1, 2 làm bản luật/đơn giản cho app mobile.
 
 ## Mục lục tài liệu
 
@@ -14,7 +14,7 @@
 | `03_MODULE_0_DATA_EVAL_SERVING.md` | Danh mục dataset, schema, dữ liệu tổng hợp, khung đánh giá dùng chung, serving/demo |
 | `04_MODULE_1_RANKING.md` | (Tham khảo, không nộp) Module 1: xếp hạng swipe (Speed Dating, Libimseti, OkCupid + synthetic) |
 | `05_MODULE_2_COMPATIBILITY.md` | (Tham khảo, không nộp) Module 2: độ hợp → % unblur (Essays/MBTI/PANDORA, VSMEC/VSFC/GoEmotions, PersonaChat…) |
-| `06_MODULE_3_HEALTH_MONITOR.md` | **BÀI NỘP CHÍNH:** Module 3 — 4 tầng đặc trưng, 4 họ mô hình (gồm survival), cross-domain Anh → Việt |
+| `06_MODULE_3_HEALTH_MONITOR.md` | **BÀI NỘP CHÍNH:** Module 3 — 2 head (tắt / độc hại), 5 tầng đặc trưng, survival + conformal, CRAFT-like, multi-task, cross-domain Anh → Việt |
 | `07_HUONG_DAN_BAT_DAU.md` | **Đọc đầu tiên:** hướng dẫn từng bước cho từng người, việc tuần 1, cách chạy, quy trình làm việc |
 | `08_THU_DU_LIEU_CHAT_VIET.md` | Thu chat Messenger/Telegram tiếng Việt giữ riêng tư (chỉ gửi đặc trưng số) |
 | `data_cards/` | Data Card từng dataset (Người B/C viết khi tải dữ liệu) |
@@ -23,11 +23,11 @@
 ## Đối chiếu yêu cầu thầy giao
 | Yêu cầu | Đã đáp ứng bằng |
 |---|---|
-| Dữ liệu tự tìm, ≥ 2 bộ | ≥ 2 bộ có timestamp cùng bài toán: Ubuntu, Twitter CSKH (+ Reddit) và chat tiếng Việt tự thu (`06_*` §1.1, `08_*`) |
+| Dữ liệu tự tìm, ≥ 2 bộ | Head A: Ubuntu, Twitter CSKH (+ Reddit), chat tiếng Việt tự thu ; Head B: Conversations Gone Awry (Wiki, Reddit CMV), ViHSD, UIT-ViCTSD (`06_*` §1.1, `08_*`) |
 | Tổng hợp kiến thức đã học | LR/RF/GBM, CV theo thời gian & nhóm, imbalance (under/over/SMOTE), calibration, ngưỡng, bootstrap, bias–variance |
 | Phân tích kết quả, lỗi mô hình | `06_*` §5b + khung `01_*` §6 ; ablation 4 tầng đặc trưng, cross-domain |
 | Metric đánh giá | `06_*` §5c: PR-AUC (chính), ROC-AUC, Brier/ECE, lead time, C-index/IBS, coverage conformal ; mean ± SD + CI bootstrap |
-| Điểm cộng: kiến thức mới | `06_*` §5d: TabPFN v2 (Nature 2025), conformalized survival (ICLR/ICML 2025), BGE-M3/VN-MTEB, LLM trích đặc trưng, LSM, survival, SHAP |
+| Điểm cộng: kiến thức mới | `06_*` §5d: TabPFN v2 (Nature 2025), conformalized survival (ICLR/ICML 2025), dự báo hội thoại độc hại (CRAFT → 2025–2026), multi-task, BGE-M3/VN-MTEB, PhoBERT/XLM-R, LLM trích đặc trưng, LSM, SHAP |
 | Lưu ý | Đề tài ngoài danh sách mẫu → **đã được thầy chấp nhận** ; bài nộp = Module 3 |
 
 ## Bản đồ tiêu chuẩn ↔ tài liệu

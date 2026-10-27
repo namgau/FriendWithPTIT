@@ -21,6 +21,7 @@ pytest>=8.0
 # tabpfn                   (X7: foundation model bảng)
 # mapie                    (conformal prediction)
 # underthesea
+# convokit                 (Head B: Conversations Gone Awry)
 # Serving
 fastapi>=0.110
 uvicorn>=0.29
