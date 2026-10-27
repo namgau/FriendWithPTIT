@@ -180,7 +180,7 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 
 | Hạng mục | Thiết kế |
 |---|---|
-| Test held-out | E1, E2: 20% hội thoại **bắt đầu muộn nhất**. V1: 20% **người đóng góp** (group). Khóa tới tuần 5 |
+| Test held-out | E1, E2: 20% hội thoại **bắt đầu muộn nhất**. V1: 20% **người đóng góp** (group). Khóa tới 20/11 (chỉ Người A mở) |
 | Outer CV | E1/E2: **forward-chaining theo thời gian** (5 khối, train các khối trước → validate khối sau). V1: **GroupKFold theo người đóng góp**, K = 5 (leave-one-donor-out nếu < 15 người) |
 | Lặp & seeds | R = 3 cho phần ngẫu nhiên (khởi tạo, SMOTE, NN); seeds 42–46 |
 | Inner CV | GroupKFold theo hội thoại trong train, K = 3 |
@@ -302,7 +302,7 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 
 | Mục | Điểm yếu cụ thể | Ảnh hưởng | Bằng chứng trong báo cáo | Đã giảm thiểu | Còn tồn tại |
 |---|---|---|---|---|---|
-| **Resources** | Không có GPU riêng ; 3 người, ~6 tuần | Không fine-tune được transformer lớn, lưới siêu tham số nhỏ, R chỉ = 3 | Bảng thời gian train + RAM + latency suy luận từng mô hình (R1) ; ghi rõ phần cứng | MiniLM/embedding đóng băng chạy CPU ; Colab/Kaggle cho PhoBERT/XLM-R ; TabPFN không cần tuning | Kết quả transformer có thể chưa tối ưu ; ghi rõ "không tuning đầy đủ" |
+| **Resources** | Không có GPU riêng ; 3 người, 5 tuần, song song làm app môn Mobile | Không fine-tune được transformer lớn, lưới siêu tham số nhỏ, R chỉ = 3 | Bảng thời gian train + RAM + latency suy luận từng mô hình (R1) ; ghi rõ phần cứng | MiniLM/embedding đóng băng chạy CPU ; Colab/Kaggle cho PhoBERT/XLM-R ; TabPFN không cần tuning | Kết quả transformer có thể chưa tối ưu ; ghi rõ "không tuning đầy đủ" |
 | **Dependence** | Mẫu (c, t) cùng hội thoại tự tương quan ; nhiều hội thoại của cùng người đóng góp (V1) ; cùng tài khoản CSKH (E2) ; cặp ghép trong G1 | CV/CI bị **lạc quan** nếu coi mẫu độc lập | Báo N mẫu **và** N hiệu dụng (hội thoại/người) ; so sánh CI bootstrap theo mẫu vs theo cụm (CI cụm rộng hơn bao nhiêu) | Split theo group/thời gian ; cluster bootstrap ; lấy mẫu mỗi 2 tin | Vẫn còn phụ thuộc giữa các hội thoại có chung người nhận mà nhóm không biết (id đã băm) |
 | **Representativeness** | E1 (hỗ trợ kỹ thuật), E2 (CSKH), G1/G2 (tranh luận công khai), H1/H2 (bình luận công khai) **không phải chat làm quen** ; V1 là bạn bè của nhóm, ít người, chủ yếu 1 trường, tự chọn hội thoại để gửi | Kết quả trên dữ liệu công khai **không chứng minh** hiệu quả trong app hẹn hò | Bảng mô tả V1 (số người, giới, trường, độ dài hội thoại) so với E1/E2 ; phân phối đặc trưng chính giữa các bộ | Thu V1 đúng miền (chat riêng, tiếng Việt) ; báo kết quả V1 tách riêng | Không có dữ liệu chat hẹn hò thật có nhãn ; thiên lệch chọn mẫu của V1 không đo được hết |
 | **Distribution shift** | Khác ngôn ngữ (Anh → Việt), nền tảng (IRC/Twitter → Messenger), văn hóa nhắn tin (teencode, sticker), nhịp thời gian | Mô hình tốt trên E1 có thể kém trên V1 | **Ma trận cross-domain R5** (độ sụt PR-AUC khi đổi miền) ; PSI từng đặc trưng ; coverage conformal khi đổi miền (X8) | Đặc trưng tương đối (latency so với nhịp riêng cặp) ; embedding đa ngữ ; hiệu chỉnh lại xác suất theo prevalence | Khi lên app cần theo dõi PSI + tỉ lệ cảnh báo/tuần và retrain |

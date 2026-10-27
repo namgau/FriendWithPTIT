@@ -10,7 +10,7 @@
 | File | Nội dung |
 |---|---|
 | `01_CHUAN_BAO_CAO_AUDITABLE.md` | Chuẩn 5 mục báo cáo → việc cụ thể; giao thức mặc định (K, R, seeds, bootstrap, imbalance, calibration); checklist chống leakage; checklist duyệt chéo |
-| `02_PHAN_CONG.md` | Phân công 3 người cho Module 3, ưu tiên P0/P1/P2, phụ thuộc, lịch 6 tuần, rủi ro |
+| `02_PHAN_CONG.md` | Phân công 3 người (Module 3 + Module 1–2 bản app), **deadline từng việc, hạn nộp 01/12/2026**, Người A kiểm soát chất lượng, phụ thuộc, rủi ro |
 | `03_MODULE_0_DATA_EVAL_SERVING.md` | Danh mục dataset, schema, dữ liệu tổng hợp, khung đánh giá dùng chung, serving/demo |
 | `04_MODULE_1_RANKING.md` | (Tham khảo, không nộp) Module 1: xếp hạng swipe (Speed Dating, Libimseti, OkCupid + synthetic) |
 | `05_MODULE_2_COMPATIBILITY.md` | (Tham khảo, không nộp) Module 2: độ hợp → % unblur (Essays/MBTI/PANDORA, VSMEC/VSFC/GoEmotions, PersonaChat…) |

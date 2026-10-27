@@ -38,5 +38,6 @@ pytest
 ## Quy tắc làm việc
 - Nhánh: `a/<task>`, `b/<task>`, `c/<task>`; PR nhỏ, người khác review; `main` chỉ merge qua PR.
 - Mọi thí nghiệm chạy từ `configs/*.yaml` và ghi `experiments/ledger.csv`.
-- Không mở tập test trước tuần 5. Không commit dữ liệu thô/pilot.
+- Chỉ Người A mở tập test, đúng 1 lần, ngày 20/11/2026. Không commit dữ liệu thô/V1.
+- Hạn nộp: **Thứ Ba 01/12/2026** — mốc chi tiết trong `docs/02_PHAN_CONG.md`.
 - Số liệu dataset chỉ đưa vào báo cáo sau khi in ra từ code.

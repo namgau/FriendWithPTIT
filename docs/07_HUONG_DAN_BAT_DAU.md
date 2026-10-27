@@ -38,11 +38,11 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 5. Head B: chạy thử TF-IDF+LR trên ViHSD (H1) làm baseline ; thử fine-tune PhoBERT/XLM-R 1 epoch trên Colab để biết thời gian/GPU cần.
 
 ## 4. Mốc cần đạt
-Xem lịch 6 tuần trong `02_PHAN_CONG.md` §4. Mốc tuần 1: interface đặc trưng + khung split/bootstrap có test + Data Card E1/E2 + Form đồng ý V1.
+Hạn nộp **Thứ Ba 01/12/2026**. Mốc theo ngày và deadline từng việc: `02_PHAN_CONG.md` §1–§4. Mốc đầu tiên: **Thứ Sáu 30/10** chốt hợp đồng dữ liệu/API + gửi form đồng ý V1 ; **Thứ Hai 02/11** dữ liệu E1, E2, G1, H1 tải xong, khung split + bootstrap có test.
 
 ## 5. Quy tắc cứng (dễ mất điểm nếu vi phạm)
 - Không fit bất cứ gì (scaler, SMOTE, embedding, PCA…) ngoài train fold.
-- Không mở tập test trước tuần 5; mở rồi thì ghi vào Practical limits.
+- Chỉ Người A mở tập test, đúng 1 lần, ngày 20/11 ; không ai khác truy cập index test.
 - Không commit dữ liệu thô/V1; không đưa tên thật, nội dung tin nhắn hay thông tin cá nhân vào repo.
 - Số liệu dataset chỉ chép vào báo cáo sau khi in ra từ code.
 - Mỗi bảng kết quả phải sinh lại được từ config + seed.
@@ -50,5 +50,5 @@ Xem lịch 6 tuần trong `02_PHAN_CONG.md` §4. Mốc tuần 1: interface đặ
 ## 6. Khi bí
 - Chọn gì cho việc X? → `06_*` (thiết kế Module 3) và `01_*` §2 (giao thức mặc định).
 - Thiếu thời gian? → xem tầng P0/P1/P2 trong `02_*`.
-- Dataset không tải được? → xem bảng rủi ro `02_*` §6.
+- Dataset không tải được? → xem bảng rủi ro `02_*` §7. Trễ hạn > 2 ngày → báo A để cắt theo `02_*` §0.
 - Thu dữ liệu chat tiếng Việt? → `08_*`.
