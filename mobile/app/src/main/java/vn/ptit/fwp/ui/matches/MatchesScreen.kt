@@ -50,7 +50,7 @@ class MatchesViewModel(private val repo: FwpRepository) : ViewModel() {
 
 @Composable
 fun MatchesScreen(onOpenChat: (String) -> Unit) {
-    val vm: MatchesViewModel = viewModel(factory = viewModelFactory { initializer { MatchesViewModel(ServiceLocator.repository()) } })
+    val vm: MatchesViewModel = viewModel(key = "matches-${ServiceLocator.settings.useServer}", factory = viewModelFactory { initializer { MatchesViewModel(ServiceLocator.repository()) } })
     val state by vm.state.collectAsStateWithLifecycle()
     LaunchedEffect(Unit) { vm.load() } // tải lại mỗi lần quay về màn này
 

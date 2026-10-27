@@ -91,7 +91,8 @@ class SwipeViewModel(private val repo: FwpRepository) : ViewModel() {
 
 @Composable
 fun SwipeScreen(onOpenChat: (String) -> Unit) {
-    val vm: SwipeViewModel = viewModel(factory = viewModelFactory { initializer { SwipeViewModel(ServiceLocator.repository()) } })
+    // key theo nguồn dữ liệu: bật/tắt "Dùng server AI" sẽ tạo ViewModel mới
+    val vm: SwipeViewModel = viewModel(key = "swipe-${ServiceLocator.settings.useServer}", factory = viewModelFactory { initializer { SwipeViewModel(ServiceLocator.repository()) } })
     val state by vm.state.collectAsStateWithLifecycle()
 
     Box(Modifier.fillMaxSize().padding(Spacing.lg)) {

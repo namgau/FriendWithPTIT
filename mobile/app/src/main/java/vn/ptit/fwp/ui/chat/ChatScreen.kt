@@ -121,7 +121,7 @@ class ChatViewModel(
 @Composable
 fun ChatScreen(matchId: String, onBack: () -> Unit) {
     val vm: ChatViewModel = viewModel(
-        key = matchId,
+        key = "chat-$matchId-${ServiceLocator.settings.useServer}",
         factory = viewModelFactory { initializer { ChatViewModel(matchId, ServiceLocator.repository(), ServiceLocator.settings) } },
     )
     val state by vm.state.collectAsStateWithLifecycle()
