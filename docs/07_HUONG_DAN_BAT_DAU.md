@@ -8,47 +8,45 @@ python -m venv .venv
 pip install -r requirements.txt
 pytest                            # phải chạy được (hiện 1 test skip là bình thường)
 ```
-Cần Python ≥ 3.10. Module 2 cần thêm `torch`, `transformers` (bỏ comment trong `requirements.txt`) — nên chạy trên Colab/Kaggle nếu không có GPU.
+Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival cần `scikit-survival` hoặc `lifelines`; GRU cần `torch` (bỏ comment trong `requirements.txt`). Không có GPU vẫn chạy được MiniLM trên CPU.
 
 ## 2. Quy trình làm việc mỗi task
 1. `git checkout main && git pull`, tạo nhánh `a/<task>` (hoặc `b/`, `c/`), ví dụ `a/eval-splits`.
-2. Làm theo mục "Công việc chi tiết" của module (file `04`–`06`) và mã việc trong `02_PHAN_CONG.md`.
+2. Làm theo mã việc trong `02_PHAN_CONG.md` (A1…, B1…, C1…) và thiết kế trong `06_MODULE_3_HEALTH_MONITOR.md`.
 3. Mọi thí nghiệm: tạo/sửa file trong `configs/`, chạy, rồi **thêm 1 dòng vào `experiments/ledger.csv`** (module, config hash, data hash, seeds, metric mean/sd).
 4. Mở Pull Request nhỏ → 1 người khác review → merge vào `main`.
-5. Khi xong 1 module: viết báo cáo theo mẫu `01_*` §4, để người khác duyệt bằng checklist §5.
+5. Báo cáo cuối viết theo mẫu `01_*` §4, duyệt chéo bằng checklist `01_*` §5.
 
-## 3. Việc cần làm ngay trong tuần 1
+## 3. Việc cần làm ngay trong tuần 1 (bài nộp = Module 3, đọc `06_*` trước)
 
-### Người A — khung đánh giá + EDA Module 1
-1. `src/eval/splits.py`: `held_out_group_split`, `repeated_group_kfold(K, R, seeds)`, `time_split`, `nested_cv`. **Viết `tests/test_splits_no_leak.py` thật** (bỏ `skip`): assert không group nào ở cả train và test.
-2. `src/eval/imbalance.py` (5 chiến lược), `calibration.py`, `threshold.py`, `bootstrap.py`, `report.py` — thứ tự ưu tiên: splits → bootstrap → imbalance → calibration → report.
-3. Tải Speed Dating (Kaggle `annavictoria/speed-dating-experiment`), notebook EDA: in N dòng, số wave, số người, prevalence `match`, missing; lập danh sách cột **cho phép/cấm** (xem `04_*` §1.2).
-4. Chốt giao diện hàm của `src/eval` trong 2 ngày đầu và báo B, C vì họ phụ thuộc.
+### Người A — khung đánh giá
+1. `src/eval/splits.py`: `held_out_time_split` (20% hội thoại bắt đầu muộn nhất), `forward_chaining(K=5)`, `group_kfold(groups, K)` (theo hội thoại / người đóng góp), `nested_cv`. **Viết `tests/test_splits_no_leak.py` thật** (bỏ `skip`): assert không group nào ở cả train và test, và hội thoại train bắt đầu sớm hơn validation.
+2. `src/eval/bootstrap.py` (cluster bootstrap, B = 2000), rồi `imbalance.py` (5 chiến lược), `calibration.py`, `threshold.py` (τ1, τ2 theo chi phí FN:FP), `report.py`.
+3. Chốt giao diện hàm của `src/eval` trong 2 ngày đầu, báo B và C.
 
-### Người B — dữ liệu chung + chuẩn bị Module 2
-1. Tải và kiểm tra D1–D12 (`03_*` §0A.1). Với mỗi bộ viết `docs/data_cards/DATA_CARD_<id>.md`: nguồn, license, N, đơn vị độc lập, prevalence, sha256 → `data/checksums.txt`. Đánh dấu bộ nào không tải được.
-2. `src/schema.py` theo `03_*` §0A.3; bảng mapping cột D1/D3 → schema.
-3. Bắt đầu `src/synth/profiles.py` (S1) theo quy tắc §0A.4 (ghi rõ β nào là "assumption").
-4. Soạn Google Form khảo sát P1 + phiếu đồng ý ẩn danh (nhờ C cùng thu).
-5. Thử fine-tune/chạy baseline TF-IDF+LR trên UIT-VSMEC để biết có cần GPU.
+### Người B — dữ liệu
+1. Tải & kiểm tra **E1 Ubuntu Dialogue Corpus** (bản có timestamp) và **E2 Customer Support on Twitter**: có đúng cột timestamp, người gửi, nối được thành hội thoại 2 người không? Viết `docs/data_cards/DATA_CARD_E1.md`, `..._E2.md` (nguồn, license, N, đơn vị độc lập, sha256 → `data/checksums.txt`). Bộ nào không dùng được → báo nhóm ngay.
+2. Bản nháp `src/m3_health/labels.py`: sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring (`06_*` §1.2).
+3. Soạn Google Form đồng ý cho dữ liệu V1 và bản nháp script trích đặc trưng local (`08_*`).
 
-### Người C — hạ tầng + chuẩn bị Module 3
-1. `serving/schemas.py`: hợp đồng JSON cho `/rank`, `/compat/update`, `/health/score` (chốt cùng A, B).
-2. `serving/app.py`: FastAPI khung + `/healthz`; chạy `uvicorn serving.app:app`.
-3. `src/synth/chat.py` (S2): simulator hội thoại có timestamp, độ dài, câu hỏi, hứng thú tiềm ẩn h(t) (`06_*` §6, mục 3A); tham số ghi trong config.
-4. Tải Ubuntu Dialogue Corpus v2 + DailyDialog, viết Data Card; định nghĩa mẫu/nhãn/censoring (`06_*` §1.2).
+### Người C — đặc trưng ngữ nghĩa + hạ tầng
+1. Chốt cùng B interface `extract_features(messages) -> DataFrame` trong `src/m3_health/features.py` (mỗi tầng T1..T4 một hàm con).
+2. Thử `paraphrase-multilingual-MiniLM-L12-v2` trên vài câu Anh/Việt: tốc độ CPU, kích thước; chọn mô hình embedding. PCA cố định: **fit trên DailyDialog (E4)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2, V1.
+3. `serving/schemas.py` + `serving/app.py`: FastAPI khung với `/healthz` và `/health/score` trả giá trị giả; chạy `uvicorn serving.app:app`.
+4. Bản nháp danh sách từ chức năng tiếng Việt cho LSM (đại từ, trợ từ, liên từ).
 
 ## 4. Mốc cần đạt
-Xem lịch 6 tuần trong `02_PHAN_CONG.md` §3. Mốc tuần 1: schema + hợp đồng API + khung đánh giá chạy được + Data Card đầu tiên.
+Xem lịch 6 tuần trong `02_PHAN_CONG.md` §4. Mốc tuần 1: interface đặc trưng + khung split/bootstrap có test + Data Card E1/E2 + Form đồng ý V1.
 
 ## 5. Quy tắc cứng (dễ mất điểm nếu vi phạm)
 - Không fit bất cứ gì (scaler, SMOTE, embedding, PCA…) ngoài train fold.
 - Không mở tập test trước tuần 5; mở rồi thì ghi vào Practical limits.
-- Không commit dữ liệu thô/pilot; không đưa tên thật hay thông tin cá nhân vào repo.
+- Không commit dữ liệu thô/V1; không đưa tên thật, nội dung tin nhắn hay thông tin cá nhân vào repo.
 - Số liệu dataset chỉ chép vào báo cáo sau khi in ra từ code.
 - Mỗi bảng kết quả phải sinh lại được từ config + seed.
 
 ## 6. Khi bí
-- Chọn gì cho việc X? → xem mục "Công việc chi tiết" của module và `01_*` §2 (giao thức mặc định).
+- Chọn gì cho việc X? → `06_*` (thiết kế Module 3) và `01_*` §2 (giao thức mặc định).
 - Thiếu thời gian? → xem tầng P0/P1/P2 trong `02_*`.
-- Dataset không tải được? → xem bảng rủi ro `02_*` §5.
+- Dataset không tải được? → xem bảng rủi ro `02_*` §6.
+- Thu dữ liệu chat tiếng Việt? → `08_*`.

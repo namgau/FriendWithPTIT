@@ -108,15 +108,7 @@ Làm trên **dự đoán out-of-fold của CV** (không dùng test để khám l
 
 Bổ sung: độ **calibration theo nhóm**, so sánh lỗi của mô hình chốt với baseline (mô hình thắng ở đâu, thua ở đâu).
 
-## 7. Kiến thức mở rộng (điểm cộng) — đối chiếu tối thiểu
+## 7. Kiến thức mở rộng (điểm cộng)
 
-Mỗi module chọn ≥ 2 kỹ thuật ngoài chương trình, **nhưng luôn so với baseline kinh điển** để chứng minh đáng dùng. Gợi ý:
-
-| Kỹ thuật mới | Dùng ở | So với |
-|---|---|---|
-| Learning-to-rank (LambdaMART) | M1 | LR pointwise |
-| Conformal prediction / dự đoán có khoảng tin cậy | M1, M3 | xác suất calibrate thường |
-| SHAP / giải thích mô hình | M1, M3 | feature importance thường |
-| Transformer tiếng Việt (PhoBERT) | M2 | TF-IDF + LR |
-| Đánh giá phân phối lệch (PSI, domain shift) | M1, M3 | không theo dõi |
-| Tuning Bayesian (Optuna) | tất cả | grid search |
+Danh sách cụ thể, có nguồn 2024–2026 cho bài nộp (Module 3): xem `06_*` §5d (TabPFN v2, conformalized survival, weighted conformal dưới covariate shift, embedding đa ngữ + VN-MTEB, LLM làm bộ trích đặc trưng, Language Style Matching, survival analysis, SHAP).
+Nguyên tắc: mỗi kỹ thuật mới **phải so với baseline kinh điển** và báo CI, nếu không thắng thì vẫn báo cáo trung thực (kết quả âm cũng có giá trị).

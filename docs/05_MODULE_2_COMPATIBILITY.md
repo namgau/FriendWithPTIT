@@ -1,5 +1,7 @@
 # 05 — Module 2: Compatibility Reconstruction (độ hợp → % unblur ảnh) — Người B
 
+> **Cập nhật phạm vi:** Module 2 **không nộp môn ML**. App mobile: blur giảm theo số tin nhắn & số ngày chat (luật), quả cầu chỉ hiển thị. Thiết kế ML bên dưới giữ lại để tham khảo/làm sau.
+
 > Đọc kèm `01_CHUAN_BAO_CAO_AUDITABLE.md`, `03_MODULE_0_DATA_EVAL_SERVING.md`.
 > Module này gồm **4 bài toán con**, mỗi bài có dataset/nhãn/metric riêng, và mỗi bài phải có đủ 5 mục báo cáo (dạng rút gọn cho 2B, 2C).
 

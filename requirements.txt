@@ -12,12 +12,15 @@ optuna>=3.6
 pyyaml>=6.0
 joblib>=1.3
 pytest>=8.0
-# NLP / Module 2-3 (cài khi cần)
-# torch
+# Module 3: cài khi cần
+# torch                    (GRU)
 # transformers
-# sentence-transformers
+# sentence-transformers   (tầng T4: embedding đa ngữ)
+# scikit-survival          (survival: Cox, Random Survival Forest)
+# lifelines                (survival: Cox PH, Kaplan–Meier)
+# tabpfn                   (X7: foundation model bảng)
+# mapie                    (conformal prediction)
 # underthesea
-# surprise  (CF Libimseti; có thể dùng implicit)
 # Serving
 fastapi>=0.110
 uvicorn>=0.29
