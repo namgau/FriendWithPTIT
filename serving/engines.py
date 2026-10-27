@@ -12,7 +12,7 @@ import math
 import time
 from collections.abc import Iterable
 
-from serving.schemas import (
+from serving.schemas_mobile import (
     AiMessage,
     AiProfile,
     CompatRequest,

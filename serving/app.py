@@ -1,16 +1,19 @@
-"""FastAPI serving layer for the FwP ML modules.
+"""FwP AI Service (FastAPI).
 
 Run locally::
 
     uvicorn serving.app:app --reload --host 0.0.0.0 --port 8000
 
-Android emulator base URL: ``http://10.0.2.2:8000/`` and build with
-``-PFWP_AI_BASE_URL=http://10.0.2.2:8000/``.
+Two clients are supported by the same process:
 
-The endpoints expose deterministic, auditable fallback rules (same behaviour as
-the Kotlin engines).  The model registry exposes installed versions and supports
-activating a version for a future trained adapter, without changing the JSON
-contract consumed by the app.
+* ``mobile/`` uses the canonical contract in ``serving/schemas.py``:
+  ``/app/*`` demo backend, ``/rank``, ``/blur-level``, ``/health/score`` and
+  ``/safety/score``.
+* ``android/`` uses the mobile-app contract in ``serving/schemas_mobile.py``:
+  ``/m1/rank``, ``/m2/compat`` and ``/m3/health``.  Its fallback rules mirror
+  the Kotlin engines, and ``/v1/models`` exposes the model registry.
+
+Android emulator base URL: ``http://10.0.2.2:8000/``.
 """
 
 from __future__ import annotations
@@ -21,30 +24,48 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from serving import engines
+from serving.demo_backend import router as demo_router
 from serving.model_registry import ModelRegistry
+from serving.predictors import (
+    SUGGESTIONS,
+    TAU_NUDGE,
+    get_health_predictor,
+    get_safety_predictor,
+    level_from_p,
+)
+from serving.rules import RULES_VERSION, blur_level, rank_candidates
 from serving.schemas import (
+    BlurRequest,
+    BlurResponse,
+    HealthLevel,
+    HealthScoreRequest,
+    HealthScoreResponse,
+    RankRequest as RuleRankRequest,
+    RankResponse as RuleRankResponse,
+    SafetyScoreRequest,
+    SafetyScoreResponse,
+)
+from serving.schemas_mobile import (
     CompatRequest,
     CompatResponse,
     HealthRequest,
     HealthResponse,
-    HealthzResponse,
     ModelListResponse,
     ModelVersion,
-    RankRequest,
-    RankResponse,
+    RankRequest as AndroidRankRequest,
+    RankResponse as AndroidRankResponse,
 )
 
-SERVICE_VERSION = "0.1.0"
+SERVICE_VERSION = "0.2.0"
 
 app = FastAPI(
-    title="FwP ML Serving",
+    title="FwP AI Service",
     description=(
-        "M1 ranking, M2 compatibility / reveal and M3 conversation health. "
-        "Fallback rules mirror the Android demo; trained artifacts live under models/."
+        "M1 ranking, M2 compatibility / reveal, M3 conversation health and safety. "
+        "Rule-based fallbacks keep both Android clients running without trained artifacts."
     ),
     version=SERVICE_VERSION,
 )
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -52,6 +73,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.include_router(demo_router)
 
 registry = ModelRegistry(Path(__file__).resolve().parent.parent / "models")
 
@@ -66,18 +88,71 @@ def root() -> dict:
     }
 
 
-@app.get("/healthz", response_model=HealthzResponse)
-def healthz() -> HealthzResponse:
-    return HealthzResponse(
-        status="ok",
-        service="fwp-ml-serving",
-        models_loaded=any(registry.active(module) is not None for module in ("m1", "m2", "m3")),
+@app.get("/healthz")
+def healthz() -> dict:
+    return {
+        "status": "ok",
+        "service": "fwp-ml-serving",
+        "models_loaded": any(
+            registry.active(module) is not None for module in ("m1", "m2", "m3")
+        ),
+        "rank": RULES_VERSION,
+        "blur": RULES_VERSION,
+        "health": get_health_predictor().version,
+        "safety": get_safety_predictor().version,
+    }
+
+
+# ---------------------------------------------------------------- mobile/ API
+
+@app.post("/rank", response_model=RuleRankResponse)
+def rank(req: RuleRankRequest) -> RuleRankResponse:
+    ranked, filtered = rank_candidates(req.viewer, req.preferences, req.candidates)
+    return RuleRankResponse(
+        ranked=ranked, filtered_out=filtered, model_version=RULES_VERSION
     )
 
 
-@app.post("/m1/rank", response_model=RankResponse)
-@app.post("/rank", response_model=RankResponse, include_in_schema=False)
-def rank(request: RankRequest) -> RankResponse:
+@app.post("/blur-level", response_model=BlurResponse)
+def blur(req: BlurRequest) -> BlurResponse:
+    return blur_level(req)
+
+
+@app.post("/health/score", response_model=HealthScoreResponse)
+def health_score(req: HealthScoreRequest) -> HealthScoreResponse:
+    predictor = get_health_predictor()
+    p, factors = predictor.score(req.messages, req.now_ms, req.viewer_id)
+    level = level_from_p(p)
+    suggestions = (
+        []
+        if level == HealthLevel.healthy
+        else [SUGGESTIONS[f] for f in factors if f in SUGGESTIONS]
+    )
+    return HealthScoreResponse(
+        p_disengage=round(p, 4),
+        level=level,
+        top_factors=factors,
+        suggestions=suggestions,
+        model_version=predictor.version,
+    )
+
+
+@app.post("/safety/score", response_model=SafetyScoreResponse)
+def safety_score(req: SafetyScoreRequest) -> SafetyScoreResponse:
+    predictor = get_safety_predictor()
+    tox, derail = predictor.score(req.context, req.draft)
+    return SafetyScoreResponse(
+        toxicity=round(tox, 4),
+        derail_risk=round(derail, 4),
+        should_nudge=max(tox, derail) >= TAU_NUDGE,
+        model_version=predictor.version,
+    )
+
+
+# --------------------------------------------------------------- android/ API
+
+@app.post("/m1/rank", response_model=AndroidRankResponse)
+def rank_android(request: AndroidRankRequest) -> AndroidRankResponse:
     return engines.rank(request)
 
 
@@ -88,7 +163,6 @@ def update_compatibility(request: CompatRequest) -> CompatResponse:
 
 
 @app.post("/m3/health", response_model=HealthResponse)
-@app.post("/health/score", response_model=HealthResponse, include_in_schema=False)
 def score_health(request: HealthRequest) -> HealthResponse:
     return engines.health(request)
 

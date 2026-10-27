@@ -17,7 +17,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from serving.schemas import ModelVersion
+from serving.schemas_mobile import ModelVersion
 
 MODULES = ("m1", "m2", "m3")
 

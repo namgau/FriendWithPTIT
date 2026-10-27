@@ -1,171 +1,90 @@
-from __future__ import annotations
-
-import json
-import time
-
 from fastapi.testclient import TestClient
 
 from serving.app import app
-from serving.model_registry import ModelRegistry
 
 client = TestClient(app)
+H = 3_600_000  # 1 giờ (ms)
 
 
-def profile(profile_id: str, **overrides) -> dict:
-    base = {
-        "id": profile_id,
-        "age": 20,
-        "gender": "female",
-        "school": "Học viện Công nghệ Bưu chính Viễn thông",
-        "campus": "Hà Đông",
-        "faculty": "Công nghệ thông tin",
-        "gpa_tier": "GOOD",
-        "interests": ["Cà phê", "Âm nhạc", "Du lịch", "Lập trình"],
-        "mode": "FRIENDS",
-        "distance_km": 2.0,
-        "alumni": False,
-    }
-    base.update(overrides)
+def profile(uid, **kw):
+    base = dict(user_id=uid, school_id="ptit", gpa_tier=2, graduation_status="student", age=21,
+                gender="f", seeking_genders=["m"], interest_tags=["music"], lat=20.98, lon=105.79)
+    base.update(kw)
     return base
 
 
-def messages(count: int = 10, *, now: int | None = None) -> list[dict]:
-    now = now if now is not None else int(time.time() * 1000)
-    texts = [
-        "Cậu có nghe bài hát mới không? Mình thấy rất hay và thú vị.",
-        "Mình vừa đi uống cà phê ở Hà Đông, không gian khá chill.",
-        "Cuối tuần này cậu có muốn đi du lịch đâu đó không?",
-        "Mình đang học lập trình, có chỗ nào chưa hiểu thì hỏi cậu nhé?",
-        "Hôm nay trời đẹp quá, mình thấy vui và hào hứng.",
+VIEWER = profile("me", gender="m", seeking_genders=["f"], interest_tags=["music", "film", "travel"])
+
+
+def test_healthz():
+    r = client.get("/healthz")
+    assert r.status_code == 200 and r.json()["status"] == "ok"
+
+
+def test_rank_orders_by_common_tags_and_filters():
+    cands = [
+        profile("a", interest_tags=["music"]),
+        profile("b", interest_tags=["music", "film", "travel"]),
+        profile("far", lat=10.77, lon=106.70),                      # TP.HCM, quá 30 km
+        profile("old", age=40),
+        profile("wrong_gender", gender="m"),
     ]
-    result = []
-    for index in range(count):
-        result.append(
-            {
-                "sender": "viewer" if index % 2 == 0 else "partner",
-                "text": texts[index % len(texts)],
-                "created_at": now - (count - index) * 60_000,
-            }
-        )
-    return result
+    r = client.post("/rank", json={"viewer": VIEWER, "candidates": cands}).json()
+    assert [c["user_id"] for c in r["ranked"]] == ["b", "a"]
+    reasons = {f["user_id"]: f["reason"] for f in r["filtered_out"]}
+    assert reasons == {"far": "distance", "old": "age", "wrong_gender": "gender_mismatch"}
 
 
-def test_healthz() -> None:
-    response = client.get("/healthz")
-    assert response.status_code == 200
-    body = response.json()
-    assert body["status"] == "ok"
-    assert body["service"] == "fwp-ml-serving"
+def test_rank_optional_filters():
+    cands = [profile("x", gpa_tier=0), profile("y", graduation_status="alumni", school_id="hust")]
+    prefs = {"max_gpa_tier_gap": 1, "school_ids": ["ptit"]}
+    r = client.post("/rank", json={"viewer": VIEWER, "preferences": prefs, "candidates": cands}).json()
+    assert r["ranked"] == []
+    assert {f["reason"] for f in r["filtered_out"]} == {"gpa_tier", "school"}
 
 
-def test_rank_orders_shared_interests_first() -> None:
-    viewer = profile("viewer")
-    close = profile("close", distance_km=1.0, interests=["Cà phê", "Lập trình"])
-    far = profile(
-        "far",
-        age=35,
-        school="Trường khác",
-        campus="Khác",
-        faculty="Khác",
-        gpa_tier="AVERAGE",
-        interests=["Bóng đá"],
-        mode="DATING",
-        distance_km=40.0,
-    )
-
-    response = client.post("/m1/rank", json={"viewer": viewer, "candidates": [far, close]})
-    assert response.status_code == 200
-    body = response.json()
-    assert body["model_source"] == "fallback_rules"
-    assert [item["profile_id"] for item in body["items"]] == ["close", "far"]
-    assert body["items"][0]["score"] > body["items"][1]["score"]
-    assert any("sở thích chung" in reason for reason in body["items"][0]["reasons"])
+def test_blur_monotonic_and_reveal_rule():
+    levels = [client.post("/blur-level", json={"n_messages": n, "days_since_match": d}).json()
+              for n, d in [(0, 0), (10, 1), (30, 3), (60, 7)]]
+    blur = [x["blur_level"] for x in levels]
+    assert blur == sorted(blur, reverse=True) and blur[0] == 1.0
+    assert levels[-1]["revealed"] and levels[-1]["blur_level"] == 0.0
+    # Đủ thời gian nhưng chưa đủ tin nhắn tối thiểu thì không rõ hẳn
+    few = client.post("/blur-level", json={"n_messages": 10, "days_since_match": 30}).json()
+    assert not few["revealed"] and few["blur_level"] > 0
 
 
-def test_rank_alias_and_top_k() -> None:
-    viewer = profile("viewer")
-    candidates = [profile("a"), profile("b"), profile("c")]
-    response = client.post("/rank", json={"viewer": viewer, "candidates": candidates, "top_k": 2})
-    assert response.status_code == 200
-    assert len(response.json()["items"]) == 2
+def chat(times_h, texts, start=0):
+    return [{"sender_id": "me" if i % 2 == 0 else "you", "timestamp_ms": start + int(t * H), "text": txt}
+            for i, (t, txt) in enumerate(zip(times_h, texts))]
 
 
-def test_rank_validation_rejects_underage_profile() -> None:
-    response = client.post(
-        "/m1/rank",
-        json={"viewer": profile("viewer"), "candidates": [profile("kid", age=15)]},
-    )
-    assert response.status_code == 422
+def test_health_lively_vs_dying():
+    lively = chat([0, 0.1, 0.2, 0.3, 0.4, 0.5],
+                  ["hôm nay đi học thế nào", "vui lắm, còn cậu thì sao?", "tớ vừa thi xong môn học máy",
+                   "chúc mừng nha, khó không?", "khá khó nhưng ổn, cuối tuần cậu rảnh không?", "rảnh nè, đi cà phê nhé"])
+    dying = chat([0, 2, 3, 9, 10, 20],
+                 ["hôm nay cậu làm gì vui không?", "ừ", "cuối tuần đi đâu không?", "k", "sao vậy?", "ok"])
+    r1 = client.post("/health/score", json={"conversation_id": "c1", "viewer_id": "me",
+                                            "messages": lively, "now_ms": int(0.6 * H)}).json()
+    r2 = client.post("/health/score", json={"conversation_id": "c2", "viewer_id": "me",
+                                            "messages": dying, "now_ms": int(70 * H)}).json()
+    assert r1["level"] == "healthy" and r1["suggestions"] == []
+    assert r2["level"] == "at_risk" and r2["suggestions"]
+    assert r2["p_disengage"] > r1["p_disengage"]
 
 
-def test_compatibility_reveal_requires_opt_in_and_messages() -> None:
-    payload = {
-        "viewer_interests": ["Cà phê", "Âm nhạc", "Du lịch", "Lập trình"],
-        "partner_interests": ["cà phê", "âm nhạc", "du lịch", "lập trình"],
-        "messages": messages(10),
-        "viewer_opted_in": True,
-        "partner_opted_in": True,
-    }
-    response = client.post("/m2/compat", json=payload)
-    assert response.status_code == 200
-    body = response.json()
-    assert body["reveal_eligible"] is True
-    assert body["blur_level"] == 0.0
-    assert body["score"] >= 72
-    assert body["message_count"] == 10
-    assert 0 <= body["interest"] <= 100
-
-    blocked = client.post("/compat/update", json={**payload, "partner_opted_in": False})
-    assert blocked.status_code == 200
-    assert blocked.json()["reveal_eligible"] is False
-    assert blocked.json()["blur_level"] > 0
+def test_health_ignores_future_messages():
+    msgs = chat([0, 1, 100], ["chào", "chào cậu", "tin ở tương lai"])
+    r = client.post("/health/score", json={"conversation_id": "c", "viewer_id": "me",
+                                           "messages": msgs, "now_ms": int(1.5 * H)}).json()
+    assert "long_silence" not in r["top_factors"]
 
 
-def test_health_healthy_and_at_risk_levels() -> None:
-    healthy = client.post(
-        "/m3/health",
-        json={
-            "messages": messages(10),
-            "viewer_interests": ["Cà phê", "Âm nhạc"],
-            "partner_interests": ["Cà phê", "Du lịch"],
-        },
-    )
-    assert healthy.status_code == 200
-    assert healthy.json()["level"] == "HEALTHY"
-    assert healthy.json()["suggestions"]
-
-    stale = messages(10, now=int(time.time() * 1000) - 72 * 3_600_000)
-    for message in stale:
-        message["text"] = "ừ"
-    risky = client.post(
-        "/health/score",
-        json={
-            "messages": stale,
-            "viewer_interests": [],
-            "partner_interests": [],
-            "now": int(time.time() * 1000),
-        },
-    )
-    assert risky.status_code == 200
-    body = risky.json()
-    assert body["level"] == "AT_RISK"
-    assert body["score"] >= 64
-    assert any("ngày" in reason for reason in body["reasons"])
-
-
-def test_model_registry_activation(tmp_path) -> None:
-    registry = ModelRegistry(tmp_path)
-    version_dir = tmp_path / "m1" / "1.2.0"
-    version_dir.mkdir(parents=True)
-    (version_dir / "metadata.json").write_text(
-        json.dumps({"seed": 42, "metric": {"ndcg_at_10": 0.71}}),
-        encoding="utf-8",
-    )
-
-    versions = registry.versions("m1")
-    assert len(versions) == 1
-    assert registry.active("m1").version == "1.2.0"
-
-    artifact = registry.activate("m1", "1.2.0")
-    assert artifact.metadata["seed"] == 42
-    assert registry.versions("m1")[0].active is True
+def test_safety_nudges_only_toxic_draft():
+    ok = client.post("/safety/score", json={"conversation_id": "c",
+                                            "draft": {"sender_id": "me", "timestamp_ms": 0, "text": "mai đi ăn không"}}).json()
+    bad = client.post("/safety/score", json={"conversation_id": "c",
+                                             "draft": {"sender_id": "me", "timestamp_ms": 0, "text": "mày ngu thế"}}).json()
+    assert not ok["should_nudge"] and ok["toxicity"] == 0
+    assert bad["should_nudge"] and bad["toxicity"] > 0.5

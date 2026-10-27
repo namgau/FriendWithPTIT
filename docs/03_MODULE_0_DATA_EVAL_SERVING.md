@@ -1,5 +1,7 @@
 # 03 — Module 0: Dữ liệu chung, khung đánh giá, hạ tầng phục vụ
 
+> **Cập nhật phạm vi:** bài nộp môn ML là **Module 3** (`06_*`). Dataset cho Module 3 nằm ở `06_*` §1.1. Phần 0B (khung đánh giá) và 0C (serving) vẫn dùng; phần dữ liệu M1/M2 bên dưới chỉ để tham khảo cho app mobile.
+
 > Module nền, cả 3 module ML phụ thuộc vào đây. Chia thành 3 phần: **0A Dữ liệu** (Người B), **0B Khung đánh giá** (Người A), **0C Serving + demo** (Người C).
 > Xem phân công tại `02_PHAN_CONG.md`, chuẩn báo cáo tại `01_CHUAN_BAO_CAO_AUDITABLE.md`.
 

@@ -1,83 +1,112 @@
-# 02 — Phân công 3 người & lịch làm việc
+# 02 — Phân công 3 người & deadline (hạn nộp: **Thứ Ba 01/12/2026**)
 
-> Ước lượng theo **người-ngày** (1 ngày ≈ 4–5 giờ làm thực tế); chỉnh lại sau tuần 1.
-> **A** = Module 1 + khung đánh giá (thống kê, mô hình dạng bảng) ; **B** = Module 2 + dữ liệu (NLP/deep learning) ; **C** = Module 3 + serving/demo + dữ liệu hội thoại/pilot.
+> **Phạm vi:**
+> - **Môn Học máy:** Module 3 — Conversation Intelligence (Head A: hội thoại sắp tắt ; Head B: hội thoại sắp trở nên độc hại), xem `06_*`. Chia 3 phần.
+> - **Môn Mobile:** Module 1 + Module 2 **bản luật** (không ML) trong app. Gộp lại, chia 3 phần.
+> - **Người A = trưởng nhóm, chịu trách nhiệm chất lượng** (khung đánh giá, tập test, review/merge, tái lập, báo cáo cuối).
+>
+> 5 tuần, mỗi tuần tính từ Thứ Ba đến Thứ Hai. Mỗi người ~4–5 giờ/ngày làm việc.
 
-| | Người A | Người B | Người C |
+| | Người A (trưởng nhóm) | Người B | Người C |
 |---|---|---|---|
+| Module 3 | Khung đánh giá, **định nghĩa nhãn cả 2 head**, Head A dạng bảng + survival, **toàn bộ thí nghiệm imbalance**, phân tích lỗi, báo cáo | Tải & làm sạch dữ liệu, đặc trưng hành vi + phong cách (T1–T3) | Đọc nội dung (NLP), Head B, API |
+| Module 1+2 (app) | Hợp đồng API (không code app) | **Backend luật** (lọc/xếp hạng M1 + luật blur M2) + **màn Swipe** (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
 | Họ tên | ________ | ________ | ________ |
 
-## 1. Bảng phân công chi tiết
+## 0. Cắt bớt so với kế hoạch đầy đủ (vì còn 5 tuần + làm app)
 
-| Mã | Hạng mục | Người | Ngày |
+| Giữ (bắt buộc) | Giữ nếu kịp (P1) | **Cắt** (ghi vào báo cáo là hướng phát triển) |
+|---|---|---|
+| Head A trên E1 + E2 ; Head B trên G1 + H1 ; baseline ; imbalance ; calibration ; bootstrap ; phân tích lỗi ; cross-domain E1 ↔ E2 | Survival, TabPFN, LSM (T3), H2 (ViCTSD), cross-lingual X14, conformal survival | **Tự thu chat tiếng Việt (V1)** — không có bộ công khai phù hợp, tự thu quá tốn thời gian ; Multi-task (X13), G2 Reddit CMV, E3 Reddit, GRU cho Head A, XLM-R fine-tune tiền tố, weighted conformal, LLM trích đặc trưng (X10), Optuna, so sánh 3 embedding (X9 → chỉ dùng 1 mô hình) |
+
+## 1. Mốc chung (cả nhóm)
+
+| Ngày | Mốc | Ai kiểm tra |
+|---|---|---|
+| **Thứ Sáu 30/10** | Chốt **hợp đồng**: định dạng dữ liệu tin nhắn, `extract_features()`, `encode_messages()`, API `/health/score`, `/safety/score`, API app (M1/M2) | A |
+| **Thứ Hai 02/11** | Họp tuần 1: dữ liệu E1, E2, G1, H1 tải xong & kiểm tra ; khung split + bootstrap có test | A |
+| **Thứ Sáu 06/11** | Đóng băng mô hình embedding (C1) ; tập test của mọi dataset đã tạo & khóa (A3) | A |
+| **Thứ Hai 09/11** | Baseline cả 2 head chạy end-to-end | A |
+| **Thứ Hai 16/11** | **Giữa kỳ:** bảng CV mean ± SD cả 2 head ; app có Swipe + chat chạy được | A |
+| **Thứ Năm 19/11** | **Đóng băng cấu hình** mọi mô hình (không đổi gì nữa) | A |
+| **Thứ Sáu 20/11** | **A mở tập test đúng 1 lần**, chạy lại toàn bộ từ config + seed | A |
+| **Thứ Hai 23/11** | Đủ bảng kết quả R1–R9 ; app nối API Module 3 | A |
+| **Thứ Sáu 27/11** | **Bản nháp báo cáo đầy đủ** ; duyệt chéo bằng checklist `01_*` §5 bắt đầu | A + cả nhóm |
+| **Chủ Nhật 29/11** | Sửa xong theo duyệt chéo ; slide ; quay video demo dự phòng | A |
+| **Thứ Hai 30/11** | Chạy thử thuyết trình, kiểm tra lần cuối | Cả nhóm |
+| **Thứ Ba 01/12** | **NỘP** | A |
+
+## 2. Người A (trưởng nhóm) — việc quyết định chất lượng
+
+| Mã | Việc | Hạn | Vì sao A phải giữ |
 |---|---|---|---|
-| 0B | Khung đánh giá dùng chung (splits, imbalance, calibration, bootstrap, report) | **A** | 4 |
-| 1A | M1: EDA D1, feature, baseline, lưới candidate, calibration, ngưỡng | **A** | 4 |
-| 1B | M1: Collaborative filtering trên D2 (Libimseti) | **A** | 4 |
-| 1C | M1: Bio-embedding trên D3 (OkCupid) | **A** | 3 |
-| 1D | M1: Ensemble, đánh giá S1/P1, viết báo cáo M1 | **A** | 3 |
-| INT-A | Duyệt chéo báo cáo M3, ghép báo cáo tổng | **A** | 2 |
-| | **Tổng A** | | **20** |
-| 0A | Dữ liệu chung: Data Card D1–D12, schema, S1, thiết kế khảo sát P1 | **B** | 4 |
-| 2A | M2: Personality (D4/D5/D6) | **B** | 4 |
-| 2B | M2: Emotion PhoBERT (D7/D8/D9) | **B** | 4 |
-| 2C | M2: Topic/interest (D10/D11) | **B** | 2 |
-| 2D | M2: Aggregation + hàm blur + quả cầu độ hợp + đánh giá S2/P1 + báo cáo M2 | **B** | 4 |
-| INT-B | Duyệt chéo báo cáo M1, slide, thuyết trình | **B** | 2 |
-| | **Tổng B** | | **20** |
-| 0C | Serving FastAPI + registry + demo (Swipe mờ, chat, độ hợp, cảnh báo) | **C** | 4 |
-| 3A | M3: Simulator S2 (dùng chung với M2) | **C** | 3 |
-| 3B | M3: Parser D12/D11, định nghĩa nhãn, rule baseline | **C** | 2 |
-| 3C | M3: Feature, LR/GBM/GRU, imbalance, calibration, ngưỡng, báo cáo M3 | **C** | 5 |
-| 3D | M3: Gợi ý hành động + UI riêng tư | **C** | 2 |
-| P1-run | Thu và làm sạch dữ liệu pilot (khảo sát + 20–30 cặp chat) | **C** | 2 |
-| INT-C | Duyệt chéo báo cáo M2 | **C** | 2 |
-| | **Tổng C** | | **20** |
+| A0 | Bật **branch protection** cho `main` (bắt buộc PR + 1 review + CI xanh) ; mời B, C làm collaborator | 28/10 | Không ai đẩy thẳng code chưa kiểm tra |
+| A1 | **Hợp đồng dữ liệu & interface** (định dạng tin nhắn, hàm đặc trưng, API) trong `serving/schemas.py`, `src/m3_health/` | 30/10 | Ba người code khớp nhau ngay từ đầu |
+| A2 | **Khung đánh giá** `src/eval/`: split theo thời gian/nhóm, nested CV, cluster + paired bootstrap, calibration, chọn ngưỡng ; **test chống rò rỉ** chạy trong CI | split + bootstrap 02/11 ; còn lại 06/11 | Rò rỉ dữ liệu là lỗi mất điểm nặng nhất |
+| A3 | **Tạo & khóa tập test** cho mọi dataset (chỉ A giữ index test) ; **chỉ A mở test, đúng 1 lần, ngày 20/11** | tạo 06/11 ; mở 20/11 | Không ai vô tình chọn mô hình trên test |
+| A4 | **Review & merge mọi PR** theo checklist rò rỉ (`01_*` §3) ; kiểm tra mỗi thí nghiệm có dòng trong `experiments/ledger.csv` | liên tục, ≤ 24h mỗi PR | Một cửa kiểm soát |
+| A2b | **Nhãn Head A** (nhận từ B): sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring, thống kê N hiệu dụng & prevalence | 06/11 | Định nghĩa nhãn sai = toàn bộ kết quả sai ; dễ rò rỉ tương lai vào đặc trưng |
+| A2c | **Nhãn Head B** (nhận từ B): cắt tiền tố G1 **trước** lượt công kích, giữ cặp ghép cùng phần, gộp nhãn H1 (OFFENSIVE + HATE) | 06/11 | Cắt tiền tố sai = mô hình "nhìn thấy" lượt công kích → kết quả ảo |
+| A5 | Head A: baseline (đa số, rule gốc, `time_since_last`) + LR + LightGBM ; 5 phương án mất cân bằng (X2) ; calibration + τ1/τ2 | 13/11 | Kết quả chính của bài |
+| A5b | **Imbalance trên H2 (UIT-ViCTSD)** — phần **chạy CPU**: 5 phương án none / class_weight / under / over / SMOTE với TF-IDF + LR và với embedding đã cache (do B tính) + LR ; tổng hợp cùng kết quả GPU của B (B10) ; chọn **τ_B theo FPR** cho Head B | 18/11 | Under/oversampling, SMOTE là nội dung thầy nhấn mạnh → A thiết kế & kết luận thống nhất cho cả 2 head |
+| A6 | Head A: survival (Cox, Random Survival Forest) (X3) ; conformal (X8) nếu kịp — đều chạy CPU | 18/11 | Điểm cộng |
+| A7 | Ablation T1→T5 (X1), độ nhạy Δ (X5) | 19/11 | Trả lời RQ1 |
+| A8 | **Chạy lại toàn bộ từ config + seed** sau khi mở test ; đối chiếu số với báo cáo | 22/11 | Tiêu chí "auditable" |
+| A9 | Phân tích lỗi cả 2 head (`06_*` §5b) + **Practical limits** (`06_*` §6) | 25/11 | Thầy yêu cầu phân tích lỗi & điểm yếu |
+| A10 | **Ghép báo cáo cuối** theo mẫu `01_*` §4 + checklist §5 ; slide | nháp 27/11 ; bản cuối 29/11 | Một người chịu trách nhiệm tổng thể |
+> **Nguyên tắc tài nguyên:** việc nào **tốn GPU hoặc token (API LLM)** giao cho B/C ; A chỉ chạy việc CPU để dành thời gian kiểm soát chất lượng. Mọi lần chạy GPU vẫn phải ghi config + seed vào `experiments/ledger.csv` để A kiểm tra.
+> Ước lượng khối lượng: **A ≈ 25 người-ngày**, B ≈ 24, C ≈ 20 (5 tuần ≈ 25 ngày làm việc).
 
-Mỗi người sở hữu đúng 1 module ML và có phần việc "khó" riêng: A (ranking/CF), B (NLP, PhoBERT), C (chuỗi thời gian + hạ tầng).
+## 3. Người B — dữ liệu, đặc trưng hành vi, backend + Swipe
 
-### Mức ưu tiên (để không đuối khi thiếu thời gian)
-| Tầng | Nội dung |
-|---|---|
-| **P0 – lõi, bắt buộc** | 0A–0C ; M1 (1A, 1D, 4b phân tích lỗi, 4c hai bộ cùng bài toán) ; M3 (3A, 3B, 3C LR/GBM, 4b) |
-| **P1 – nên có** | 1C bio-embedding ; 3D gợi ý ; 2B emotion + 2D tối giản ; mục kiến thức mở rộng (≥ 2/module) |
-| **P2 – bonus** | 1B CF ; 2A/2C ; GRU ; UMAP ; pilot chat ; quả cầu 3D |
+| Mã | Việc | Hạn |
+|---|---|---|
+| B1 | Tải, kiểm tra, parse **E1 Ubuntu + E2 Twitter CSKH** ; Data Card (N, đơn vị độc lập, prevalence, license, sha256) | 02/11 |
+| B2 | Tải, làm sạch **G1 (Conversations Gone Awry – Wiki)** + **H1 (ViHSD)** + **H2 (ViCTSD)** ; Data Card. Giao dữ liệu sạch cho A gán nhãn (A2b, A2c) | 04/11 |
+| B4 | Đặc trưng **T1** (hành vi thời gian) + **T2** (bề mặt văn bản, từ điển Anh/Việt) | 10/11 |
+| B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) | 13/11 |
+| B6 | Đánh giá bộ phát hiện câu hỏi/tin cụt trên DailyDialog (có nhãn dialog act) (X6) | 18/11 |
+| B8 | **[GPU]** Tính & **cache embedding** (mô hình C1 chọn) cho mọi tin nhắn của E1, E2, G1, H1, H2 → file `.npy` dùng chung (C cho T4/T5, A cho imbalance) ; ghi thời gian chạy, phần cứng | 09/11 |
+| B9 | **[GPU]** **TabPFN v2** cho Head A (X7) — nhận từ A ; so với LightGBM của A theo kích thước train ; dùng split/khung đánh giá của A | 18/11 |
+| B10 | **[GPU]** Phần imbalance cần GPU trên H2: fine-tune PhoBERT/XLM-R (pipeline của C2) với weighted loss và với oversampling ; giao kết quả cho A tổng hợp (A5b) | 18/11 |
+| B7 | Viết phần **Objective and data** + mô tả dữ liệu trong báo cáo ; duyệt chéo phần của C | 27/11 |
+| B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo hợp đồng API của A | 16/11 |
+| B-app2 | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng | 23/11 |
 
-Phân tích lỗi (E1–E5) tính vào ngày của từng module ; dành ≥ 1 ngày/module (lấy từ dự phòng tuần 5–6).
+## 4. Người C — đọc nội dung, Head B, tích hợp
 
-## 2. Phụ thuộc giữa các người (điểm dễ nghẽn)
+| Mã | Việc | Hạn |
+|---|---|---|
+| C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) |
+| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do A làm) | 13/11 |
+| C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 |
+| C5 | **Cross-lingual Head B** (X14): điểm độc hại từ bộ phân loại tiếng Việt làm đặc trưng cho G1 ; hỗ trợ A chạy cross-domain Head A E1 ↔ E2 (X4) | 23/11 |
+| C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 |
+| C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 |
+| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 |
 
+## 5. Phụ thuộc (điểm dễ nghẽn — A theo dõi)
 ```
-B:0A (schema, S1) ─────────────► A:1A/1D
-A:0B (khung đánh giá) ─────────► B:2A..2D, C:3B/3C   ← A làm trước, tuần 1
-C:3A (simulator S2) ───────────► B:2D (M2 đánh giá), C:3C
-B:2B (emotion score) ──────────► C:3C (đặc trưng sentiment; dùng lexicon tạm nếu chưa xong)
-A:models/m1, B:models/m2 ──────► C:0C (serving)
+A1 hợp đồng (30/10) ──► mọi người
+A2 khung đánh giá (02–06/11) ──► A5, A6, C4
+B1, B2 dữ liệu sạch (02–04/11) ──► A2b, A2c nhãn (06/11) ──► A5, A6, C2, C4   ← nghẽn chính: A vừa làm khung đánh giá vừa gán nhãn tuần 1–2
+C2 bộ phân loại độc hại (13/11) ──► A5b imbalance, C5 cross-lingual
+B-app1 API luật (16/11) ──► B-app2, C-app
+C6 API Module 3 (20/11) ──► C-app
 ```
-Interface chốt bằng hợp đồng hàm/JSON trong `serving/schemas.py` từ tuần 1. Họp đồng bộ 15 phút mỗi 2 ngày.
 
-## 3. Lịch gợi ý 6 tuần (chưa biết hạn nộp thật — điều chỉnh sau)
-
-| Tuần | A | B | C | Mốc chung |
-|---|---|---|---|---|
-| 1 | 0B khung đánh giá ; 1A-EDA | 0A Data Card + schema ; bắt đầu S1 | dựng repo, FastAPI khung ; 3A simulator ; gửi khảo sát P1 | Chốt schema + API + ledger ; xác minh link/license |
-| 2 | 1A candidate + imbalance + calibration | S1 xong ; 2B PhoBERT baseline | 3B parser D12 ; 3A xong | Baseline mọi module chạy qua khung 0B |
-| 3 | 1B CF ; 1C bio-embedding | 2B hoàn thiện ; 2A ; 2C | 3C features + LR/GBM | **Giữa kỳ:** mọi baseline có CV mean ± SD |
-| 4 | 1D ensemble | 2D aggregation + blur | 3C GRU + ngưỡng ; 0C serving | Đóng băng cấu hình mô hình |
-| 5 | Mở test M1 1 lần ; bootstrap | Mở test M2 ; P1 đánh giá | Mở test M3 ; 3D ; demo | `report.py` sinh bảng |
-| 6 | Báo cáo M1 + duyệt M3 | Báo cáo M2 + slide + duyệt M1 | Báo cáo M3 + duyệt M2 | Duyệt chéo bằng checklist `01_*` §5 ; nộp |
-
-## 4. Quy tắc làm việc
-- Git: nhánh `a/…`, `b/…`, `c/…`; PR nhỏ, một người khác review.
-- Mọi thí nghiệm chạy từ `configs/*.yaml`, ghi `experiments/ledger.csv`.
-- **Không mở tập test trước tuần 5**; lỡ mở thì ghi vào Practical limits.
+## 6. Quy tắc kiểm soát chất lượng (A áp dụng)
+- **Definition of done** cho mỗi việc: code có test (nếu là hàm), chạy từ `configs/*.yaml`, có dòng trong `experiments/ledger.csv`, PR được A duyệt.
+- Mọi bước fit (scaler, SMOTE, PCA, embedding fine-tune) **chỉ trên train fold** — A kiểm tra trong review.
+- Không ai ngoài A truy cập index tập test trước 20/11.
 - Số liệu dataset chỉ đưa vào báo cáo sau khi in ra từ code.
-- Dữ liệu pilot: có đồng ý, ẩn danh (hash id), không đưa file thô lên repo công khai.
+- Họp nhanh 15 phút **Thứ Hai & Thứ Sáu**: mỗi người báo xong gì / kẹt gì / việc trễ hạn. Trễ > 2 ngày → A quyết định cắt theo bảng §0.
 
-## 5. Rủi ro & dự phòng
+## 7. Rủi ro & dự phòng
 | Rủi ro | Dự phòng |
 |---|---|
-| D6 PANDORA / D2 Libimseti không tải được hoặc license không cho | Thay D5 MBTI (M2) / bản mirror khác ; ghi Data Card. Vẫn đủ ≥ 3 dataset nhờ S1/S2/P1 |
-| Không có GPU cho PhoBERT | Colab/Kaggle, DistilBERT đa ngữ, hoặc TF-IDF+LR làm chính |
-| Pilot P1 ít phản hồi (<50) | Vẫn dùng, báo CI rộng, không kết luận mạnh |
-| Thiếu thời gian | Cắt: GRU (M3), UMAP, CF D2. **Không cắt**: split group/time, bootstrap, calibration, baseline |
+| E2 không dùng được | Thay bằng E3 (Reddit qua ConvoKit, có timestamp) để Head A vẫn đủ 2 bộ |
+| Không có GPU cho PhoBERT | Colab/Kaggle ; nếu không: embedding đóng băng + LR |
+| C2 trễ | Dùng bản TF-IDF+LR cho X12/X14, PhoBERT để sau |
+| App chậm | Ưu tiên demo luồng Swipe → match → chat có blur ; quả cầu 3D cắt trước |
+| Thiếu thời gian chung | Cắt theo bảng §0 (cột "giữ nếu kịp" trước). **Không cắt**: split đúng, bootstrap, calibration, baseline, phân tích lỗi |

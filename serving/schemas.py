@@ -1,114 +1,127 @@
-"""Pydantic contracts shared by the Android client and the ML serving layer.
+"""Hợp đồng JSON giữa app/backend và AI Service.
 
-Field names intentionally use snake_case so they match the JSON emitted by the
-Kotlin ``AiApi`` models.  Unknown fields are ignored to keep the service
-forward-compatible while the ML modules evolve.
+Đây là "ổ cắm" chung: app Android và backend chỉ phụ thuộc vào các schema này.
+Khi Module 3 có mô hình thật, chỉ thay phần dự đoán phía sau, schema giữ nguyên.
+Đổi schema = phải báo cả nhóm và Người A duyệt (xem docs/02_PHAN_CONG.md, A1).
 """
-
 from __future__ import annotations
 
-from typing import Literal
+from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
-
-
-class _Contract(BaseModel):
-    model_config = ConfigDict(extra="ignore", str_strip_whitespace=True)
+from pydantic import BaseModel, Field
 
 
-class AiProfile(_Contract):
-    id: str = Field(min_length=1, max_length=128)
-    age: int = Field(ge=16, le=100)
-    gender: str = "other"
-    school: str = ""
-    campus: str = ""
-    faculty: str = ""
-    gpa_tier: str = "GOOD"
-    interests: list[str] = Field(default_factory=list)
-    mode: str = "FRIENDS"
-    distance_km: float = Field(default=0.0, ge=0.0)
-    alumni: bool = False
+# ---------- Dùng chung ----------
+
+class Message(BaseModel):
+    sender_id: str
+    timestamp_ms: int = Field(..., description="Unix time, mili giây")
+    text: str | None = Field(None, description="Có thể bỏ trống nếu chỉ gửi siêu dữ liệu")
 
 
-class AiMessage(_Contract):
-    sender: Literal["viewer", "partner", "system"] = "viewer"
-    text: str = Field(default="", max_length=4000)
-    created_at: int = Field(
-        default=0,
-        description="Unix epoch in milliseconds, matching System.currentTimeMillis().",
-    )
+class GraduationStatus(str, Enum):
+    student = "student"
+    alumni = "alumni"
 
 
-class RankRequest(_Contract):
-    viewer: AiProfile
-    candidates: list[AiProfile] = Field(default_factory=list)
-    top_k: int | None = Field(default=None, ge=1, le=500)
+class Profile(BaseModel):
+    user_id: str
+    school_id: str
+    faculty_id: str | None = None
+    gpa_tier: int = Field(..., ge=0, le=3, description="0 = thấp nhất, 3 = cao nhất")
+    graduation_status: GraduationStatus
+    age: int = Field(..., ge=16, le=100)
+    gender: str
+    seeking_genders: list[str]
+    interest_tags: list[str] = []
+    lat: float
+    lon: float
 
 
-class RankItem(_Contract):
-    profile_id: str
-    score: int = Field(ge=0, le=100)
-    reasons: list[str] = Field(default_factory=list)
-    model_source: str | None = None
+class Preferences(BaseModel):
+    """Bộ lọc cứng của người xem (Module 1, bản luật)."""
+    age_min: int = 18
+    age_max: int = 35
+    max_distance_km: float = 30.0
+    school_ids: list[str] | None = Field(None, description="None = mọi trường")
+    max_gpa_tier_gap: int | None = Field(None, ge=0, le=3, description="None = không lọc theo GPA")
+    graduation_statuses: list[GraduationStatus] | None = None
 
 
-class RankResponse(_Contract):
-    items: list[RankItem] = Field(default_factory=list)
-    model_source: str = "fallback_rules"
+# ---------- Module 1: xếp hạng Swipe (bản luật) ----------
+
+class RankRequest(BaseModel):
+    viewer: Profile
+    preferences: Preferences = Preferences()
+    candidates: list[Profile]
 
 
-class CompatRequest(_Contract):
-    viewer_interests: list[str] = Field(default_factory=list)
-    partner_interests: list[str] = Field(default_factory=list)
-    messages: list[AiMessage] = Field(default_factory=list)
-    viewer_opted_in: bool = False
-    partner_opted_in: bool = False
-    min_messages: int = Field(default=8, ge=1, le=1000)
+class RankedCandidate(BaseModel):
+    user_id: str
+    score: float
+    distance_km: float
+    common_tags: list[str]
 
 
-class CompatResponse(_Contract):
-    score: int = Field(ge=0, le=100)
-    blur_level: float = Field(ge=0.0, le=1.0)
-    personality: int = Field(ge=0, le=100)
-    emotion: int = Field(ge=0, le=100)
-    interest: int = Field(ge=0, le=100)
-    message_count: int = Field(ge=0)
-    reveal_eligible: bool
-    model_source: str = "fallback_rules"
+class FilteredCandidate(BaseModel):
+    user_id: str
+    reason: str
 
 
-class HealthRequest(_Contract):
-    messages: list[AiMessage] = Field(default_factory=list)
-    viewer_interests: list[str] = Field(default_factory=list)
-    partner_interests: list[str] = Field(default_factory=list)
-    now: int | None = Field(
-        default=None,
-        description="Current Unix epoch in milliseconds; defaults to server time.",
-    )
+class RankResponse(BaseModel):
+    ranked: list[RankedCandidate]
+    filtered_out: list[FilteredCandidate]
+    model_version: str
 
 
-class HealthResponse(_Contract):
-    level: Literal["HEALTHY", "FADING", "AT_RISK"]
-    score: int = Field(ge=0, le=100)
-    reasons: list[str] = Field(default_factory=list)
-    suggestions: list[str] = Field(default_factory=list)
-    message_count: int = Field(ge=0)
-    model_source: str = "fallback_rules"
+# ---------- Module 2: độ mờ ảnh (bản luật) ----------
+
+class BlurRequest(BaseModel):
+    n_messages: int = Field(..., ge=0, description="Tổng số tin của cả hai bên kể từ khi match")
+    days_since_match: float = Field(..., ge=0)
+    compat: float | None = Field(None, ge=0, le=1, description="Độ hợp (khi Module 2 có mô hình); None = chỉ dùng luật")
 
 
-class ModelVersion(_Contract):
-    module: str
-    version: str
-    path: str
-    active: bool = False
-    metadata: dict = Field(default_factory=dict)
+class BlurResponse(BaseModel):
+    blur_level: float = Field(..., ge=0, le=1, description="1 = mờ hoàn toàn, 0 = rõ hoàn toàn")
+    blur_radius_px: float
+    revealed: bool
+    model_version: str
 
 
-class ModelListResponse(_Contract):
-    models: list[ModelVersion] = Field(default_factory=list)
+# ---------- Module 3 Head A: hội thoại sắp tắt ----------
+
+class HealthLevel(str, Enum):
+    healthy = "healthy"
+    shallow = "shallow"
+    at_risk = "at_risk"
 
 
-class HealthzResponse(_Contract):
-    status: Literal["ok"] = "ok"
-    service: str = "fwp-ml-serving"
-    models_loaded: bool = False
+class HealthScoreRequest(BaseModel):
+    conversation_id: str
+    viewer_id: str = Field(..., description="Người sẽ nhìn thấy gợi ý (gợi ý luôn riêng tư)")
+    messages: list[Message]
+    now_ms: int = Field(..., description="Thời điểm dự đoán; chỉ dùng tin có timestamp <= now_ms")
+
+
+class HealthScoreResponse(BaseModel):
+    p_disengage: float = Field(..., ge=0, le=1)
+    level: HealthLevel
+    top_factors: list[str]
+    suggestions: list[str]
+    model_version: str
+
+
+# ---------- Module 3 Head B: hội thoại sắp độc hại ----------
+
+class SafetyScoreRequest(BaseModel):
+    conversation_id: str
+    context: list[Message] = Field([], description="Các tin trước đó")
+    draft: Message = Field(..., description="Tin đang soạn, chưa gửi")
+
+
+class SafetyScoreResponse(BaseModel):
+    toxicity: float = Field(..., ge=0, le=1, description="Độ độc hại của tin đang soạn")
+    derail_risk: float = Field(..., ge=0, le=1, description="Nguy cơ cả cuộc chat chuyển sang công kích")
+    should_nudge: bool = Field(..., description="True → app hỏi người gửi 'Bạn có chắc muốn gửi?'")
+    model_version: str
