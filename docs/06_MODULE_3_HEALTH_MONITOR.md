@@ -293,15 +293,38 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 
 ---
 
-## 6. Practical limits
-- **Đại diện:** E1/E2 không phải hội thoại làm quen; V1 là chat của một nhóm nhỏ sinh viên tình nguyện (thiên lệch chọn mẫu: bạn bè của nhóm, chủ yếu 1 trường).
-- **Phụ thuộc:** các mốc trong 1 hội thoại; các hội thoại của cùng người đóng góp; cùng một tài khoản CSKH ở nhiều hội thoại (E2).
-- **Nhãn proxy:** "tắt" ≠ "mất hứng thú"; Messenger không phải kênh liên lạc duy nhất.
-- **Distribution shift:** khác ngôn ngữ, nền tảng, văn hóa nhắn tin; khi lên app: theo dõi phân phối đặc trưng (PSI) và tỉ lệ cảnh báo/tuần.
-- **Vòng phản hồi:** gợi ý làm thay đổi hành vi → nhãn tương lai bị ảnh hưởng; log có/không hiển thị gợi ý.
-- **Riêng tư:** V1 chỉ nhận đặc trưng số + embedding, không văn bản; người ở đầu bên kia không trực tiếp đồng ý → giảm thiểu bằng trích đặc trưng tại máy, băm id, xóa sau môn học (`08_*`).
-- **Tài nguyên:** thời gian train mỗi mô hình; latency suy luận (GBM ≪ GRU); MiniLM đa ngữ chạy CPU được. Fine-tune XLM-R/PhoBERT cần GPU (Colab/Kaggle) — nếu không có, dùng embedding đóng băng + GRU nhỏ.
-- **Head B — miền & đạo đức:** G1/G2 là tranh luận công khai, H1/H2 là bình luận công khai — khác chat riêng tư làm quen ; V1 không có nhãn Head B. Nguy cơ **buộc tội oan** và **thiên lệch ngôn ngữ** (teencode, phương ngữ). Vì vậy app chỉ nhắc nhẹ người gửi + nút báo cáo cho người nhận, không tự động khóa tài khoản ; quyết định xử phạt cần người kiểm duyệt.
+## 6. Practical limits — điểm yếu của project (bắt buộc theo chuẩn của thầy)
+
+> Nguyên tắc viết: mỗi điểm yếu phải có **(1) ảnh hưởng tới kết luận nào**, **(2) bằng chứng định lượng trong báo cáo** (bảng/hình nào đo nó), **(3) cách đã giảm thiểu**, và **(4) điều còn chưa giải quyết được**. Không viết chung chung kiểu "dữ liệu còn ít".
+> Người phụ trách tổng hợp: A (ghép báo cáo) ; mỗi người viết phần thuộc mảng mình.
+
+### 6.1. Bốn mục bắt buộc trên slide
+
+| Mục | Điểm yếu cụ thể | Ảnh hưởng | Bằng chứng trong báo cáo | Đã giảm thiểu | Còn tồn tại |
+|---|---|---|---|---|---|
+| **Resources** | Không có GPU riêng ; 3 người, ~6 tuần | Không fine-tune được transformer lớn, lưới siêu tham số nhỏ, R chỉ = 3 | Bảng thời gian train + RAM + latency suy luận từng mô hình (R1) ; ghi rõ phần cứng | MiniLM/embedding đóng băng chạy CPU ; Colab/Kaggle cho PhoBERT/XLM-R ; TabPFN không cần tuning | Kết quả transformer có thể chưa tối ưu ; ghi rõ "không tuning đầy đủ" |
+| **Dependence** | Mẫu (c, t) cùng hội thoại tự tương quan ; nhiều hội thoại của cùng người đóng góp (V1) ; cùng tài khoản CSKH (E2) ; cặp ghép trong G1 | CV/CI bị **lạc quan** nếu coi mẫu độc lập | Báo N mẫu **và** N hiệu dụng (hội thoại/người) ; so sánh CI bootstrap theo mẫu vs theo cụm (CI cụm rộng hơn bao nhiêu) | Split theo group/thời gian ; cluster bootstrap ; lấy mẫu mỗi 2 tin | Vẫn còn phụ thuộc giữa các hội thoại có chung người nhận mà nhóm không biết (id đã băm) |
+| **Representativeness** | E1 (hỗ trợ kỹ thuật), E2 (CSKH), G1/G2 (tranh luận công khai), H1/H2 (bình luận công khai) **không phải chat làm quen** ; V1 là bạn bè của nhóm, ít người, chủ yếu 1 trường, tự chọn hội thoại để gửi | Kết quả trên dữ liệu công khai **không chứng minh** hiệu quả trong app hẹn hò | Bảng mô tả V1 (số người, giới, trường, độ dài hội thoại) so với E1/E2 ; phân phối đặc trưng chính giữa các bộ | Thu V1 đúng miền (chat riêng, tiếng Việt) ; báo kết quả V1 tách riêng | Không có dữ liệu chat hẹn hò thật có nhãn ; thiên lệch chọn mẫu của V1 không đo được hết |
+| **Distribution shift** | Khác ngôn ngữ (Anh → Việt), nền tảng (IRC/Twitter → Messenger), văn hóa nhắn tin (teencode, sticker), nhịp thời gian | Mô hình tốt trên E1 có thể kém trên V1 | **Ma trận cross-domain R5** (độ sụt PR-AUC khi đổi miền) ; PSI từng đặc trưng ; coverage conformal khi đổi miền (X8) | Đặc trưng tương đối (latency so với nhịp riêng cặp) ; embedding đa ngữ ; hiệu chỉnh lại xác suất theo prevalence | Khi lên app cần theo dõi PSI + tỉ lệ cảnh báo/tuần và retrain |
+
+### 6.2. Điểm yếu khác (phải nêu thật thà)
+
+| Điểm yếu | Vì sao là vấn đề | Bằng chứng / cách xử lý trong báo cáo |
+|---|---|---|
+| **Nhãn proxy (Head A)** | "Tắt" ≠ "mất hứng thú" (có thể chuyển sang gọi điện, gặp mặt, hoặc đã xong việc) | Phân tích lỗi E3 đếm các ca kiểu này ; độ nhạy theo Δ (X5) |
+| **Định nghĩa "độc hại" lệch nhu cầu app (Head B)** | Dataset chỉ có xúc phạm/công kích/thù ghét ; **không có nhãn quấy rối tình dục, ép buộc, body shaming** — vốn là rủi ro chính trong app hẹn hò | Nêu rõ phạm vi định nghĩa ; app xử lý các loại này bằng luật + nút báo cáo |
+| **V1 không có nhãn Head B** | Không đánh giá được Head B trên chat tiếng Việt thật | Chỉ báo phân phối điểm (X14) ; đánh giá tiếng Việt dựa trên H1/H2 (bình luận, khác chat) |
+| **Censoring** | Hội thoại cuối dữ liệu chưa biết có tắt không → loại khỏi bài nhị phân gây lệch | Báo số mẫu bị loại ; survival dùng được các mẫu này (X3) |
+| **Mất cân bằng & prior shift** | G1 được ghép cặp nên cân bằng 50/50, ngoài đời tỉ lệ độc hại thấp hơn nhiều → precision thực tế thấp hơn số báo cáo | Hiệu chỉnh xác suất theo prevalence giả định ; báo precision ở nhiều mức prevalence |
+| **Đặc trưng tự xây** | Từ điển câu hỏi/tin cụt/từ chức năng tiếng Việt do nhóm tự viết, có thể sót | X6: precision/recall trên 200 câu, Cohen's kappa giữa 2 người gán nhãn |
+| **Buộc tội oan & thiên lệch** | Teencode, phương ngữ, chửi thề thân mật có thể bị gắn độc hại | FPR theo slice ; ví dụ FP trong 5b ; app chỉ nhắc nhẹ, không phạt tự động |
+| **Riêng tư & đồng ý** | Người ở đầu bên kia cuộc chat V1 không trực tiếp đồng ý | Chỉ thu đặc trưng số tại máy, băm id, xóa sau môn học (`08_*`) |
+| **Vòng phản hồi** | Khi app hiện gợi ý, hành vi thay đổi → nhãn tương lai bị ảnh hưởng | Chưa đo được (chưa có app thật) → hướng phát triển: log có/không hiển thị gợi ý |
+| **Phạm vi rộng so với thời gian** | 2 head + nhiều thí nghiệm → một số phần (P2) có thể chưa làm | Ghi rõ phần nào đã làm/chưa làm ; không trình bày kết quả chưa chạy |
+| **Bias–variance trên dữ liệu nhỏ** | V1 ít → mô hình phức tạp (GRU, transformer) dễ high-variance | Learning curve, SD giữa fold, so với LR/TabPFN |
+
+### 6.3. Câu chốt nên có trong báo cáo
+"Kết quả cho thấy [mô hình X] dự báo tốt hơn baseline trên [các bộ dữ liệu công khai] với [số liệu + CI]. Tuy nhiên, do [nhãn proxy, khác miền, V1 nhỏ], chúng tôi **không** khẳng định mô hình hoạt động tương đương trong app hẹn hò thật ; bằng chứng trực tiếp duy nhất là [kết quả V1], với khoảng tin cậy rộng."
 
 ---
 

@@ -38,7 +38,7 @@
 | Evaluation design | Mục 2 của từng module ; giao thức mặc định ở `01_*` §2 |
 | Learning procedure | Mục 3 của từng module |
 | Results | Mục 4 (khung bảng) ; sinh tự động bằng `report.py` (0B) |
-| Practical limits | Mục 5 của từng module |
+| Practical limits (điểm yếu project) | `06_*` §6: bảng 4 mục bắt buộc (resources, dependence, representativeness, distribution shift) + 11 điểm yếu khác, mỗi điểm có bằng chứng định lượng và cách giảm thiểu |
 | Ghi chú bảng (under/oversampling, SMOTE, bias–variance) | `01_*` §2 ; mục 3.3–3.5 của từng module |
 
 ## Yêu cầu "≥ 2 dataset" được đáp ứng như thế nào
