@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from fastapi import FastAPI
 
+from serving.demo_backend import router as demo_router
 from serving.predictors import (
     SUGGESTIONS,
     TAU_NUDGE,
@@ -29,6 +30,7 @@ from serving.schemas import (
 )
 
 app = FastAPI(title="FwP AI Service", version="0.1.0")
+app.include_router(demo_router)  # /app/... : backend demo cho app môn Mobile
 
 
 @app.get("/healthz")

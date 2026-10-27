@@ -20,7 +20,8 @@ src/eval/        splits, imbalance, calibration, bootstrap, report        [A]
 src/m1_rank/     Module 1                                                  [A]
 src/m2_compat/   Module 2                                                  [B]
 src/m3_health/   Module 3                                                  [C]
-serving/         FastAPI + model registry                                  [C]
+serving/         AI Service (FastAPI): hợp đồng API, luật M1/M2, baseline M3, backend demo cho app
+mobile/          App Android (Kotlin + Compose) — xem mobile/README.md
 demo/            demo Swipe mờ / chat / độ hợp / cảnh báo                  [C, B]
 experiments/     ledger.csv (mỗi lần chạy 1 dòng)
 models/          model + metadata.json theo version
