@@ -27,23 +27,22 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 ### Người B — dữ liệu
 1. Tải & kiểm tra **E1 Ubuntu Dialogue Corpus** (bản có timestamp) và **E2 Customer Support on Twitter**: có đúng cột timestamp, người gửi, nối được thành hội thoại 2 người không? Viết `docs/data_cards/DATA_CARD_E1.md`, `..._E2.md` (nguồn, license, N, đơn vị độc lập, sha256 → `data/checksums.txt`). Bộ nào không dùng được → báo nhóm ngay.
 2. Bản nháp `src/m3_health/labels.py`: sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring (`06_*` §1.2).
-3. Soạn Google Form đồng ý cho dữ liệu V1 và bản nháp script trích đặc trưng local (`08_*`).
-4. Head B: `pip install convokit`, tải `conversations-gone-awry-corpus` (G1); tải ViHSD (H1) từ GitHub/HuggingFace. In N hội thoại/bình luận, prevalence, kiểm tra cấu trúc cặp ghép của G1.
+3. Head B: `pip install convokit`, tải `conversations-gone-awry-corpus` (G1); tải ViHSD (H1) từ GitHub/HuggingFace. In N hội thoại/bình luận, prevalence, kiểm tra cấu trúc cặp ghép của G1.
 
 ### Người C — đặc trưng ngữ nghĩa + hạ tầng
 1. Chốt cùng B interface `extract_features(messages) -> DataFrame` trong `src/m3_health/features.py` (mỗi tầng T1..T4 một hàm con).
-2. Thử `paraphrase-multilingual-MiniLM-L12-v2` trên vài câu Anh/Việt: tốc độ CPU, kích thước; chọn mô hình embedding. PCA cố định: **fit trên DailyDialog (E4)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2, V1.
+2. Thử `paraphrase-multilingual-MiniLM-L12-v2` trên vài câu Anh/Việt: tốc độ CPU, kích thước; chọn mô hình embedding. PCA cố định: **fit trên DailyDialog (E4)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2.
 3. `serving/schemas.py` + `serving/app.py`: FastAPI khung với `/healthz` và `/health/score` trả giá trị giả; chạy `uvicorn serving.app:app`.
 4. Bản nháp danh sách từ chức năng tiếng Việt cho LSM (đại từ, trợ từ, liên từ).
 5. Head B: chạy thử TF-IDF+LR trên ViHSD (H1) làm baseline ; thử fine-tune PhoBERT/XLM-R 1 epoch trên Colab để biết thời gian/GPU cần.
 
 ## 4. Mốc cần đạt
-Hạn nộp **Thứ Ba 01/12/2026**. Mốc theo ngày và deadline từng việc: `02_PHAN_CONG.md` §1–§4. Mốc đầu tiên: **Thứ Sáu 30/10** chốt hợp đồng dữ liệu/API + gửi form đồng ý V1 ; **Thứ Hai 02/11** dữ liệu E1, E2, G1, H1 tải xong, khung split + bootstrap có test.
+Hạn nộp **Thứ Ba 01/12/2026**. Mốc theo ngày và deadline từng việc: `02_PHAN_CONG.md` §1–§4. Mốc đầu tiên: **Thứ Sáu 30/10** chốt hợp đồng dữ liệu/API ; **Thứ Hai 02/11** dữ liệu E1, E2, G1, H1 tải xong, khung split + bootstrap có test.
 
 ## 5. Quy tắc cứng (dễ mất điểm nếu vi phạm)
 - Không fit bất cứ gì (scaler, SMOTE, embedding, PCA…) ngoài train fold.
 - Chỉ Người A mở tập test, đúng 1 lần, ngày 20/11 ; không ai khác truy cập index test.
-- Không commit dữ liệu thô/V1; không đưa tên thật, nội dung tin nhắn hay thông tin cá nhân vào repo.
+- Không commit dữ liệu thô; không đưa tên thật, nội dung tin nhắn hay thông tin cá nhân vào repo.
 - Số liệu dataset chỉ chép vào báo cáo sau khi in ra từ code.
 - Mỗi bảng kết quả phải sinh lại được từ config + seed.
 
@@ -51,4 +50,3 @@ Hạn nộp **Thứ Ba 01/12/2026**. Mốc theo ngày và deadline từng việc
 - Chọn gì cho việc X? → `06_*` (thiết kế Module 3) và `01_*` §2 (giao thức mặc định).
 - Thiếu thời gian? → xem tầng P0/P1/P2 trong `02_*`.
 - Dataset không tải được? → xem bảng rủi ro `02_*` §7. Trễ hạn > 2 ngày → báo A để cắt theo `02_*` §0.
-- Thu dữ liệu chat tiếng Việt? → `08_*`.

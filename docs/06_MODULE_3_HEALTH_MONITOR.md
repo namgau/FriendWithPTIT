@@ -1,7 +1,8 @@
 # 06 — Module 3: Conversation Intelligence (sức khỏe + an toàn hội thoại) — **BÀI NỘP CHÍNH MÔN HỌC MÁY**
 
 > Cả 3 người cùng làm module này (phân công ở `02_PHAN_CONG.md`). Module 1, 2 chỉ làm bản đơn giản phục vụ app mobile (xem `04_*`, `05_*`).
-> Chuẩn báo cáo: `01_CHUAN_BAO_CAO_AUDITABLE.md`. Thu dữ liệu chat tiếng Việt: `08_THU_DU_LIEU_CHAT_VIET.md`.
+> Chuẩn báo cáo: `01_CHUAN_BAO_CAO_AUDITABLE.md`.
+> **Quyết định 27/10/2026:** không tự thu chat tiếng Việt (không có bộ chat 1–1 tiếng Việt công khai có timestamp ; tự thu tốn thời gian và vướng riêng tư). Tiếng Việt chỉ xuất hiện ở Head B qua ViHSD / UIT-ViCTSD.
 
 ## 0. Tóm tắt
 Một **bộ mã hóa hội thoại** đọc cả *hành vi nhắn tin* lẫn *nội dung*, rồi trả lời 2 câu hỏi dự báo, chỉ dùng dữ liệu tới thời điểm hiện tại:
@@ -13,7 +14,7 @@ Một **bộ mã hóa hội thoại** đọc cả *hành vi nhắn tin* lẫn *n
 
 Đặc trưng gồm **5 tầng** (hành vi thời gian → bề mặt văn bản → phong cách tương tác → ngữ nghĩa đa ngữ → bộ mã hóa nội dung); mô hình đi từ tuyến tính → boosting → TabPFN → chuỗi (CRAFT-like) → survival → multi-task. Câu hỏi nghiên cứu:
 - **RQ1:** Tầng đặc trưng nào thật sự giúp dự đoán? (ablation có CI)
-- **RQ2:** Mô hình học trên dữ liệu tiếng Anh có chuyển sang chat sinh viên Việt Nam được không, và lệch ở đâu? (cross-domain + phân tích lỗi)
+- **RQ2:** Mô hình có chuyển được sang miền khác không, và lệch ở đâu? Head A: giữa 2 nền tảng (Ubuntu ↔ Twitter CSKH). Head B: giữa ngôn ngữ — bộ chấm độc hại học trên tiếng Việt (ViHSD) qua encoder đa ngữ có giúp dự báo hội thoại tiếng Anh không ; và giữa 2 bộ tiếng Việt (ViHSD ↔ ViCTSD). (cross-domain + phân tích lỗi)
 - **RQ3:** Học chung 2 nhiệm vụ (multi-task, chung bộ mã hóa) có tốt hơn học riêng không?
 
 Head A trong app: 3 mức suy ra từ xác suất đã hiệu chỉnh p: `p < τ1` khỏe ; `τ1 ≤ p < τ2` hời hợt ; `p ≥ τ2` nguy cơ. (Không có nhãn thật cho "hời hợt" nên không học 3 lớp trực tiếp.)
@@ -37,7 +38,6 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | **E2** | Customer Support on Twitter (Kaggle `thoughtvector/customer-support-on-twitter`) | Anh | Có | **Bộ thứ 2 cùng bài toán**, so sánh & cross-domain | hội thoại (group theo khách hàng) |
 | E3 | Reddit qua ConvoKit (vd `reddit-corpus-small`), chỉ chuỗi trả lời qua lại giữa 2 người | Anh | Có | Tùy chọn, bộ thứ 3 | thread / cặp user |
 | E4 | DailyDialog | Anh | **Không** | Chỉ để đánh giá bộ phát hiện câu hỏi/cảm xúc (có nhãn dialog act) | hội thoại |
-| **V1** | **Chat Messenger/Telegram tiếng Việt do sinh viên đóng góp** (chỉ đặc trưng số + embedding, không văn bản) | Việt | Có | **Test đúng miền**; train trong miền nếu đủ | **người đóng góp** (các hội thoại cùng người phụ thuộc nhau) |
 | V2 | Log chat app FwP lúc demo môn mobile | Việt | Có | Bổ sung / theo dõi shift | cặp người dùng |
 | S2 | Simulator (`src/synth/chat.py`) | — | Có | **Chỉ** để unit-test pipeline, không báo cáo như kết quả | — |
 
@@ -50,7 +50,7 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | **H1** | ViHSD (UIT) | **Việt** | ~33.4k bình luận | CLEAN / OFFENSIVE / HATE | Bộ phân loại độc hại **từng tin** tiếng Việt | bình luận (dedup) |
 | **H2** | UIT-ViCTSD | **Việt** | 10k bình luận | toxic / non-toxic (rất mất cân bằng) + constructive | Bộ thứ 2 tiếng Việt ; cross-dataset H1↔H2 ; **bài thực hành imbalance/SMOTE** | bình luận |
 
-> Link/license/cột timestamp của E1–E3 **phải xác minh** trước tuần 2 và ghi Data Card (`data_cards/`). Nếu E2, E3 không dùng được thì phương án tối thiểu vẫn đủ 2 bộ có timestamp cùng bài toán: E1 + V1. Với Head B, tối thiểu G1 + H1.
+> Link/license/cột timestamp của E1–E3 **phải xác minh** trước tuần 2 và ghi Data Card (`data_cards/`). Head A cần **≥ 2 bộ có timestamp**: E1 + E2 ; nếu E2 hỏng thì thay bằng E3 (Reddit/ConvoKit). Với Head B, tối thiểu G1 + H1.
 > Khác biệt miền phải nêu trong báo cáo: E1 là hỗ trợ kỹ thuật, E2 là CSKH (hội thoại "tắt" thường vì đã giải quyết xong); G1/G2 là tranh luận công khai, H1/H2 là bình luận mạng xã hội công khai — **không phải chat riêng hẹn hò**. Chính khác biệt này là chất liệu cho RQ2.
 
 ### 1.2. Mẫu, nhãn, censoring
@@ -59,13 +59,12 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 - **Nhãn** y = 1 nếu không có tin nào trong (t, t + Δ].
 - **Right-censoring**: mốc t có t + Δ vượt quá thời điểm cuối của dữ liệu → nhãn không xác định → loại khỏi bài toán nhị phân (ghi số lượng), nhưng **giữ lại** cho survival model (ưu điểm của survival, xem 3.2).
 - **Prevalence**: báo theo mẫu và theo hội thoại, cho từng dataset và từng split.
-- **N hiệu dụng** = số hội thoại (E1, E2) / số người đóng góp (V1), không phải số mẫu.
+- **N hiệu dụng** = số hội thoại (E1, E2), không phải số mẫu.
 
 ### 1.3. Nhãn Head B
 - **G1, G2 (dự báo):** đầu vào là tiền tố hội thoại **trước** lượt công kích (bỏ lượt công kích và mọi lượt sau). Dự báo ở mức hội thoại: báo "sẽ hỏng" nếu điểm của một tiền tố bất kỳ vượt τ_B. Theo giao thức của Chang & Danescu-Niculescu-Mizil (2019).
 - **Horizon:** báo trước được bao nhiêu lượt so với lượt công kích.
 - **H1, H2 (từng tin):** nhãn có sẵn; H1 gộp OFFENSIVE + HATE = độc hại (và thử 3 lớp).
-- **V1:** **không có nhãn** cho Head B → chỉ báo phân phối điểm và kiểm tra định tính do chính người đóng góp tự xem trên máy (không gửi văn bản). Ghi rõ là giới hạn.
 
 ---
 
@@ -114,8 +113,7 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | **Topic drift**, **topic novelty** (khoảng cách embedding giữa cửa sổ hiện tại và trước đó) | hội thoại cạn chủ đề |
 | Cảm xúc/độ nhiệt tình: mô hình đa ngữ có sẵn, hoặc PhoBERT fine-tune UIT-VSMEC | ablation: có giúp không? |
 
-> Với V1, embedding tính **trên máy người đóng góp** (xem `08_*`); nhóm chỉ nhận vector/điểm số, không nhận văn bản.
-> Nếu giảm chiều embedding bằng PCA: **fit 1 lần trên E4 (DailyDialog)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2, V1.
+> Nếu giảm chiều embedding bằng PCA: **fit 1 lần trên E4 (DailyDialog)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2.
 
 ### Tầng T5 — Bộ mã hóa nội dung (đọc chat thật sự)
 | Thành phần | Cách làm |
@@ -125,7 +123,6 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | **Bộ mã hóa ngữ cảnh (context encoder)** | GRU 1 chiều chạy qua chuỗi vector tin nhắn (kiểu **CRAFT**) → vector trạng thái hội thoại h_t |
 | **Dùng chung** | h_t là đầu vào cho cả Head A và Head B (multi-task, RQ3) và sau này cho Module 2 |
 
-> Với V1: mô hình T5 chạy **trên máy người đóng góp** → chỉ xuất điểm độc hại + vector h_t (hoặc bản PCA), không xuất văn bản.
 
 ---
 
@@ -146,7 +143,7 @@ raw messages → chuẩn hóa (timezone, gộp tin cùng người trong 1 phút,
 | Baseline | (0) đa số ; (1) **rule** của tài liệu gốc: >48h không phản hồi & độ dài giảm 3 lượt ; (2) chỉ `time_since_last` | ngưỡng chọn trên val |
 | Tuyến tính | Logistic Regression (L1/L2) | C ∈ {0.01, 0.1, 1, 10}, class_weight |
 | Cây | Random Forest ; **LightGBM/XGBoost** | depth ∈ {3,5,7}, lr ∈ {0.03,0.1}, n ∈ {200,500}; Optuna nếu kịp |
-| **Foundation model bảng** | **TabPFN v2** (Nature 2025): transformer huấn luyện sẵn trên hàng triệu bộ dữ liệu tổng hợp, không cần tuning ; mạnh với ≤ 10k mẫu → hợp V1 nhỏ | mặc định ; so với LightGBM đã tuning |
+| **Foundation model bảng** | **TabPFN v2** (Nature 2025): transformer huấn luyện sẵn trên hàng triệu bộ dữ liệu tổng hợp, không cần tuning ; mạnh với ≤ 10k mẫu → hợp khi lấy mẫu nhỏ / learning curve | mặc định ; so với LightGBM đã tuning |
 | Chuỗi | GRU 1–2 lớp trên chuỗi vector đặc trưng theo từng tin (+ embedding T4); tùy chọn Transformer nhỏ | hidden ∈ {32,64}, dropout ∈ {0.1,0.3}, early stopping |
 | **Survival** | **Cox PH**, **Random Survival Forest** / gradient-boosted survival (`scikit-survival`, `lifelines`): dự đoán *thời gian tới khi tắt*, xử lý đúng censoring | penalizer, n_estimators, min_leaf |
 
@@ -172,7 +169,7 @@ Survival là phần "kiến thức ngoài chương trình" chính: dùng đượ
 - τ_B (Head B): **báo nhầm = "buộc tội oan"** → ưu tiên precision; chọn τ_B sao cho FPR ≤ 5% trên validation (giá trị nhóm chốt), báo recall đạt được.
 
 ### 3.5. Bias–variance
-Learning curve theo số hội thoại; so train vs CV; SD giữa các fold thời gian; LR (bias cao) – GBM – GRU (variance cao khi ít dữ liệu, nhất là V1).
+Learning curve theo số hội thoại; so train vs CV; SD giữa các fold thời gian; LR (bias cao) – GBM – GRU (variance cao khi ít dữ liệu).
 
 ---
 
@@ -180,14 +177,14 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 
 | Hạng mục | Thiết kế |
 |---|---|
-| Test held-out | E1, E2: 20% hội thoại **bắt đầu muộn nhất**. V1: 20% **người đóng góp** (group). Khóa tới 20/11 (chỉ Người A mở) |
-| Outer CV | E1/E2: **forward-chaining theo thời gian** (5 khối, train các khối trước → validate khối sau). V1: **GroupKFold theo người đóng góp**, K = 5 (leave-one-donor-out nếu < 15 người) |
+| Test held-out | E1, E2: 20% hội thoại **bắt đầu muộn nhất**. G1: split chuẩn ConvoKit. H1/H2: split gốc. Khóa tới 20/11 (chỉ Người A mở) |
+| Outer CV | E1/E2: **forward-chaining theo thời gian** (5 khối, train các khối trước → validate khối sau) |
 | Lặp & seeds | R = 3 cho phần ngẫu nhiên (khởi tạo, SMOTE, NN); seeds 42–46 |
 | Inner CV | GroupKFold theo hội thoại trong train, K = 3 |
 | Cấm | random split theo mẫu/dòng |
 | Metric nhị phân | **PR-AUC** (chính), ROC-AUC, Brier, ECE, recall@precision = 0.5, **lead time** |
 | Metric survival | C-index, time-dependent AUC, Integrated Brier Score |
-| Bootstrap | cluster theo hội thoại (E1, E2) / người đóng góp (V1), B = 2000, percentile CI 95% ; **so sánh 2 mô hình bằng paired bootstrap** (CI của hiệu số) |
+| Bootstrap | cluster theo hội thoại (E1, E2) / cặp ghép (G1), B = 2000, percentile CI 95% ; **so sánh 2 mô hình bằng paired bootstrap** (CI của hiệu số) |
 | Metric conformal | coverage thực tế vs mục tiêu (vd 90%), độ rộng khoảng / độ chặt cận dưới |
 | Metric vận hành | tỉ lệ cảnh báo/hội thoại/ngày, % cảnh báo đúng trong 48h |
 | **Head B — split** | G1/G2: dùng **split chuẩn của ConvoKit** (để so với bài báo) + giữ nguyên cặp ghép trong cùng phần ; CV trong train theo group = cặp. H1/H2: split gốc + CV theo bình luận đã dedup |
@@ -199,17 +196,17 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 | X1 | Mọi họ mô hình × tầng đặc trưng T1 → +T2 → +T3 → +T4 → +T5 trên E1, E2 | RQ1 (ablation lũy tiến, CI) |
 | X2 | 5 phương án mất cân bằng × 2 mô hình tốt nhất | yêu cầu imbalance |
 | X3 | Nhị phân Δ = 48h vs survival (cùng đặc trưng) | điểm cộng |
-| X4 | **Cross-domain**: E1→E2, E2→E1, (E1+E2)→V1, V1→V1 | RQ2 |
+| X4 | **Cross-domain Head A**: train E1 → test E2, train E2 → test E1, so với in-domain | RQ2 |
 | X5 | Độ nhạy Δ ∈ {24, 48, 72}h, cửa sổ ∈ {5, 10, 20} tin, chi phí FN:FP | độ vững |
 | X6 | Đánh giá bộ phát hiện câu hỏi/tin cụt (E4 + 200 câu Việt tự gán) | chất lượng đặc trưng |
 | X7 | TabPFN v2 vs LightGBM, theo kích thước train (learning curve) | điểm cộng: foundation model |
-| X8 | Conformal: khoảng/cận dưới thời gian tới khi tắt ; kiểm tra coverage khi chuyển miền E→V1 | điểm cộng: bất định có bảo đảm |
+| X8 | Conformal: khoảng/cận dưới thời gian tới khi tắt ; kiểm tra coverage khi chuyển miền E1 → E2 | điểm cộng: bất định có bảo đảm |
 | X9 | Embedding đa ngữ: MiniLM vs BGE-M3 vs multilingual-e5 cho T4 | chọn embedding có căn cứ |
 | X10 | Bộ phát hiện câu hỏi/tin cụt bằng LLM (chỉ trên E1/E2/E4 hoặc LLM chạy local) vs luật | điểm cộng: LLM làm feature extractor |
 | X11 | Head B: baseline "tin cuối" vs bảng vs CRAFT-like vs XLM-R, trên G1 và G2 ; cross G1→G2, G2→G1 | Head B, RQ2 |
 | X12 | Bộ phân loại độc hại tiếng Việt: TF-IDF+LR vs PhoBERT vs XLM-R trên H1, H2 ; cross H1↔H2 ; 5 phương án imbalance trên H2 | tiếng Việt, imbalance |
 | X13 | **Multi-task vs single-task** (cùng encoder T5), λ ∈ {0.3, 0.5, 0.7} | RQ3 |
-| X14 | Zero-shot sang V1: phân phối điểm Head B, tương quan điểm Head B với Head A (hội thoại căng thẳng có tắt nhanh hơn?) | RQ2, khám phá |
+| X14 | **Cross-lingual Head B**: điểm độc hại từ bộ phân loại học trên ViHSD (encoder đa ngữ) làm đặc trưng cho dự báo G1 tiếng Anh — có giúp không? ; cross-dataset ViHSD ↔ ViCTSD | RQ2 |
 
 ---
 
@@ -231,7 +228,7 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 
 ### 5b. Phân tích lỗi (theo `01_*` §6)
 - **E1** confusion matrix tại τ2; FN (tắt mà không báo) vs FP (báo nhầm); phân phối lead time.
-- **E2 slice**: theo dataset, ngôn ngữ, giờ trong ngày, cuối tuần, độ dài hội thoại, tuổi hội thoại, người đóng góp (V1).
+- **E2 slice**: theo dataset, ngôn ngữ, giờ trong ngày, cuối tuần, độ dài hội thoại, tuổi hội thoại.
 - **E3** ≥ 10 hội thoại sai tự tin cao, kèm SHAP. Giả thuyết kiểu lỗi cần kiểm chứng: im lặng vì ngủ/thi cử; "tắt" vì đã xong việc (E2); chuyển sang gọi điện/gặp mặt; nhắn cụt nhưng thân ("ừ" giữa bạn thân); câu hỏi tiếng Việt không có dấu `?` bị bỏ sót.
 - **E4 nguồn lỗi**: nhiễu nhãn proxy, censoring, lệch miền (R5), thiếu đặc trưng (R2), variance (learning curve).
 - **E5 hành động**: thử ≥ 1 sửa đổi (vd latency điều chỉnh giờ ngủ) và báo trước/sau trên CV.
@@ -257,11 +254,11 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 
 | Kỹ thuật | Nguồn | Dùng thế nào trong bài | Ưu tiên |
 |---|---|---|---|
-| **TabPFN v2** — foundation model cho dữ liệu bảng | Hollmann et al., *Nature* 637:319–326 (2025); TabPFN v2.5 (11/2025) mở rộng tới ~50k dòng | Thêm 1 candidate (X7). Đặc biệt có lợi cho V1 (ít mẫu). So với LightGBM đã tuning, theo kích thước train. Giới hạn: kém hơn khi dữ liệu lớn/nhiều chiều → giảm mẫu hoặc chọn đặc trưng | P1 |
+| **TabPFN v2** — foundation model cho dữ liệu bảng | Hollmann et al., *Nature* 637:319–326 (2025); TabPFN v2.5 (11/2025) mở rộng tới ~50k dòng | Thêm 1 candidate (X7). Có lợi khi ít mẫu (xem learning curve). So với LightGBM đã tuning, theo kích thước train. Giới hạn: kém hơn khi dữ liệu lớn/nhiều chiều → giảm mẫu hoặc chọn đặc trưng | P1 |
 | **Conformalized survival analysis** — cận dưới thời gian tới khi tắt có bảo đảm phân phối tự do, xử lý right-censoring | Davidov et al., ICLR 2025; Sesia & Svetnik, ICML 2025 (doubly robust); Holmes & Marandon, arXiv 2024 (hai phía) | X8: "hội thoại này còn ít nhất ~T giờ với xác suất 90%". Báo coverage thực tế | P1 |
-| **Weighted conformal dưới covariate shift** | Shin, Lee & Kang, arXiv 12/2025 (survival + covariate shift) | Mở rộng X8 cho chuyển miền E1/E2 → V1: coverage có giữ không khi đổi miền? (khớp đúng RQ2) | P2 |
+| **Weighted conformal dưới covariate shift** | Shin, Lee & Kang, arXiv 12/2025 (survival + covariate shift) | Mở rộng X8 cho chuyển miền E1 → E2: coverage có giữ không khi đổi miền? (khớp đúng RQ2) | P2 |
 | **Embedding đa ngữ hiện đại + benchmark tiếng Việt** | BGE-M3 (BAAI, 2024); multilingual-e5; **VN-MTEB** (arXiv 2507.21500, 2025) — benchmark embedding tiếng Việt | X9: chọn embedding cho T4 có căn cứ, trích VN-MTEB khi lý giải | P1 |
-| **LLM làm bộ trích đặc trưng / gán nhãn yếu** | FeatLLM (arXiv 2404.09491, 2024); LLM sinh labeling function (arXiv 2408.16173, 2024) | X10: LLM phát hiện câu hỏi/tin cụt/độ nhiệt tình → so với luật trên tập 200 câu. **Không gửi chat V1 lên API** (riêng tư) — chỉ dùng trên E1/E2/E4 hoặc LLM chạy local | P2 |
+| **LLM làm bộ trích đặc trưng / gán nhãn yếu** | FeatLLM (arXiv 2404.09491, 2024); LLM sinh labeling function (arXiv 2408.16173, 2024) | X10: LLM phát hiện câu hỏi/tin cụt/độ nhiệt tình → so với luật trên tập 200 câu. chỉ dùng trên dữ liệu công khai E1/E2/E4 | P2 |
 | **Language Style Matching** (nền tảng tâm lý học, không mới nhưng ít gặp trong ML) | Ireland et al., *Psychological Science* 22(1):39–44 (2011) | Tầng T3; kiểm tra lại giả thuyết "khớp phong cách → hội thoại bền" trên dữ liệu chat | P1 |
 | **Survival analysis** (ngoài chương trình) | `scikit-survival`, `lifelines` | X3, R6 | P1 |
 | **SHAP**, **domain shift (PSI)** | — | phân tích lỗi, theo dõi khi triển khai | P1 |
@@ -303,9 +300,9 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 | Mục | Điểm yếu cụ thể | Ảnh hưởng | Bằng chứng trong báo cáo | Đã giảm thiểu | Còn tồn tại |
 |---|---|---|---|---|---|
 | **Resources** | Không có GPU riêng ; 3 người, 5 tuần, song song làm app môn Mobile | Không fine-tune được transformer lớn, lưới siêu tham số nhỏ, R chỉ = 3 | Bảng thời gian train + RAM + latency suy luận từng mô hình (R1) ; ghi rõ phần cứng | MiniLM/embedding đóng băng chạy CPU ; Colab/Kaggle cho PhoBERT/XLM-R ; TabPFN không cần tuning | Kết quả transformer có thể chưa tối ưu ; ghi rõ "không tuning đầy đủ" |
-| **Dependence** | Mẫu (c, t) cùng hội thoại tự tương quan ; nhiều hội thoại của cùng người đóng góp (V1) ; cùng tài khoản CSKH (E2) ; cặp ghép trong G1 | CV/CI bị **lạc quan** nếu coi mẫu độc lập | Báo N mẫu **và** N hiệu dụng (hội thoại/người) ; so sánh CI bootstrap theo mẫu vs theo cụm (CI cụm rộng hơn bao nhiêu) | Split theo group/thời gian ; cluster bootstrap ; lấy mẫu mỗi 2 tin | Vẫn còn phụ thuộc giữa các hội thoại có chung người nhận mà nhóm không biết (id đã băm) |
-| **Representativeness** | E1 (hỗ trợ kỹ thuật), E2 (CSKH), G1/G2 (tranh luận công khai), H1/H2 (bình luận công khai) **không phải chat làm quen** ; V1 là bạn bè của nhóm, ít người, chủ yếu 1 trường, tự chọn hội thoại để gửi | Kết quả trên dữ liệu công khai **không chứng minh** hiệu quả trong app hẹn hò | Bảng mô tả V1 (số người, giới, trường, độ dài hội thoại) so với E1/E2 ; phân phối đặc trưng chính giữa các bộ | Thu V1 đúng miền (chat riêng, tiếng Việt) ; báo kết quả V1 tách riêng | Không có dữ liệu chat hẹn hò thật có nhãn ; thiên lệch chọn mẫu của V1 không đo được hết |
-| **Distribution shift** | Khác ngôn ngữ (Anh → Việt), nền tảng (IRC/Twitter → Messenger), văn hóa nhắn tin (teencode, sticker), nhịp thời gian | Mô hình tốt trên E1 có thể kém trên V1 | **Ma trận cross-domain R5** (độ sụt PR-AUC khi đổi miền) ; PSI từng đặc trưng ; coverage conformal khi đổi miền (X8) | Đặc trưng tương đối (latency so với nhịp riêng cặp) ; embedding đa ngữ ; hiệu chỉnh lại xác suất theo prevalence | Khi lên app cần theo dõi PSI + tỉ lệ cảnh báo/tuần và retrain |
+| **Dependence** | Mẫu (c, t) cùng hội thoại tự tương quan ; cùng tài khoản CSKH (E2) ; cặp ghép trong G1 | CV/CI bị **lạc quan** nếu coi mẫu độc lập | Báo N mẫu **và** N hiệu dụng (hội thoại/người) ; so sánh CI bootstrap theo mẫu vs theo cụm (CI cụm rộng hơn bao nhiêu) | Split theo group/thời gian ; cluster bootstrap ; lấy mẫu mỗi 2 tin | Vẫn còn phụ thuộc giữa các hội thoại có chung người nhận mà nhóm không biết (id đã băm) |
+| **Representativeness** | E1 (hỗ trợ kỹ thuật), E2 (CSKH), G1/G2 (tranh luận công khai), H1/H2 (bình luận công khai) **không phải chat làm quen** ; **Head A không có dữ liệu tiếng Việt** (không có bộ chat 1–1 tiếng Việt công khai có timestamp) | Kết quả **không chứng minh** hiệu quả trong app hẹn hò tiếng Việt | Bảng mô tả & phân phối đặc trưng chính giữa các bộ ; ma trận cross-domain R5 | Đặc trưng hành vi (T1) không phụ thuộc ngôn ngữ ; encoder đa ngữ ; tiếng Việt ở Head B (ViHSD, ViCTSD) | Cần log chat thật của app (V2) để đánh giá đúng miền — hướng phát triển |
+| **Distribution shift** | Khác nền tảng (IRC ↔ Twitter ↔ app), ngôn ngữ (Anh ↔ Việt), văn hóa nhắn tin (teencode, sticker), nhịp thời gian | Mô hình tốt trên E1 có thể kém trên E2 và trên chat app thật | **Ma trận cross-domain R5** (độ sụt PR-AUC khi đổi miền) ; PSI từng đặc trưng ; coverage conformal khi đổi miền (X8) | Đặc trưng tương đối (latency so với nhịp riêng cặp) ; embedding đa ngữ ; hiệu chỉnh lại xác suất theo prevalence | Khi lên app cần theo dõi PSI + tỉ lệ cảnh báo/tuần và retrain |
 
 ### 6.2. Điểm yếu khác (phải nêu thật thà)
 
@@ -313,18 +310,18 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 |---|---|---|
 | **Nhãn proxy (Head A)** | "Tắt" ≠ "mất hứng thú" (có thể chuyển sang gọi điện, gặp mặt, hoặc đã xong việc) | Phân tích lỗi E3 đếm các ca kiểu này ; độ nhạy theo Δ (X5) |
 | **Định nghĩa "độc hại" lệch nhu cầu app (Head B)** | Dataset chỉ có xúc phạm/công kích/thù ghét ; **không có nhãn quấy rối tình dục, ép buộc, body shaming** — vốn là rủi ro chính trong app hẹn hò | Nêu rõ phạm vi định nghĩa ; app xử lý các loại này bằng luật + nút báo cáo |
-| **V1 không có nhãn Head B** | Không đánh giá được Head B trên chat tiếng Việt thật | Chỉ báo phân phối điểm (X14) ; đánh giá tiếng Việt dựa trên H1/H2 (bình luận, khác chat) |
+| **Không có chat tiếng Việt thật** | Cả 2 head không được đánh giá trên chat riêng tiếng Việt ; tiếng Việt chỉ có bình luận công khai (H1/H2) | Nêu rõ ; X14 đo khả năng chuyển ngôn ngữ gián tiếp ; hướng phát triển: log app (V2) |
 | **Censoring** | Hội thoại cuối dữ liệu chưa biết có tắt không → loại khỏi bài nhị phân gây lệch | Báo số mẫu bị loại ; survival dùng được các mẫu này (X3) |
 | **Mất cân bằng & prior shift** | G1 được ghép cặp nên cân bằng 50/50, ngoài đời tỉ lệ độc hại thấp hơn nhiều → precision thực tế thấp hơn số báo cáo | Hiệu chỉnh xác suất theo prevalence giả định ; báo precision ở nhiều mức prevalence |
 | **Đặc trưng tự xây** | Từ điển câu hỏi/tin cụt/từ chức năng tiếng Việt do nhóm tự viết, có thể sót | X6: precision/recall trên 200 câu, Cohen's kappa giữa 2 người gán nhãn |
 | **Buộc tội oan & thiên lệch** | Teencode, phương ngữ, chửi thề thân mật có thể bị gắn độc hại | FPR theo slice ; ví dụ FP trong 5b ; app chỉ nhắc nhẹ, không phạt tự động |
-| **Riêng tư & đồng ý** | Người ở đầu bên kia cuộc chat V1 không trực tiếp đồng ý | Chỉ thu đặc trưng số tại máy, băm id, xóa sau môn học (`08_*`) |
+| **Riêng tư khi triển khai** | App phải đọc nội dung chat để chạy Head B / T5 | Xin đồng ý, cho phép tắt tính năng, không lưu văn bản thô, chỉ lưu điểm số |
 | **Vòng phản hồi** | Khi app hiện gợi ý, hành vi thay đổi → nhãn tương lai bị ảnh hưởng | Chưa đo được (chưa có app thật) → hướng phát triển: log có/không hiển thị gợi ý |
 | **Phạm vi rộng so với thời gian** | 2 head + nhiều thí nghiệm → một số phần (P2) có thể chưa làm | Ghi rõ phần nào đã làm/chưa làm ; không trình bày kết quả chưa chạy |
-| **Bias–variance trên dữ liệu nhỏ** | V1 ít → mô hình phức tạp (GRU, transformer) dễ high-variance | Learning curve, SD giữa fold, so với LR/TabPFN |
+| **Bias–variance** | G1 chỉ ~4k hội thoại → mô hình phức tạp (GRU, transformer) dễ high-variance | Learning curve, SD giữa fold, so với LR/TabPFN |
 
 ### 6.3. Câu chốt nên có trong báo cáo
-"Kết quả cho thấy [mô hình X] dự báo tốt hơn baseline trên [các bộ dữ liệu công khai] với [số liệu + CI]. Tuy nhiên, do [nhãn proxy, khác miền, V1 nhỏ], chúng tôi **không** khẳng định mô hình hoạt động tương đương trong app hẹn hò thật ; bằng chứng trực tiếp duy nhất là [kết quả V1], với khoảng tin cậy rộng."
+"Kết quả cho thấy [mô hình X] dự báo tốt hơn baseline trên [các bộ dữ liệu công khai] với [số liệu + CI]. Tuy nhiên, do [nhãn proxy, khác miền, không có chat tiếng Việt thật], chúng tôi **không** khẳng định mô hình hoạt động tương đương trong app hẹn hò thật ; cần đánh giá lại trên log chat của app."
 
 ---
 

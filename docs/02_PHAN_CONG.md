@@ -9,7 +9,7 @@
 
 | | Người A (trưởng nhóm) | Người B | Người C |
 |---|---|---|---|
-| Module 3 | Khung đánh giá, Head A dạng bảng + survival, phân tích lỗi, báo cáo | Dữ liệu Anh + Việt, nhãn, đặc trưng hành vi | Đọc nội dung (NLP), Head B, API |
+| Module 3 | Khung đánh giá, Head A dạng bảng + survival, phân tích lỗi, báo cáo | Dữ liệu, nhãn, đặc trưng hành vi + phong cách (T1–T3), ViCTSD + thí nghiệm imbalance | Đọc nội dung (NLP), Head B, API |
 | Module 1+2 (app) | Luật lọc/xếp hạng + luật blur ở backend, hợp đồng API | Màn Swipe (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
 | Họ tên | ________ | ________ | ________ |
 
@@ -17,18 +17,18 @@
 
 | Giữ (bắt buộc) | Giữ nếu kịp (P1) | **Cắt** (ghi vào báo cáo là hướng phát triển) |
 |---|---|---|
-| Head A trên E1 + E2 + V1 ; Head B trên G1 + H1 ; baseline ; imbalance ; calibration ; bootstrap ; phân tích lỗi ; cross-domain → V1 | Survival, TabPFN, LSM (T3), H2 (ViCTSD) cho thí nghiệm imbalance, conformal survival | Multi-task (X13), G2 Reddit CMV, E3 Reddit, GRU cho Head A, XLM-R fine-tune tiền tố, weighted conformal, LLM trích đặc trưng (X10), Optuna, so sánh 3 embedding (X9 → chỉ dùng 1 mô hình) |
+| Head A trên E1 + E2 ; Head B trên G1 + H1 ; baseline ; imbalance ; calibration ; bootstrap ; phân tích lỗi ; cross-domain E1 ↔ E2 | Survival, TabPFN, LSM (T3), H2 (ViCTSD), cross-lingual X14, conformal survival | **Tự thu chat tiếng Việt (V1)** — không có bộ công khai phù hợp, tự thu quá tốn thời gian ; Multi-task (X13), G2 Reddit CMV, E3 Reddit, GRU cho Head A, XLM-R fine-tune tiền tố, weighted conformal, LLM trích đặc trưng (X10), Optuna, so sánh 3 embedding (X9 → chỉ dùng 1 mô hình) |
 
 ## 1. Mốc chung (cả nhóm)
 
 | Ngày | Mốc | Ai kiểm tra |
 |---|---|---|
-| **Thứ Sáu 30/10** | Chốt **hợp đồng**: định dạng dữ liệu tin nhắn, `extract_features()`, `encode_messages()`, API `/health/score`, `/safety/score`, API app (M1/M2). Gửi form đồng ý V1 | A |
+| **Thứ Sáu 30/10** | Chốt **hợp đồng**: định dạng dữ liệu tin nhắn, `extract_features()`, `encode_messages()`, API `/health/score`, `/safety/score`, API app (M1/M2) | A |
 | **Thứ Hai 02/11** | Họp tuần 1: dữ liệu E1, E2, G1, H1 tải xong & kiểm tra ; khung split + bootstrap có test | A |
-| **Thứ Sáu 06/11** | **Đóng băng mô hình embedding + bộ phân loại độc hại bản 1** (để B gắn vào script V1) | A duyệt |
-| **Thứ Hai 09/11** | Baseline cả 2 head chạy end-to-end ; script V1 phát hành | A |
+| **Thứ Sáu 06/11** | Đóng băng mô hình embedding (C1) ; tập test của mọi dataset đã tạo & khóa (A3) | A |
+| **Thứ Hai 09/11** | Baseline cả 2 head chạy end-to-end | A |
 | **Thứ Hai 16/11** | **Giữa kỳ:** bảng CV mean ± SD cả 2 head ; app có Swipe + chat chạy được | A |
-| **Thứ Năm 19/11** | **Đóng băng cấu hình** mọi mô hình (không đổi gì nữa) ; dừng thu V1 vào 20/11 | A |
+| **Thứ Năm 19/11** | **Đóng băng cấu hình** mọi mô hình (không đổi gì nữa) | A |
 | **Thứ Sáu 20/11** | **A mở tập test đúng 1 lần**, chạy lại toàn bộ từ config + seed | A |
 | **Thứ Hai 23/11** | Đủ bảng kết quả R1–R9 ; app nối API Module 3 | A |
 | **Thứ Sáu 27/11** | **Bản nháp báo cáo đầy đủ** ; duyệt chéo bằng checklist `01_*` §5 bắt đầu | A + cả nhóm |
@@ -61,8 +61,9 @@
 | B2 | Tải, làm sạch **G1 (Conversations Gone Awry – Wiki)** + **H1 (ViHSD)** (+ H2 ViCTSD nếu kịp) ; Data Card | 04/11 |
 | B3 | Head A: sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring ; thống kê N hiệu dụng | 06/11 |
 | B4 | Đặc trưng **T1** (hành vi thời gian) + **T2** (bề mặt văn bản, từ điển Anh/Việt) | 10/11 |
-| B5 | **V1 — chat tiếng Việt:** form đồng ý (30/10) → script trích đặc trưng local gắn mô hình của C (09/11) → thu (10/11–20/11, mục tiêu ≥ 10 người) → Data Card V1 (22/11) | 22/11 |
-| B6 | Gán nhãn 200 câu Việt (2 người, Cohen's kappa) + đánh giá bộ phát hiện câu hỏi/tin cụt (X6) | 18/11 |
+| B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) — chuyển từ C sang | 13/11 |
+| B5b | **H2 (UIT-ViCTSD)** + so sánh **5 phương án mất cân bằng** (none / class_weight / under / over / SMOTE) trên bộ phân loại độc hại (phần imbalance của X12) | 16/11 |
+| B6 | Đánh giá bộ phát hiện câu hỏi/tin cụt trên DailyDialog (có nhãn dialog act) (X6) | 18/11 |
 | B7 | Viết phần **Objective and data** + mô tả dữ liệu trong báo cáo ; duyệt chéo phần của C | 27/11 |
 | B-app | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng luật của A | 23/11 |
 
@@ -71,10 +72,9 @@
 | Mã | Việc | Hạn |
 |---|---|---|
 | C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) |
-| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT ; bản 1 đóng băng 06/11 cho script V1 ; bản tốt + imbalance trên H2 (X12) | bản 1: 06/11 ; xong: 13/11 |
-| C3 | Đặc trưng **T3** (LSM, mirroring) — P1 | 13/11 |
+| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do B làm) | 13/11 |
 | C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 |
-| C5 | Cross-domain sang V1 (X4 cho Head A cùng A, X14 cho Head B) | 23/11 |
+| C5 | **Cross-lingual Head B** (X14): điểm độc hại từ bộ phân loại tiếng Việt làm đặc trưng cho G1 ; hỗ trợ A chạy cross-domain Head A E1 ↔ E2 (X4) | 23/11 |
 | C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 |
 | C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 |
 | C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của A (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 |
@@ -85,8 +85,7 @@ A1 hợp đồng (30/10) ──► mọi người
 A2 khung đánh giá (02–06/11) ──► A5, A6, C4
 B1–B3 dữ liệu + nhãn Head A (06/11) ──► A5, A6
 B2 G1/H1 (04/11) ──► C2, C4
-C1 + C2 bản 1 đóng băng (06/11) ──► B5 script V1 (09/11)   ← nghẽn nguy hiểm nhất
-B5 V1 xong (20–22/11) ──► C5, A9
+C2 bộ phân loại độc hại (13/11) ──► B5b imbalance, C5 cross-lingual   ← nghẽn chính
 A-app API luật (16/11) ──► B-app, C-app
 C6 API Module 3 (20/11) ──► C-app
 ```
@@ -96,15 +95,13 @@ C6 API Module 3 (20/11) ──► C-app
 - Mọi bước fit (scaler, SMOTE, PCA, embedding fine-tune) **chỉ trên train fold** — A kiểm tra trong review.
 - Không ai ngoài A truy cập index tập test trước 20/11.
 - Số liệu dataset chỉ đưa vào báo cáo sau khi in ra từ code.
-- Dữ liệu V1: không commit, không văn bản, xóa sau khi chấm.
 - Họp nhanh 15 phút **Thứ Hai & Thứ Sáu**: mỗi người báo xong gì / kẹt gì / việc trễ hạn. Trễ > 2 ngày → A quyết định cắt theo bảng §0.
 
 ## 7. Rủi ro & dự phòng
 | Rủi ro | Dự phòng |
 |---|---|
-| E2 không dùng được | E1 + V1 vẫn đủ 2 bộ cùng bài toán |
-| V1 < 10 người đến 20/11 | V1 chỉ làm test, leave-one-donor-out, nói rõ CI rộng |
+| E2 không dùng được | Thay bằng E3 (Reddit qua ConvoKit, có timestamp) để Head A vẫn đủ 2 bộ |
 | Không có GPU cho PhoBERT | Colab/Kaggle ; nếu không: embedding đóng băng + LR |
-| C2 trễ mốc 06/11 | Script V1 dùng bản TF-IDF+LR, không đợi PhoBERT |
+| C2 trễ | Dùng bản TF-IDF+LR cho X12/X14, PhoBERT để sau |
 | App chậm | Ưu tiên demo luồng Swipe → match → chat có blur ; quả cầu 3D cắt trước |
 | Thiếu thời gian chung | Cắt theo bảng §0 (cột "giữ nếu kịp" trước). **Không cắt**: split đúng, bootstrap, calibration, baseline, phân tích lỗi |
