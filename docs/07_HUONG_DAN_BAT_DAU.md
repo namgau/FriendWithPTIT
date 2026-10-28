@@ -62,11 +62,9 @@ Phần ML ở trên vẫn là nguồn chân lý cho báo cáo. Bên cạnh đó 
   FastAPI qua `-PFWP_AI_BASE_URL`. Màn hình **Quanh bạn** dùng Google Maps khi truyền
   `-PMAPS_API_KEY=...`, nếu không sẽ hiển thị radar mô phỏng. Build:
   `.\gradlew.bat :app:assembleDebug`.
-- `mobile/` — app Kotlin/Compose cho môn Mobile, chạy end-to-end với dữ liệu giả trong máy
-  hoặc backend demo `/app/*`. Mở thư mục `mobile/` trong Android Studio để chạy.
-- `serving/` — FastAPI phục vụ cả hai app: `/rank`, `/blur-level`, `/health/score`,
-  `/safety/score`, `/app/*` cho `mobile/`; `/m1/rank`, `/m2/compat`, `/m3/health` và model
-  registry `models/<module>/<version>` cho `android/`. Chạy
+- `serving/` — FastAPI: `/m1/rank`, `/m2/compat`, `/m3/health` và model registry
+  `models/<module>/<version>` cho `android/`; `/health/score` (Head A) và `/safety/score`
+  (Head B) là chỗ cắm mô hình Module 3 sau khi huấn luyện (`serving/predictors.py`). Chạy
   `uvicorn serving.app:app --port 8000`; test `pytest`.
 - `backend/` — NestJS + PostgreSQL/PostGIS, OTP demo `123456`, 20 hồ sơ seed,
   swipe/match/chat/notification/report/block. Chạy `docker compose up --build` trong `backend/`.

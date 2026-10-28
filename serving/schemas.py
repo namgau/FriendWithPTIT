@@ -1,7 +1,8 @@
-"""Hợp đồng JSON giữa app/backend và AI Service.
+"""Hợp đồng JSON của Module 3 (bài nộp môn Học máy): /health/score, /safety/score.
 
-Đây là "ổ cắm" chung: app Android và backend chỉ phụ thuộc vào các schema này.
+Đầu vào là danh sách tin nhắn có thời gian — đúng dạng dữ liệu dùng để huấn luyện.
 Khi Module 3 có mô hình thật, chỉ thay phần dự đoán phía sau, schema giữ nguyên.
+Hợp đồng của app android/ nằm ở serving/schemas_mobile.py.
 Đổi schema = phải báo cả nhóm và Người A duyệt (xem docs/02_PHAN_CONG.md, A1).
 """
 from __future__ import annotations
@@ -17,76 +18,6 @@ class Message(BaseModel):
     sender_id: str
     timestamp_ms: int = Field(..., description="Unix time, mili giây")
     text: str | None = Field(None, description="Có thể bỏ trống nếu chỉ gửi siêu dữ liệu")
-
-
-class GraduationStatus(str, Enum):
-    student = "student"
-    alumni = "alumni"
-
-
-class Profile(BaseModel):
-    user_id: str
-    school_id: str
-    faculty_id: str | None = None
-    gpa_tier: int = Field(..., ge=0, le=3, description="0 = thấp nhất, 3 = cao nhất")
-    graduation_status: GraduationStatus
-    age: int = Field(..., ge=16, le=100)
-    gender: str
-    seeking_genders: list[str]
-    interest_tags: list[str] = []
-    lat: float
-    lon: float
-
-
-class Preferences(BaseModel):
-    """Bộ lọc cứng của người xem (Module 1, bản luật)."""
-    age_min: int = 18
-    age_max: int = 35
-    max_distance_km: float = 30.0
-    school_ids: list[str] | None = Field(None, description="None = mọi trường")
-    max_gpa_tier_gap: int | None = Field(None, ge=0, le=3, description="None = không lọc theo GPA")
-    graduation_statuses: list[GraduationStatus] | None = None
-
-
-# ---------- Module 1: xếp hạng Swipe (bản luật) ----------
-
-class RankRequest(BaseModel):
-    viewer: Profile
-    preferences: Preferences = Preferences()
-    candidates: list[Profile]
-
-
-class RankedCandidate(BaseModel):
-    user_id: str
-    score: float
-    distance_km: float
-    common_tags: list[str]
-
-
-class FilteredCandidate(BaseModel):
-    user_id: str
-    reason: str
-
-
-class RankResponse(BaseModel):
-    ranked: list[RankedCandidate]
-    filtered_out: list[FilteredCandidate]
-    model_version: str
-
-
-# ---------- Module 2: độ mờ ảnh (bản luật) ----------
-
-class BlurRequest(BaseModel):
-    n_messages: int = Field(..., ge=0, description="Tổng số tin của cả hai bên kể từ khi match")
-    days_since_match: float = Field(..., ge=0)
-    compat: float | None = Field(None, ge=0, le=1, description="Độ hợp (khi Module 2 có mô hình); None = chỉ dùng luật")
-
-
-class BlurResponse(BaseModel):
-    blur_level: float = Field(..., ge=0, le=1, description="1 = mờ hoàn toàn, 0 = rõ hoàn toàn")
-    blur_radius_px: float
-    revealed: bool
-    model_version: str
 
 
 # ---------- Module 3 Head A: hội thoại sắp tắt ----------

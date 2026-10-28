@@ -4,14 +4,14 @@ Run locally::
 
     uvicorn serving.app:app --reload --host 0.0.0.0 --port 8000
 
-Two clients are supported by the same process:
+Endpoints:
 
-* ``mobile/`` uses the canonical contract in ``serving/schemas.py``:
-  ``/app/*`` demo backend, ``/rank``, ``/blur-level``, ``/health/score`` and
-  ``/safety/score``.
-* ``android/`` uses the mobile-app contract in ``serving/schemas_mobile.py``:
-  ``/m1/rank``, ``/m2/compat`` and ``/m3/health``.  Its fallback rules mirror
-  the Kotlin engines, and ``/v1/models`` exposes the model registry.
+* App ``android/`` (hợp đồng ``serving/schemas_mobile.py``): ``/m1/rank``,
+  ``/m2/compat``, ``/m3/health``. Luật fallback giống các engine Kotlin trong app;
+  ``/v1/models`` quản lý model registry.
+* Module 3 (hợp đồng ``serving/schemas.py``, đầu vào là tin nhắn có thời gian):
+  ``/health/score`` (Head A) và ``/safety/score`` (Head B). Đây là chỗ cắm mô hình
+  sau khi huấn luyện (``serving/predictors.py``); Head B chưa được nối vào app.
 
 Android emulator base URL: ``http://10.0.2.2:8000/``.
 """
@@ -24,7 +24,6 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from serving import engines
-from serving.demo_backend import router as demo_router
 from serving.model_registry import ModelRegistry
 from serving.predictors import (
     SUGGESTIONS,
@@ -33,15 +32,10 @@ from serving.predictors import (
     get_safety_predictor,
     level_from_p,
 )
-from serving.rules import RULES_VERSION, blur_level, rank_candidates
 from serving.schemas import (
-    BlurRequest,
-    BlurResponse,
     HealthLevel,
     HealthScoreRequest,
     HealthScoreResponse,
-    RankRequest as RuleRankRequest,
-    RankResponse as RuleRankResponse,
     SafetyScoreRequest,
     SafetyScoreResponse,
 )
@@ -73,7 +67,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-app.include_router(demo_router)
 
 registry = ModelRegistry(Path(__file__).resolve().parent.parent / "models")
 
@@ -96,27 +89,12 @@ def healthz() -> dict:
         "models_loaded": any(
             registry.active(module) is not None for module in ("m1", "m2", "m3")
         ),
-        "rank": RULES_VERSION,
-        "blur": RULES_VERSION,
         "health": get_health_predictor().version,
         "safety": get_safety_predictor().version,
     }
 
 
-# ---------------------------------------------------------------- mobile/ API
-
-@app.post("/rank", response_model=RuleRankResponse)
-def rank(req: RuleRankRequest) -> RuleRankResponse:
-    ranked, filtered = rank_candidates(req.viewer, req.preferences, req.candidates)
-    return RuleRankResponse(
-        ranked=ranked, filtered_out=filtered, model_version=RULES_VERSION
-    )
-
-
-@app.post("/blur-level", response_model=BlurResponse)
-def blur(req: BlurRequest) -> BlurResponse:
-    return blur_level(req)
-
+# ------------------------------------------------- Module 3 (chỗ cắm mô hình)
 
 @app.post("/health/score", response_model=HealthScoreResponse)
 def health_score(req: HealthScoreRequest) -> HealthScoreResponse:
