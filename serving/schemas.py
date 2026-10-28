@@ -1,8 +1,8 @@
-"""Hợp đồng JSON của Module 3 (bài nộp môn Học máy): /health/score, /safety/score.
+"""Định dạng JSON (schema) của Module 3 (bài nộp môn Học máy): /health/score, /safety/score.
 
 Đầu vào là danh sách tin nhắn có thời gian — đúng dạng dữ liệu dùng để huấn luyện.
 Khi Module 3 có mô hình thật, chỉ thay phần dự đoán phía sau, schema giữ nguyên.
-Hợp đồng của app android/ nằm ở serving/schemas_mobile.py.
+Schema của app android/ nằm ở serving/schemas_mobile.py.
 Đổi schema = phải báo cả nhóm và Người A duyệt (xem docs/02_PHAN_CONG.md, A1).
 """
 from __future__ import annotations

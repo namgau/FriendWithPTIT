@@ -1,6 +1,7 @@
 # 04 — Module 1: ML Ranking (thứ tự Swipe) — Người A
 
 > **Cập nhật phạm vi:** Module 1 **không nộp môn ML**. App mobile chỉ cần luật lọc + sắp theo số tag trùng. Thiết kế ML bên dưới giữ lại để tham khảo/làm sau.
+> **Không thu dữ liệu thật:** mọi mục khảo sát / pilot P1 / chat thử trong file này **đã bỏ** (nhóm chỉ dùng dataset công khai).
 
 > Đọc kèm `01_CHUAN_BAO_CAO_AUDITABLE.md` và `03_MODULE_0_DATA_EVAL_SERVING.md`.
 

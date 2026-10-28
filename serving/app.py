@@ -6,10 +6,10 @@ Run locally::
 
 Endpoints:
 
-* App ``android/`` (hợp đồng ``serving/schemas_mobile.py``): ``/m1/rank``,
+* App ``android/`` (schema ``serving/schemas_mobile.py``): ``/m1/rank``,
   ``/m2/compat``, ``/m3/health``. Luật fallback giống các engine Kotlin trong app;
   ``/v1/models`` quản lý model registry.
-* Module 3 (hợp đồng ``serving/schemas.py``, đầu vào là tin nhắn có thời gian):
+* Module 3 (schema ``serving/schemas.py``, đầu vào là tin nhắn có thời gian):
   ``/health/score`` (Head A) và ``/safety/score`` (Head B). Đây là chỗ cắm mô hình
   sau khi huấn luyện (``serving/predictors.py``); Head B chưa được nối vào app.
 

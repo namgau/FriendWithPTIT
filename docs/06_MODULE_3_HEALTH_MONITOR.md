@@ -3,6 +3,7 @@
 > Cả 3 người cùng làm module này (phân công ở `02_PHAN_CONG.md`). Module 1, 2 chỉ làm bản đơn giản phục vụ app mobile (xem `04_*`, `05_*`).
 > Chuẩn báo cáo: `01_CHUAN_BAO_CAO_AUDITABLE.md`.
 > **Quyết định 27/10/2026:** không tự thu chat tiếng Việt (không có bộ chat 1–1 tiếng Việt công khai có timestamp ; tự thu tốn thời gian và vướng riêng tư). Tiếng Việt chỉ xuất hiện ở Head B qua ViHSD / UIT-ViCTSD.
+> **Chỉ dùng dataset công khai.** Nhóm **không thu dữ liệu thật**: không khảo sát, không thu chat, không log người dùng app, không tự gán nhãn dữ liệu mới.
 
 ## 0. Tóm tắt
 Một **bộ mã hóa hội thoại** đọc cả *hành vi nhắn tin* lẫn *nội dung*, rồi trả lời 2 câu hỏi dự báo, chỉ dùng dữ liệu tới thời điểm hiện tại:
@@ -38,7 +39,6 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | **E2** | Customer Support on Twitter (Kaggle `thoughtvector/customer-support-on-twitter`) | Anh | Có | **Bộ thứ 2 cùng bài toán**, so sánh & cross-domain | hội thoại (group theo khách hàng) |
 | E3 | Reddit qua ConvoKit (vd `reddit-corpus-small`), chỉ chuỗi trả lời qua lại giữa 2 người | Anh | Có | Tùy chọn, bộ thứ 3 | thread / cặp user |
 | E4 | DailyDialog | Anh | **Không** | Chỉ để đánh giá bộ phát hiện câu hỏi/cảm xúc (có nhãn dialog act) | hội thoại |
-| V2 | Log chat app FwP lúc demo môn mobile | Việt | Có | Bổ sung / theo dõi shift | cặp người dùng |
 | S2 | Simulator (`src/synth/chat.py`) | — | Có | **Chỉ** để unit-test pipeline, không báo cáo như kết quả | — |
 
 **Dữ liệu cho Head B (derailment / độc hại):**
@@ -65,6 +65,29 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 - **G1, G2 (dự báo):** đầu vào là tiền tố hội thoại **trước** lượt công kích (bỏ lượt công kích và mọi lượt sau). Dự báo ở mức hội thoại: báo "sẽ hỏng" nếu điểm của một tiền tố bất kỳ vượt τ_B. Theo giao thức của Chang & Danescu-Niculescu-Mizil (2019).
 - **Horizon:** báo trước được bao nhiêu lượt so với lượt công kích.
 - **H1, H2 (từng tin):** nhãn có sẵn; H1 gộp OFFENSIVE + HATE = độc hại (và thử 3 lớp).
+
+### 1.4. Định dạng dữ liệu chung (A chốt 30/10 — B xuất ra đúng dạng này)
+Mọi dataset sau khi làm sạch được đổi về **cùng một bảng**, để code đặc trưng / nhãn / đánh giá chỉ viết một lần.
+Lưu tại `data/processed/<ID>/messages.parquet` (không commit).
+
+| Cột | Kiểu | Ghi chú |
+|---|---|---|
+| `dataset` | str | E1, E2, G1, H1, H2… |
+| `conversation_id` | str | H1/H2: mỗi bình luận là 1 "hội thoại" 1 tin |
+| `turn_idx` | int | thứ tự tin trong hội thoại, từ 0 |
+| `sender_id` | str | **băm** (sha1 8 ký tự), không giữ tên gốc |
+| `timestamp_s` | float \| null | Unix giây ; null nếu dataset không có (G1, H1, H2) |
+| `text` | str | văn bản gốc, không sửa |
+| `group_id` | str | đơn vị độc lập để split (hội thoại / khách hàng / cặp ghép G1) |
+
+Nhãn để ở file riêng, do A sinh từ bảng trên (`src/m3_health/labels.py`):
+- Head A — `labels_headA.parquet`: `conversation_id, turn_idx (mốc t), y, censored, duration_s, event`.
+- Head B — `labels_headB.parquet`: G1: `conversation_id, pair_id, derailed, attack_turn_idx` ; H1/H2: `conversation_id, toxic` (+ `label_3class` cho H1).
+
+Chữ ký hàm chốt cùng lúc:
+- `extract_features(messages: DataFrame, t_idx) -> dict` — chỉ đọc tin có `turn_idx <= t_idx` (B, C viết từng tầng T1–T4).
+- `encode_messages(texts: list[str]) -> np.ndarray` — embedding đã cache (C, B8).
+- API: `serving/schemas.py` (`/health/score`, `/safety/score`), đã có sẵn.
 
 ---
 
@@ -93,7 +116,7 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | emoji, tiếng cười, dấu chấm than, viết hoa | | |
 | đa dạng từ vựng (type–token ratio) | tách âm tiết / `underthesea` | |
 
-> Bộ phát hiện câu hỏi/tin cụt tự viết phải được **đánh giá riêng**: trên E4 (có nhãn dialog act) và ~200 câu tiếng Việt nhóm tự gán nhãn → báo precision/recall (thí nghiệm X6).
+> Bộ phát hiện câu hỏi/tin cụt tự viết phải được **đánh giá riêng**: trên E4 (DailyDialog **có sẵn** nhãn dialog act, không phải tự gán) → báo precision/recall (thí nghiệm X6). Bản tiếng Việt chỉ dùng trong app (Head A không có dữ liệu tiếng Việt) nên không có số đánh giá — nêu là hạn chế.
 
 ### Tầng T3 — Phong cách tương tác (điểm nhấn học thuật)
 | Đặc trưng | Ý nghĩa |
@@ -198,7 +221,7 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 | X3 | Nhị phân Δ = 48h vs survival (cùng đặc trưng) | điểm cộng |
 | X4 | **Cross-domain Head A**: train E1 → test E2, train E2 → test E1, so với in-domain | RQ2 |
 | X5 | Độ nhạy Δ ∈ {24, 48, 72}h, cửa sổ ∈ {5, 10, 20} tin, chi phí FN:FP | độ vững |
-| X6 | Đánh giá bộ phát hiện câu hỏi/tin cụt (E4 + 200 câu Việt tự gán) | chất lượng đặc trưng |
+| X6 | Đánh giá bộ phát hiện câu hỏi/tin cụt (trên nhãn dialog act có sẵn của E4) | chất lượng đặc trưng |
 | X7 | TabPFN v2 vs LightGBM, theo kích thước train (learning curve) | điểm cộng: foundation model |
 | X8 | Conformal: khoảng/cận dưới thời gian tới khi tắt ; kiểm tra coverage khi chuyển miền E1 → E2 | điểm cộng: bất định có bảo đảm |
 | X9 | Embedding đa ngữ: MiniLM vs BGE-M3 vs multilingual-e5 cho T4 | chọn embedding có căn cứ |
@@ -245,7 +268,7 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 | **Lead time** | báo trước bao lâu mới có giá trị cho người dùng | R4, 5b |
 | C-index, time-dependent AUC, Integrated Brier Score | đánh giá survival, dùng được dữ liệu bị censor | R6 |
 | Coverage + độ rộng khoảng (conformal) | bất định có bảo đảm | X8 |
-| Precision/Recall + Cohen's kappa (bộ phát hiện) | chất lượng đặc trưng tự viết | R7 |
+| Precision/Recall (bộ phát hiện) | chất lượng đặc trưng tự viết | R7 |
 | Head B: F1, **FPR**, horizon | báo nhầm là "buộc tội oan" nên FPR quan trọng ngang recall ; horizon đo giá trị *dự báo* | R8 |
 | Phân loại tin tiếng Việt: macro-F1, F1 lớp độc hại | lớp độc hại thiểu số | R9 |
 | Mọi metric: mean ± SD (CV) + 95% CI (cluster bootstrap B = 2000); so sánh mô hình: paired bootstrap | yêu cầu chuẩn auditable | tất cả |
@@ -301,7 +324,7 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 |---|---|---|---|---|---|
 | **Resources** | Không có GPU riêng ; 3 người, 5 tuần, song song làm app môn Mobile | Không fine-tune được transformer lớn, lưới siêu tham số nhỏ, R chỉ = 3 | Bảng thời gian train + RAM + latency suy luận từng mô hình (R1) ; ghi rõ phần cứng | MiniLM/embedding đóng băng chạy CPU ; Colab/Kaggle cho PhoBERT/XLM-R ; TabPFN không cần tuning | Kết quả transformer có thể chưa tối ưu ; ghi rõ "không tuning đầy đủ" |
 | **Dependence** | Mẫu (c, t) cùng hội thoại tự tương quan ; cùng tài khoản CSKH (E2) ; cặp ghép trong G1 | CV/CI bị **lạc quan** nếu coi mẫu độc lập | Báo N mẫu **và** N hiệu dụng (hội thoại/người) ; so sánh CI bootstrap theo mẫu vs theo cụm (CI cụm rộng hơn bao nhiêu) | Split theo group/thời gian ; cluster bootstrap ; lấy mẫu mỗi 2 tin | Vẫn còn phụ thuộc giữa các hội thoại có chung người nhận mà nhóm không biết (id đã băm) |
-| **Representativeness** | E1 (hỗ trợ kỹ thuật), E2 (CSKH), G1/G2 (tranh luận công khai), H1/H2 (bình luận công khai) **không phải chat làm quen** ; **Head A không có dữ liệu tiếng Việt** (không có bộ chat 1–1 tiếng Việt công khai có timestamp) | Kết quả **không chứng minh** hiệu quả trong app hẹn hò tiếng Việt | Bảng mô tả & phân phối đặc trưng chính giữa các bộ ; ma trận cross-domain R5 | Đặc trưng hành vi (T1) không phụ thuộc ngôn ngữ ; encoder đa ngữ ; tiếng Việt ở Head B (ViHSD, ViCTSD) | Cần log chat thật của app (V2) để đánh giá đúng miền — hướng phát triển |
+| **Representativeness** | E1 (hỗ trợ kỹ thuật), E2 (CSKH), G1/G2 (tranh luận công khai), H1/H2 (bình luận công khai) **không phải chat làm quen** ; **Head A không có dữ liệu tiếng Việt** (không có bộ chat 1–1 tiếng Việt công khai có timestamp) | Kết quả **không chứng minh** hiệu quả trong app hẹn hò tiếng Việt | Bảng mô tả & phân phối đặc trưng chính giữa các bộ ; ma trận cross-domain R5 | Đặc trưng hành vi (T1) không phụ thuộc ngôn ngữ ; encoder đa ngữ ; tiếng Việt ở Head B (ViHSD, ViCTSD) | Nhóm không thu dữ liệu thật ; đánh giá trên chat hẹn hò thật là hướng phát triển |
 | **Distribution shift** | Khác nền tảng (IRC ↔ Twitter ↔ app), ngôn ngữ (Anh ↔ Việt), văn hóa nhắn tin (teencode, sticker), nhịp thời gian | Mô hình tốt trên E1 có thể kém trên E2 và trên chat app thật | **Ma trận cross-domain R5** (độ sụt PR-AUC khi đổi miền) ; PSI từng đặc trưng ; coverage conformal khi đổi miền (X8) | Đặc trưng tương đối (latency so với nhịp riêng cặp) ; embedding đa ngữ ; hiệu chỉnh lại xác suất theo prevalence | Khi lên app cần theo dõi PSI + tỉ lệ cảnh báo/tuần và retrain |
 
 ### 6.2. Điểm yếu khác (phải nêu thật thà)
@@ -310,10 +333,10 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 |---|---|---|
 | **Nhãn proxy (Head A)** | "Tắt" ≠ "mất hứng thú" (có thể chuyển sang gọi điện, gặp mặt, hoặc đã xong việc) | Phân tích lỗi E3 đếm các ca kiểu này ; độ nhạy theo Δ (X5) |
 | **Định nghĩa "độc hại" lệch nhu cầu app (Head B)** | Dataset chỉ có xúc phạm/công kích/thù ghét ; **không có nhãn quấy rối tình dục, ép buộc, body shaming** — vốn là rủi ro chính trong app hẹn hò | Nêu rõ phạm vi định nghĩa ; app xử lý các loại này bằng luật + nút báo cáo |
-| **Không có chat tiếng Việt thật** | Cả 2 head không được đánh giá trên chat riêng tiếng Việt ; tiếng Việt chỉ có bình luận công khai (H1/H2) | Nêu rõ ; X14 đo khả năng chuyển ngôn ngữ gián tiếp ; hướng phát triển: log app (V2) |
+| **Không có chat tiếng Việt thật** | Cả 2 head không được đánh giá trên chat riêng tiếng Việt ; tiếng Việt chỉ có bình luận công khai (H1/H2) | Nêu rõ ; X14 đo khả năng chuyển ngôn ngữ gián tiếp ; hướng phát triển: đánh giá trên chat thật nếu app có người dùng |
 | **Censoring** | Hội thoại cuối dữ liệu chưa biết có tắt không → loại khỏi bài nhị phân gây lệch | Báo số mẫu bị loại ; survival dùng được các mẫu này (X3) |
 | **Mất cân bằng & prior shift** | G1 được ghép cặp nên cân bằng 50/50, ngoài đời tỉ lệ độc hại thấp hơn nhiều → precision thực tế thấp hơn số báo cáo | Hiệu chỉnh xác suất theo prevalence giả định ; báo precision ở nhiều mức prevalence |
-| **Đặc trưng tự xây** | Từ điển câu hỏi/tin cụt/từ chức năng tiếng Việt do nhóm tự viết, có thể sót | X6: precision/recall trên 200 câu, Cohen's kappa giữa 2 người gán nhãn |
+| **Đặc trưng tự xây** | Từ điển câu hỏi/tin cụt/từ chức năng tiếng Việt do nhóm tự viết, có thể sót | X6: precision/recall bản tiếng Anh trên nhãn dialog act của E4 ; bản tiếng Việt không có dữ liệu để đánh giá → nêu là hạn chế |
 | **Buộc tội oan & thiên lệch** | Teencode, phương ngữ, chửi thề thân mật có thể bị gắn độc hại | FPR theo slice ; ví dụ FP trong 5b ; app chỉ nhắc nhẹ, không phạt tự động |
 | **Riêng tư khi triển khai** | App phải đọc nội dung chat để chạy Head B / T5 | Xin đồng ý, cho phép tắt tính năng, không lưu văn bản thô, chỉ lưu điểm số |
 | **Vòng phản hồi** | Khi app hiện gợi ý, hành vi thay đổi → nhãn tương lai bị ảnh hưởng | Chưa đo được (chưa có app thật) → hướng phát triển: log có/không hiển thị gợi ý |
@@ -333,7 +356,7 @@ Công trình liên quan để viết phần "Related work": Hsu et al., *IJHCI* 
 - **Head B:** `POST /safety/score` nhận tin đang soạn + ngữ cảnh → `{toxicity, derail_risk}` ; nếu vượt τ_B: hiện "Tin này có thể khiến người kia khó chịu, bạn có chắc muốn gửi?" (chỉ người gửi thấy) ; người nhận luôn có nút chặn/báo cáo.
 
 ### 7.1. Tín hiệu hành vi trong app (môn mobile, **không** đưa vào đánh giá ML)
-Ghi log **có sự đồng ý**, chỉ dùng nội bộ, không bao giờ hiển thị cho người kia:
+Chỉ là **ý tưởng thiết kế**, không cài đặt và **không thu log** (nhóm không thu dữ liệu người dùng thật). Nếu triển khai thật thì phải xin đồng ý, chỉ dùng nội bộ, không hiển thị cho người kia:
 | Tín hiệu | Dùng thế nào | Không dùng để |
 |---|---|---|
 | Số lần xem hồ sơ người kia | tín hiệu **quan tâm** cho Head A (vẫn xem hồ sơ → chưa hẳn rời đi) ; giới hạn tần suất theo luật nếu bất thường | gắn nhãn "stalker" |
@@ -341,4 +364,4 @@ Ghi log **có sự đồng ý**, chỉ dùng nội bộ, không bao giờ hiển
 | Thu hồi / xóa tin | tín hiệu do dự ; nếu tin bị thu hồi có điểm độc hại cao → thống kê cho Head B | phạt |
 | Thời gian soạn tin, số lần gõ rồi xóa | tín hiệu do dự | — |
 
-Lý do không đưa vào bài ML: **không có dữ liệu có nhãn** để huấn luyện/đánh giá (chỉ có thể mô phỏng), và dùng để cáo buộc hành vi có rủi ro đạo đức cao. Ghi vào báo cáo ở mục "Hướng phát triển": khi app có log thật (V2) sẽ thêm như tầng đặc trưng T6 và đánh giá lại.
+Lý do không đưa vào bài ML: **không có dữ liệu có nhãn** để huấn luyện/đánh giá (chỉ có thể mô phỏng), và dùng để cáo buộc hành vi có rủi ro đạo đức cao. Ghi vào báo cáo ở mục "Hướng phát triển": nếu app có người dùng thật và log có sự đồng ý, có thể thêm như tầng đặc trưng T6 và đánh giá lại.

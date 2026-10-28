@@ -53,7 +53,7 @@ Tài khoản demo backend: `demo@ptit.edu.vn` — OTP `123456` — mật khẩu 
 android/         App Android sản phẩm (Kotlin, Compose, Room, Google Maps)
 backend/         NestJS API + PostgreSQL/PostGIS + Docker Compose
 docs/            TẤT CẢ tài liệu md: kế hoạch, hướng dẫn, data_cards/, reference/ (tài liệu gốc)
-data/            raw/interim/processed/pilot (KHÔNG commit dữ liệu)
+data/            raw/interim/processed (KHÔNG commit dữ liệu ; chỉ dataset công khai)
 configs/         YAML cấu hình thí nghiệm (siêu tham số + seeds)
 src/schema.py    schema hồ sơ & đặc trưng cặp dùng chung
 src/synth/       sinh dữ liệu tổng hợp S1 (profiles), S2 (chat)          [B: S1, C: S2]

@@ -3,6 +3,7 @@
 > **Phạm vi:**
 > - **Môn Học máy:** Module 3 — Conversation Intelligence (Head A: hội thoại sắp tắt ; Head B: hội thoại sắp trở nên độc hại), xem `06_*`. Chia 3 phần.
 > - **Môn Mobile:** Module 1 + Module 2 **bản luật** (không ML) trong app. Gộp lại, chia 3 phần.
+> - **Dữ liệu:** **Chỉ dùng dataset công khai.** Nhóm **không thu dữ liệu thật**: không khảo sát, không thu chat, không log người dùng app, không tự gán nhãn dữ liệu mới.
 > - **Người A = trưởng nhóm, chịu trách nhiệm chất lượng** (khung đánh giá, tập test, review/merge, tái lập, báo cáo cuối).
 >
 > 5 tuần, mỗi tuần tính từ Thứ Ba đến Thứ Hai. Mỗi người ~4–5 giờ/ngày làm việc.
@@ -10,7 +11,7 @@
 | | Người A (trưởng nhóm) | Người B | Người C |
 |---|---|---|---|
 | Module 3 | Khung đánh giá, **định nghĩa nhãn cả 2 head**, Head A dạng bảng + survival, **toàn bộ thí nghiệm imbalance**, phân tích lỗi, báo cáo | Tải & làm sạch dữ liệu, đặc trưng hành vi + phong cách (T1–T3) | Đọc nội dung (NLP), Head B, API |
-| Module 1+2 (app) | Hợp đồng API (không code app) | **Backend luật** (lọc/xếp hạng M1 + luật blur M2) + **màn Swipe** (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
+| Module 1+2 (app) | Duyệt API (không code app) | **Backend luật** (lọc/xếp hạng M1 + luật blur M2) + **màn Swipe** (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
 | Họ tên | ________ | ________ | ________ |
 
 ## 0. Cắt bớt so với kế hoạch đầy đủ (vì còn 5 tuần + làm app)
@@ -23,7 +24,7 @@
 
 | Ngày | Mốc | Ai kiểm tra |
 |---|---|---|
-| **Thứ Sáu 30/10** | Chốt **hợp đồng**: định dạng dữ liệu tin nhắn, `extract_features()`, `encode_messages()`, API `/health/score`, `/safety/score`, API app (M1/M2) | A |
+| **Thứ Sáu 30/10** | Chốt **định dạng chung** (`06_*` §1.4): bảng tin nhắn chung mọi dataset, chữ ký `extract_features()`, `encode_messages()`, API `/health/score`, `/safety/score` | A |
 | **Thứ Hai 02/11** | Họp tuần 1: dữ liệu E1, E2, G1, H1 tải xong & kiểm tra ; khung split + bootstrap có test | A |
 | **Thứ Sáu 06/11** | Đóng băng mô hình embedding (C1) ; tập test của mọi dataset đã tạo & khóa (A3) | A |
 | **Thứ Hai 09/11** | Baseline cả 2 head chạy end-to-end | A |
@@ -41,7 +42,7 @@
 | Mã | Việc | Hạn | Vì sao A phải giữ |
 |---|---|---|---|
 | A0 | Bật **branch protection** cho `main` (bắt buộc PR + 1 review + CI xanh) ; mời B, C làm collaborator | 28/10 | Không ai đẩy thẳng code chưa kiểm tra |
-| A1 | **Hợp đồng dữ liệu & interface** (định dạng tin nhắn, hàm đặc trưng, API) trong `serving/schemas.py`, `src/m3_health/` | 30/10 | Ba người code khớp nhau ngay từ đầu |
+| A1 | **Chốt định dạng chung** (`06_*` §1.4): cột của bảng tin nhắn mà B xuất ra, chữ ký hàm đặc trưng, API — là quy ước kỹ thuật trong nhóm, **không** phải thu dữ liệu | 30/10 | Ba người code khớp nhau ngay từ đầu |
 | A2 | **Khung đánh giá** `src/eval/`: split theo thời gian/nhóm, nested CV, cluster + paired bootstrap, calibration, chọn ngưỡng ; **test chống rò rỉ** chạy trong CI | split + bootstrap 02/11 ; còn lại 06/11 | Rò rỉ dữ liệu là lỗi mất điểm nặng nhất |
 | A3 | **Tạo & khóa tập test** cho mọi dataset (chỉ A giữ index test) ; **chỉ A mở test, đúng 1 lần, ngày 20/11** | tạo 06/11 ; mở 20/11 | Không ai vô tình chọn mô hình trên test |
 | A4 | **Review & merge mọi PR** theo checklist rò rỉ (`01_*` §3) ; kiểm tra mỗi thí nghiệm có dòng trong `experiments/ledger.csv` | liên tục, ≤ 24h mỗi PR | Một cửa kiểm soát |
@@ -70,7 +71,7 @@
 | B9 | **[GPU]** **TabPFN v2** cho Head A (X7) — nhận từ A ; so với LightGBM của A theo kích thước train ; dùng split/khung đánh giá của A | 18/11 |
 | B10 | **[GPU]** Phần imbalance cần GPU trên H2: fine-tune PhoBERT/XLM-R (pipeline của C2) với weighted loss và với oversampling ; giao kết quả cho A tổng hợp (A5b) | 18/11 |
 | B7 | Viết phần **Objective and data** + mô tả dữ liệu trong báo cáo ; duyệt chéo phần của C | 27/11 |
-| B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo hợp đồng API của A | 16/11 |
+| B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo `serving/schemas_mobile.py` | 16/11 |
 | B-app2 | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng | 23/11 |
 
 ## 4. Người C — đọc nội dung, Head B, tích hợp
@@ -87,7 +88,7 @@
 
 ## 5. Phụ thuộc (điểm dễ nghẽn — A theo dõi)
 ```
-A1 hợp đồng (30/10) ──► mọi người
+A1 định dạng chung (30/10) ──► mọi người
 A2 khung đánh giá (02–06/11) ──► A5, A6, C4
 B1, B2 dữ liệu sạch (02–04/11) ──► A2b, A2c nhãn (06/11) ──► A5, A6, C2, C4   ← nghẽn chính: A vừa làm khung đánh giá vừa gán nhãn tuần 1–2
 C2 bộ phân loại độc hại (13/11) ──► A5b imbalance, C5 cross-lingual

@@ -22,7 +22,7 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 ### Người A — khung đánh giá (+ chuẩn bị survival)
 1. `src/eval/splits.py`: `held_out_time_split` (20% hội thoại bắt đầu muộn nhất), `forward_chaining(K=5)`, `group_kfold(groups, K)` (theo hội thoại / người đóng góp), `nested_cv`. **Viết `tests/test_splits_no_leak.py` thật** (bỏ `skip`): assert không group nào ở cả train và test, và hội thoại train bắt đầu sớm hơn validation.
 2. `src/eval/bootstrap.py` (cluster bootstrap, B = 2000), rồi `imbalance.py` (5 chiến lược), `calibration.py`, `threshold.py` (τ1, τ2 theo chi phí FN:FP), `report.py`.
-0. Bật branch protection cho `main`, mời B và C làm collaborator ; chốt hợp đồng dữ liệu/API (`serving/schemas.py`) trước Thứ Sáu 30/10.
+0. Bật branch protection cho `main`, mời B và C làm collaborator ; chốt định dạng chung (bảng tin nhắn `06_*` §1.4, `serving/schemas.py`) trước Thứ Sáu 30/10.
 3. Chốt giao diện hàm của `src/eval` trong 2 ngày đầu, báo B và C.
 4. **Gán nhãn** (khi B giao dữ liệu sạch, hạn 06/11): `src/m3_health/labels.py` — Head A: sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring (`06_*` §1.2) ; Head B: cắt tiền tố G1 trước lượt công kích, giữ cặp ghép, gộp nhãn ViHSD (`06_*` §1.3).
 5. Tạo & khóa index tập test cho mọi dataset (chỉ A giữ).
@@ -30,7 +30,7 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 ### Người B — dữ liệu + backend app
 1. Tải & kiểm tra **E1 Ubuntu Dialogue Corpus** (bản có timestamp) và **E2 Customer Support on Twitter**: có đúng cột timestamp, người gửi, nối được thành hội thoại 2 người không? Viết `docs/data_cards/DATA_CARD_E1.md`, `..._E2.md` (nguồn, license, N, đơn vị độc lập, sha256 → `data/checksums.txt`). Bộ nào không dùng được → báo nhóm ngay.
 2. Head B: `pip install convokit`, tải `conversations-gone-awry-corpus` (G1); tải ViHSD (H1) và UIT-ViCTSD (H2). In N hội thoại/bình luận, prevalence, kiểm tra cấu trúc cặp ghép của G1. Giao dữ liệu sạch cho A gán nhãn (hạn 04/11).
-3. App: dựng backend luật lọc/xếp hạng + luật blur theo hợp đồng API của A.
+3. App: dựng backend luật lọc/xếp hạng + luật blur theo `serving/schemas_mobile.py`.
 
 ### Người C — đặc trưng ngữ nghĩa + hạ tầng
 1. Chốt cùng B interface `extract_features(messages) -> DataFrame` trong `src/m3_health/features.py` (mỗi tầng T1..T4 một hàm con).
@@ -40,9 +40,10 @@ Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival c
 5. Head B: chạy thử TF-IDF+LR trên ViHSD (H1) làm baseline ; thử fine-tune PhoBERT/XLM-R 1 epoch trên Colab để biết thời gian/GPU cần.
 
 ## 4. Mốc cần đạt
-Hạn nộp **Thứ Ba 01/12/2026**. Mốc theo ngày và deadline từng việc: `02_PHAN_CONG.md` §1–§4. Mốc đầu tiên: **Thứ Sáu 30/10** chốt hợp đồng dữ liệu/API ; **Thứ Hai 02/11** dữ liệu E1, E2, G1, H1 tải xong, khung split + bootstrap có test.
+Hạn nộp **Thứ Ba 01/12/2026**. Mốc theo ngày và deadline từng việc: `02_PHAN_CONG.md` §1–§4. Mốc đầu tiên: **Thứ Sáu 30/10** chốt định dạng chung ; **Thứ Hai 02/11** dữ liệu E1, E2, G1, H1 tải xong, khung split + bootstrap có test.
 
 ## 5. Quy tắc cứng (dễ mất điểm nếu vi phạm)
+- **Chỉ dùng dataset công khai.** Nhóm **không thu dữ liệu thật**: không khảo sát, không thu chat, không log người dùng app, không tự gán nhãn dữ liệu mới.
 - Không fit bất cứ gì (scaler, SMOTE, embedding, PCA…) ngoài train fold.
 - Chỉ Người A mở tập test, đúng 1 lần, ngày 20/11 ; không ai khác truy cập index test.
 - Không commit dữ liệu thô; không đưa tên thật, nội dung tin nhắn hay thông tin cá nhân vào repo.
