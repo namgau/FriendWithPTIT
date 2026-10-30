@@ -68,17 +68,17 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 
 ### 1.4. Định dạng dữ liệu chung (A chốt 30/10 — B xuất ra đúng dạng này)
 Mọi dataset sau khi làm sạch được đổi về **cùng một bảng**, để code đặc trưng / nhãn / đánh giá chỉ viết một lần.
-Lưu tại `data/processed/<ID>/messages.parquet` (không commit).
+Sinh bằng `python -m src.data.prepare E1 E2 G1 H1 H2` → `data/processed/<ID>/messages.parquet` (không commit), kèm `conversations.parquet` (siêu dữ liệu + nhãn gốc mức hội thoại: G1 `pair_id, page_id, has_attack, orig_split` ; H1 `label_3class, toxic` ; H2 `toxic, constructive, topic`) và `stats.json` (số liệu cho Data Card). G1 có thêm cột `is_attack` từng lượt.
 
 | Cột | Kiểu | Ghi chú |
 |---|---|---|
 | `dataset` | str | E1, E2, G1, H1, H2… |
 | `conversation_id` | str | H1/H2: mỗi bình luận là 1 "hội thoại" 1 tin |
 | `turn_idx` | int | thứ tự tin trong hội thoại, từ 0 |
-| `sender_id` | str | **băm** (sha1 8 ký tự), không giữ tên gốc |
+| `sender_id` | str | **băm** (sha1, 12 ký tự hex), không giữ tên gốc ; null với H1/H2 |
 | `timestamp_s` | float \| null | Unix giây ; null nếu dataset không có (G1, H1, H2) |
 | `text` | str | văn bản gốc, không sửa |
-| `group_id` | str | đơn vị độc lập để split (hội thoại / khách hàng / cặp ghép G1) |
+| `group_id` | str | đơn vị độc lập để split: E1 hội thoại ; E2 khách hàng ; G1 trang Wikipedia (giữ cặp ghép) ; H1 nội dung trùng ; H2 bài báo |
 
 Nhãn để ở file riêng, do A sinh từ bảng trên (`src/m3_health/labels.py`):
 - Head A — `labels_headA.parquet`: `conversation_id, turn_idx (mốc t), y, censored, duration_s, event`.

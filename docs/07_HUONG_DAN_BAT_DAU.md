@@ -8,6 +8,20 @@ python -m venv .venv
 pip install -r requirements.txt
 pytest                            # phải chạy được (hiện 1 test skip là bình thường)
 ```
+**Tải dữ liệu** (khoảng 1,5 GB, không commit ; cần Kaggle API token trong `~/.kaggle/`) rồi chuẩn hóa:
+```bash
+cd data/raw
+kaggle datasets download rtatman/ubuntu-dialogue-corpus -f Ubuntu-dialogue-corpus/dialogueText.csv -p E1/Ubuntu-dialogue-corpus
+kaggle datasets download rtatman/ubuntu-dialogue-corpus -f Ubuntu-dialogue-corpus/dialogueText_196.csv -p E1/Ubuntu-dialogue-corpus
+kaggle datasets download thoughtvector/customer-support-on-twitter -f twcs/twcs.csv -p E2/twcs
+curl -L -o G1/cga.zip https://zissou.infosci.cornell.edu/convokit/datasets/conversations-gone-awry-corpus/conversations-gone-awry-corpus.zip
+# giải nén các file .zip tại chỗ ; H1, H2 tải từ HuggingFace:
+python -c "from huggingface_hub import hf_hub_download as d; import shutil; [shutil.copy(d('htdung167/ViHSD',f,repo_type='dataset'),'H1/'+f) for f in ['train.csv','validation.csv','test.csv']]; [shutil.copy(d('tarudesu/ViCTSD',f'ViCTSD_{s}.csv',repo_type='dataset'),f'H2/ViCTSD_{s}.csv') for s in ['train','valid','test']]"
+cd ../..
+python -m src.data.prepare && python -m src.data.cards   # → data/processed/<ID>/, docs/data_cards/
+sha256sum -c data/checksums.txt                         # kiểm tra đúng bản dữ liệu
+```
+
 Cần Python ≥ 3.10. Tầng T4 cần thêm `sentence-transformers`; survival cần `scikit-survival` hoặc `lifelines`; GRU cần `torch` (bỏ comment trong `requirements.txt`). Không có GPU vẫn chạy được MiniLM trên CPU.
 
 ## 2. Quy trình làm việc mỗi task

@@ -42,8 +42,8 @@
 | Mã | Việc | Hạn | Vì sao A phải giữ |
 |---|---|---|---|
 | A0 | Bật **branch protection** cho `main` (bắt buộc PR + 1 review + CI xanh) ; mời B, C làm collaborator | 28/10 | Không ai đẩy thẳng code chưa kiểm tra |
-| A1 | **Chốt định dạng chung** (`06_*` §1.4): cột của bảng tin nhắn mà B xuất ra, chữ ký hàm đặc trưng, API — là quy ước kỹ thuật trong nhóm, **không** phải thu dữ liệu | 30/10 | Ba người code khớp nhau ngay từ đầu |
-| A2 | **Khung đánh giá** `src/eval/`: split theo thời gian/nhóm, nested CV, cluster + paired bootstrap, calibration, chọn ngưỡng ; **test chống rò rỉ** chạy trong CI | split + bootstrap 02/11 ; còn lại 06/11 | Rò rỉ dữ liệu là lỗi mất điểm nặng nhất |
+| A1 | **Chốt định dạng chung** (`06_*` §1.4): cột của bảng tin nhắn mà B xuất ra, chữ ký hàm đặc trưng, API — là quy ước kỹ thuật trong nhóm, **không** phải thu dữ liệu | 30/10 — **xong** (06 §1.4) | Ba người code khớp nhau ngay từ đầu |
+| A2 | **Khung đánh giá** `src/eval/`: split theo thời gian/nhóm, nested CV, cluster + paired bootstrap, calibration, chọn ngưỡng ; **test chống rò rỉ** chạy trong CI | split + bootstrap 02/11 — **xong 30/10** (`src/eval/splits.py`, `bootstrap.py`, 13 test) ; còn lại 06/11 | Rò rỉ dữ liệu là lỗi mất điểm nặng nhất |
 | A3 | **Tạo & khóa tập test** cho mọi dataset (chỉ A giữ index test) ; **chỉ A mở test, đúng 1 lần, ngày 20/11** | tạo 06/11 ; mở 20/11 | Không ai vô tình chọn mô hình trên test |
 | A4 | **Review & merge mọi PR** theo checklist rò rỉ (`01_*` §3) ; kiểm tra mỗi thí nghiệm có dòng trong `experiments/ledger.csv` | liên tục, ≤ 24h mỗi PR | Một cửa kiểm soát |
 | A2b | **Nhãn Head A** (nhận từ B): sinh mẫu (c, t), nhãn Δ = 48h, cờ censoring, thống kê N hiệu dụng & prevalence | 06/11 | Định nghĩa nhãn sai = toàn bộ kết quả sai ; dễ rò rỉ tương lai vào đặc trưng |
@@ -62,8 +62,8 @@
 
 | Mã | Việc | Hạn |
 |---|---|---|
-| B1 | Tải, kiểm tra, parse **E1 Ubuntu + E2 Twitter CSKH** ; Data Card (N, đơn vị độc lập, prevalence, license, sha256) | 02/11 |
-| B2 | Tải, làm sạch **G1 (Conversations Gone Awry – Wiki)** + **H1 (ViHSD)** + **H2 (ViCTSD)** ; Data Card. Giao dữ liệu sạch cho A gán nhãn (A2b, A2c) | 04/11 |
+| B1 | Tải, kiểm tra, parse **E1 Ubuntu + E2 Twitter CSKH** ; Data Card (N, đơn vị độc lập, prevalence, license, sha256) | 02/11 — **xong 30/10, A làm hộ** (`src/data/prepare.py`, `docs/data_cards/`) |
+| B2 | Tải, làm sạch **G1 (Conversations Gone Awry – Wiki)** + **H1 (ViHSD)** + **H2 (ViCTSD)** ; Data Card. Giao dữ liệu sạch cho A gán nhãn (A2b, A2c) | 04/11 — **xong 30/10, A làm hộ** |
 | B4 | Đặc trưng **T1** (hành vi thời gian) + **T2** (bề mặt văn bản, từ điển Anh/Việt) | 10/11 |
 | B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) | 13/11 |
 | B6 | Đánh giá bộ phát hiện câu hỏi/tin cụt trên DailyDialog (có nhãn dialog act) (X6) | 18/11 |
