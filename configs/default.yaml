@@ -19,6 +19,11 @@ head_a:
   sensitivity_delta_s: [3600, 86400, 259200]  # X5: 1h, 24h, 72h (tính bằng labels.label_at)
   start_turn: 5                            # mẫu đầu tiên tại tin thứ 6
   every: 2                                 # lấy mỗi 2 tin để giảm tự tương quan
+  cv_max_conversations: 60000              # giới hạn tài nguyên cho CV (E1 có 360k hội thoại train)
+  threshold:
+    c_fn: 1                                # C_FN : C_FP = 1 : 2 (06 §3.4: làm phiền đắt hơn bỏ sót)
+    c_fp: 2
+    shallow_recall: 0.8                    # τ1: mức "hời hợt" bắt được ≥ 80% ca tắt
 head_b:
   calm_drop_last: true                     # G1: hội thoại lành bỏ lượt cuối (như CRAFT)
 
