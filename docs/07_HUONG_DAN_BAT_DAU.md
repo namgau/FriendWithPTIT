@@ -19,6 +19,7 @@ curl -L -o G1/cga.zip https://zissou.infosci.cornell.edu/convokit/datasets/conve
 python -c "from huggingface_hub import hf_hub_download as d; import shutil; [shutil.copy(d('htdung167/ViHSD',f,repo_type='dataset'),'H1/'+f) for f in ['train.csv','validation.csv','test.csv']]; [shutil.copy(d('tarudesu/ViCTSD',f'ViCTSD_{s}.csv',repo_type='dataset'),f'H2/ViCTSD_{s}.csv') for s in ['train','valid','test']]"
 cd ../..
 python -m src.data.prepare && python -m src.data.cards   # → data/processed/<ID>/, docs/data_cards/
+python -m src.m3_health.labels                          # nhãn + tập test (báo lỗi nếu test khác configs/test_lock.json)
 sha256sum -c data/checksums.txt                         # kiểm tra đúng bản dữ liệu
 ```
 

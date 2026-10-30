@@ -45,3 +45,6 @@ backend/node_modules/
 backend/dist/
 backend/.env
 backend/coverage/
+
+# Tập test khóa: chỉ A mở (docs/02 A3)
+data/locked/

@@ -84,6 +84,11 @@ Nhãn để ở file riêng, do A sinh từ bảng trên (`src/m3_health/labels.
 - Head A — `labels_headA.parquet`: `conversation_id, turn_idx (mốc t), y, censored, duration_s, event`.
 - Head B — `labels_headB.parquet`: G1: `conversation_id, pair_id, derailed, attack_turn_idx` ; H1/H2: `conversation_id, toxic` (+ `label_3class` cho H1).
 
+**Nhãn & tập test** (A2b, A2c, A3): `python -m src.m3_health.labels` → `labels_head{A,B}_train.parquet` (mọi người) và `data/locked/` (chỉ A). Số liệu từng bộ, prevalence train/test và băm danh sách test ở `configs/test_lock.json`. Kiểm tra ngày 30/10:
+- **Δ:** E1 prevalence gần như không đổi theo Δ (13,0% ở 10 phút → 10,4% ở 48h) vì hội thoại IRC kết thúc hẳn ; E2 thay đổi mạnh (62% → 33%). Giữ Δ = 48h, độ nhạy X5 tính bằng `label_at()`.
+- **Split gốc H1, H2 bị rò rỉ:** 802/6.680 bình luận test của ViHSD trùng nội dung với train (203 nhóm trùng còn mâu thuẫn nhãn) ; 974/1.000 bình luận test của ViCTSD cùng bài báo với train → nhóm tự chia theo group. G1 split gốc sạch (không trùng trang, cặp ghép cùng phía) → giữ để so được với CRAFT.
+- **G1:** lượt công kích luôn là lượt cuối ; tiền tố hỏng dài hơn lành trung bình 0,5 lượt → phải có baseline "chỉ độ dài tiền tố" để chắc mô hình không học độ dài.
+
 Chữ ký hàm chốt cùng lúc:
 - `extract_features(messages: DataFrame, t_idx) -> dict` — chỉ đọc tin có `turn_idx <= t_idx` (B, C viết từng tầng T1–T4).
 - `encode_messages(texts: list[str]) -> np.ndarray` — embedding đã cache (C, B8).

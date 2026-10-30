@@ -1,0 +1,120 @@
+{
+  "E1": {
+    "head": "headA",
+    "split_method": "time",
+    "test_fraction": 0.2,
+    "test_seed": 42,
+    "label": "y",
+    "test_group_ids_sha256": "11696d97b64ec911ca672e3ae17287e2bca6ab102ab6a0a83b0958bdaf2089e7",
+    "train": {
+      "n_rows": 2029147,
+      "n_conversations": 360218,
+      "n_groups": 360218,
+      "n_positive": 211663,
+      "prevalence": 0.1043
+    },
+    "test": {
+      "n_rows": 497882,
+      "n_conversations": 90054,
+      "n_groups": 90054,
+      "n_positive": 50540,
+      "prevalence": 0.1015
+    },
+    "censored_at_delta": 97,
+    "delta_s": 172800
+  },
+  "E2": {
+    "head": "headA",
+    "split_method": "time",
+    "test_fraction": 0.2,
+    "test_seed": 42,
+    "label": "y",
+    "test_group_ids_sha256": "8eda750f09659c7515106008a43f1c0ccade395c1b3341a6fc9f8cbdc9d36359",
+    "train": {
+      "n_rows": 125794,
+      "n_conversations": 61296,
+      "n_groups": 56318,
+      "n_positive": 41979,
+      "prevalence": 0.3342
+    },
+    "test": {
+      "n_rows": 26803,
+      "n_conversations": 14460,
+      "n_groups": 14079,
+      "n_positive": 8389,
+      "prevalence": 0.3321
+    },
+    "censored_at_delta": 1736,
+    "delta_s": 172800
+  },
+  "G1": {
+    "head": "headB",
+    "split_method": "official",
+    "test_fraction": 0.2,
+    "test_seed": 42,
+    "label": "derailed",
+    "test_group_ids_sha256": "2f2f2871ec89a8142769cd7097579b6ce530d20273c8846af9834529ee0a6710",
+    "train": {
+      "n_rows": 3348,
+      "n_conversations": 3348,
+      "n_groups": 1446,
+      "n_positive": 1674,
+      "prevalence": 0.5
+    },
+    "test": {
+      "n_rows": 840,
+      "n_conversations": 840,
+      "n_groups": 370,
+      "n_positive": 420,
+      "prevalence": 0.5
+    },
+    "derailed_without_attack_turn": 0,
+    "calm_with_attack_turn": 0,
+    "dropped_pairs_empty_prefix": 0
+  },
+  "H1": {
+    "head": "headB",
+    "split_method": "group",
+    "test_fraction": 0.2,
+    "test_seed": 42,
+    "label": "toxic",
+    "test_group_ids_sha256": "a3fc2dbb204fe77ba5249e3de43dca6f0ef5829e1f2a98bb396688d3144012de",
+    "train": {
+      "n_rows": 26719,
+      "n_conversations": 26719,
+      "n_groups": 24452,
+      "n_positive": 4620,
+      "prevalence": 0.1729
+    },
+    "test": {
+      "n_rows": 6681,
+      "n_conversations": 6681,
+      "n_groups": 6116,
+      "n_positive": 1156,
+      "prevalence": 0.173
+    },
+    "duplicate_text_label_conflicts": 203
+  },
+  "H2": {
+    "head": "headB",
+    "split_method": "group",
+    "test_fraction": 0.2,
+    "test_seed": 42,
+    "label": "toxic",
+    "test_group_ids_sha256": "cdbd72ce451b5447d2107220762bb892070f9fb03f09ecfc8f5e8fb91209dcf0",
+    "train": {
+      "n_rows": 8001,
+      "n_conversations": 8001,
+      "n_groups": 660,
+      "n_positive": 882,
+      "prevalence": 0.1102
+    },
+    "test": {
+      "n_rows": 1999,
+      "n_conversations": 1999,
+      "n_groups": 165,
+      "n_positive": 219,
+      "prevalence": 0.1096
+    }
+  }
+}

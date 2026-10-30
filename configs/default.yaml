@@ -12,3 +12,21 @@ bootstrap:
   method: cluster_percentile
 imbalance_strategies: [none, class_weight, undersample, oversample, smote]
 calibration: [platt, isotonic]
+
+# Nhãn Module 3 (docs/06 §1.2, §1.3) — đổi giá trị = phải tạo lại nhãn, A duyệt
+head_a:
+  delta_s: 172800                          # Δ = 48h
+  sensitivity_delta_s: [3600, 86400, 259200]  # X5: 1h, 24h, 72h (tính bằng labels.label_at)
+  start_turn: 5                            # mẫu đầu tiên tại tin thứ 6
+  every: 2                                 # lấy mỗi 2 tin để giảm tự tương quan
+head_b:
+  calm_drop_last: true                     # G1: hội thoại lành bỏ lượt cuối (như CRAFT)
+
+# Cách tạo tập test (A3). time = 20% group bắt đầu muộn nhất ; official = split gốc (G1 sạch, so được với CRAFT) ;
+# group = 20% group ngẫu nhiên phân tầng theo nhãn (H1, H2: split gốc bị rò rỉ theo nội dung trùng / bài báo)
+test_split:
+  E1: time
+  E2: time
+  G1: official
+  H1: group
+  H2: group
