@@ -26,6 +26,11 @@ head_a:
     shallow_recall: 0.8                    # τ1: mức "hời hợt" bắt được ≥ 80% ca tắt
 head_b:
   calm_drop_last: true                     # G1: hội thoại lành bỏ lượt cuối (như CRAFT)
+  cv_folds: 5
+  calibration_fraction: 0.2                # 20% group trong outer-train dùng fit calibrator
+  threshold_fpr: 0.05                      # τ_B: FPR tối đa trên calibration
+  max_features: 30000
+  min_df: 2
 
 # Cách tạo tập test (A3). time = 20% group bắt đầu muộn nhất ; official = split gốc (G1 sạch, so được với CRAFT) ;
 # group = 20% group ngẫu nhiên phân tầng theo nhãn (H1, H2: split gốc bị rò rỉ theo nội dung trùng / bài báo)
