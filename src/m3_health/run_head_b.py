@@ -33,7 +33,14 @@ from src.eval.threshold import confusion_at, threshold_by_fpr
 from src.m3_health.features_b import NUMERIC_COLUMNS, build_g1, build_single
 from src.m3_health.labels import PROC, ROOT, load_config, load_train
 
-MODELS = ("majority", "lexicon", "tfidf_lr")
+# G1: tiền tố hỏng dài hơn lành ~0,5 lượt → kiểm tra mô hình có học nội dung hay chỉ học độ dài
+LENGTH_COLUMNS = ["n_messages", "n_chars", "n_words", "last_n_chars", "last_n_words"]
+LR_VARIANTS = {  # tên → (dùng TF-IDF?, cột số)
+    "length_lr": (False, LENGTH_COLUMNS),
+    "tfidf_lr": (True, NUMERIC_COLUMNS),
+    "tfidf_lr_nolen": (True, [c for c in NUMERIC_COLUMNS if c not in LENGTH_COLUMNS]),
+}
+MODELS = ("majority", "lexicon", *LR_VARIANTS)
 CALIBRATION = "platt"
 
 
@@ -44,7 +51,7 @@ def load(dataset: str) -> pd.DataFrame:
     return frame.reset_index(drop=True)
 
 
-def make_model(cfg: dict, seed: int) -> Pipeline:
+def make_model(cfg: dict, seed: int, use_text: bool = True, numeric_columns=NUMERIC_COLUMNS) -> Pipeline:
     hb = cfg["head_b"]
     text = TfidfVectorizer(
         ngram_range=(1, 2),
@@ -53,8 +60,9 @@ def make_model(cfg: dict, seed: int) -> Pipeline:
         sublinear_tf=True,
     )
     numeric = StandardScaler(with_mean=False)
+    transformers = [("text", text, "text")] if use_text else []
     preprocess = ColumnTransformer(
-        [("text", text, "text"), ("numeric", numeric, NUMERIC_COLUMNS)],
+        transformers + [("numeric", numeric, list(numeric_columns))],
         sparse_threshold=1.0,
         remainder="drop",
     )
@@ -73,6 +81,9 @@ def _metrics(y, p, threshold: float | None = None) -> dict:
         "roc_auc": roc_auc_score(y, p),
         "brier": brier_score_loss(y, p),
         "ece": ece(y, p),
+        # ngưỡng 0,5 để so với tài liệu (CRAFT báo accuracy trên G1 cân bằng ; ViHSD báo macro-F1)
+        "acc_05": accuracy_score(y, (p >= 0.5).astype(int)),
+        "macro_f1_05": f1_score(y, (p >= 0.5).astype(int), average="macro", zero_division=0),
     }
     if threshold is not None:
         at = confusion_at(y, p, threshold)
@@ -143,33 +154,35 @@ def run(dataset: str, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
         if not np.isfinite(rows[-1]["threshold"]):
             rows[-1]["threshold"] = np.nan
 
-        started = time.time()
-        model = make_model(cfg, seed + fold)
-        model.fit(frame.iloc[fit], y[fit])
-        raw_cal = model.predict_proba(frame.iloc[cal])[:, 1]
-        raw_va = model.predict_proba(frame.iloc[va])[:, 1]
-        calibrator = _fit_calibration(y[cal], raw_cal)
-        p_cal, p_va = calibrator(raw_cal), calibrator(raw_va)
-        tau = threshold_by_fpr(y[cal], p_cal, hb["threshold_fpr"])["threshold"]
-        rows.append({
-            "dataset": dataset,
-            "fold": fold,
-            "model": "tfidf_lr",
-            "n_fit": len(fit),
-            "n_cal": len(cal),
-            "n_val": len(va),
-            "fit_s": time.time() - started,
-            **_metrics(y[va], p_va, tau),
-        })
-        oof.append(pd.DataFrame({
-            "dataset": dataset,
-            "fold": fold,
-            "model": "tfidf_lr",
-            "y": y[va],
-            "p": p_va,
-            "group_id": groups[va],
-        }))
-        print(dataset, fold, f"tau={tau:.3f}", f"pr_auc={rows[-1]['pr_auc']:.4f}", flush=True)
+        for name, (use_text, numeric_columns) in LR_VARIANTS.items():
+            started = time.time()
+            model = make_model(cfg, seed + fold, use_text, numeric_columns)
+            model.fit(frame.iloc[fit], y[fit])
+            raw_cal = model.predict_proba(frame.iloc[cal])[:, 1]
+            raw_va = model.predict_proba(frame.iloc[va])[:, 1]
+            calibrator = _fit_calibration(y[cal], raw_cal)
+            p_cal, p_va = calibrator(raw_cal), calibrator(raw_va)
+            tau = threshold_by_fpr(y[cal], p_cal, hb["threshold_fpr"])["threshold"]
+            rows.append({
+                "dataset": dataset,
+                "fold": fold,
+                "model": name,
+                "n_fit": len(fit),
+                "n_cal": len(cal),
+                "n_val": len(va),
+                "fit_s": time.time() - started,
+                **_metrics(y[va], p_va, tau),
+            })
+            if name == "tfidf_lr":
+                oof.append(pd.DataFrame({
+                    "dataset": dataset,
+                    "fold": fold,
+                    "model": name,
+                    "y": y[va],
+                    "p": p_va,
+                    "group_id": groups[va],
+                }))
+            print(dataset, fold, name, f"tau={tau:.3f}", f"pr_auc={rows[-1]['pr_auc']:.4f}", flush=True)
 
     info = {
         "n_rows": len(frame),
@@ -189,6 +202,8 @@ def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dic
         f"> Outer: group K-fold K = {hb['cv_folds']} theo `group_id`; calibrator {CALIBRATION} fit trên "
         f"{hb['calibration_fraction']:.0%} group của outer-train; τ_B chọn theo FPR ≤ {hb['threshold_fpr']:.1%}.",
         "> G1 dùng tiền tố trước lượt công kích; H1/H2 dùng từng bình luận. Mean ± SD qua các fold.",
+        "> `length_lr`: chỉ đặc trưng độ dài ; `tfidf_lr_nolen`: TF-IDF + đặc trưng số trừ độ dài — "
+        "kiểm tra mô hình học nội dung hay chỉ học độ dài tiền tố (G1). Acc/Macro-F1@0.5 trên xác suất đã hiệu chỉnh.",
         "",
     ]
     for dataset, result in all_res.groupby("dataset"):
@@ -199,8 +214,8 @@ def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dic
             f"N = {info['n_rows']:,} mẫu, {info['n_conversations']:,} hội thoại, "
             f"{info['n_groups']:,} group, prevalence {info['prevalence']:.3f}.",
             "",
-            "| Mô hình | PR-AUC | ROC-AUC | Brier | ECE | τ_B | Precision | Recall | F1 | FPR |",
-            "|---|---|---|---|---|---|---|---|---|---|",
+            "| Mô hình | PR-AUC | ROC-AUC | Acc@0.5 | Macro-F1@0.5 | Brier | ECE | τ_B | Precision | Recall | F1 | FPR |",
+            "|---|---|---|---|---|---|---|---|---|---|---|---|",
         ]
         for model in MODELS:
             subset = result[result["model"] == model]
@@ -208,7 +223,8 @@ def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dic
                 continue
             cell = lambda column: mean_sd(subset[column].dropna()) if column in subset and subset[column].notna().any() else "—"
             lines.append(
-                f"| {model} | {cell('pr_auc')} | {cell('roc_auc')} | {cell('brier')} | {cell('ece')} | "
+                f"| {model} | {cell('pr_auc')} | {cell('roc_auc')} | {cell('acc_05')} | {cell('macro_f1_05')} | "
+                f"{cell('brier')} | {cell('ece')} | "
                 f"{cell('threshold')} | {cell('precision')} | {cell('recall')} | {cell('f1')} | {cell('fpr')} |"
             )
         subset = oof[oof["dataset"] == dataset]

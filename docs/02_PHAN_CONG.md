@@ -12,7 +12,7 @@
 |---|---|---|---|
 | Module 3 | Khung đánh giá, **định nghĩa nhãn cả 2 head**, Head A dạng bảng + survival, **toàn bộ thí nghiệm imbalance**, phân tích lỗi, báo cáo | Tải & làm sạch dữ liệu, đặc trưng hành vi + phong cách (T1–T3) | Đọc nội dung (NLP), Head B, API |
 | Module 1+2 (app) | Duyệt API (không code app) | **Backend luật** (lọc/xếp hạng M1 + luật blur M2) + **màn Swipe** (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
-| Họ tên | Vũ Minh (`namgau`) | Ngọc Vĩ (`NgocVixx`) | ________ |
+| Họ tên | Vũ Minh (`namgau`) | Ngọc Vĩ (`NgocVixx`) | Thắng |
 
 ## 0. Cắt bớt so với kế hoạch đầy đủ (vì còn 5 tuần + làm app)
 
