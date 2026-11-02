@@ -12,7 +12,7 @@
 |---|---|---|---|
 | Module 3 | Khung đánh giá, **định nghĩa nhãn cả 2 head**, Head A dạng bảng + survival, **toàn bộ thí nghiệm imbalance**, phân tích lỗi, báo cáo | Tải & làm sạch dữ liệu, đặc trưng hành vi + phong cách (T1–T3) | Đọc nội dung (NLP), Head B, API |
 | Module 1+2 (app) | Duyệt API (không code app) | **Backend luật** (lọc/xếp hạng M1 + luật blur M2) + **màn Swipe** (M1) | Màn chat: ảnh rõ dần + quả cầu độ hợp (M2), nối API Module 3 |
-| Họ tên | ________ | ________ | ________ |
+| Họ tên | Vũ Minh (`namgau`) | Ngọc Vĩ (`NgocVixx`) | ________ |
 
 ## 0. Cắt bớt so với kế hoạch đầy đủ (vì còn 5 tuần + làm app)
 
@@ -80,7 +80,7 @@
 |---|---|---|
 | C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) |
 | C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do A làm) | 13/11 |
-| C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 |
+| C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 — baseline TF-IDF + LR trên G1/H1/H2 **B đã làm 02/11** (`src/m3_health/run_head_b.py`) ; C làm tiếp CRAFT-like |
 | C5 | **Cross-lingual Head B** (X14): điểm độc hại từ bộ phân loại tiếng Việt làm đặc trưng cho G1 ; hỗ trợ A chạy cross-domain Head A E1 ↔ E2 (X4) | 23/11 |
 | C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 |
 | C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 |

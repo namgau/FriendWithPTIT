@@ -245,7 +245,7 @@ def main(datasets: list[str]) -> None:
                 continue
             append_ledger(
                 "m3_headB",
-                "C",
+                "B",
                 cfg,
                 digest,
                 [cfg["test_seed"]],
