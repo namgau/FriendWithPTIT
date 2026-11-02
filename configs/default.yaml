@@ -24,6 +24,12 @@ head_a:
     c_fn: 1                                # C_FN : C_FP = 1 : 2 (06 §3.4: làm phiền đắt hơn bỏ sót)
     c_fp: 2
     shallow_recall: 0.8                    # τ1: mức "hời hợt" bắt được ≥ 80% ca tắt
+  survival:                                # A6 (run_survival.py)
+    admin_cap_s: 604800                    # kiểm duyệt hành chính T ở 7 ngày (không đổi S(Δ ≤ 72h))
+    cox_penalizer: 0.1
+    rsf_trees: 100
+    rsf_min_leaf: 50
+    rsf_max_fit: 20000                     # RSF fit trên mẫu con (giới hạn RAM/thời gian)
 head_b:
   calm_drop_last: true                     # G1: hội thoại lành bỏ lượt cuối (như CRAFT)
   cv_folds: 5
