@@ -30,7 +30,7 @@ from src.m3_health.run_head_a import MODELS, load as load_a
 from src.m3_health.run_head_b import _fit_calibration, load as load_b, make_model
 
 H = 3600.0
-TEENCODE = re.compile(r"\b(ko|k0|kh[oô]ng?k|khum|hok|j|dc|đc|vs|ns|bik|bít|z|zậy|zị|oke|cx|mn|mk|mik|tr[oờ]i ơi|"
+TEENCODE = re.compile(r"\b(?:ko|k0|kh[oô]ng?k|khum|hok|j|dc|đc|vs|ns|bik|bít|z|zậy|zị|oke|cx|mn|mk|mik|tr[oờ]i ơi|"
                       r"vcl|vl|đm|dm|cmn|ae|ny|ck|vk|trc|thik|iu|hum|nha|nhe|ạk|uk|ukm)\b", re.IGNORECASE)
 VI_DIACRITIC = re.compile(r"[àáạảãâầấậẩẫăằắặẳẵèéẹẻẽêềếệểễìíịỉĩòóọỏõôồốộổỗơờớợởỡùúụủũưừứựửữỳýỵỷỹđ]", re.IGNORECASE)
 
@@ -197,10 +197,10 @@ def head_b(d: str, cfg: dict, examples: list[str]) -> list[str]:
     frame, y, p, flag, groups = oof_head_b(d, cfg)
     text = frame["text"].fillna("").astype(str)
     last = frame["last_text"].fillna("").astype(str) if "last_text" in frame else text
-    sl = {"có teencode / viết tắt": text.str.contains(TEENCODE),
-          "có từ trong lexicon độc hại": frame["toxic_hits"].to_numpy() > 0,
+    sl = {"có từ trong lexicon độc hại": frame["toxic_hits"].to_numpy() > 0,
           "dài (> trung vị số từ)": frame["n_words"] > frame["n_words"].median()}
-    if d != "G1":
+    if d != "G1":  # slice tiếng Việt, không áp cho G1 (tiếng Anh)
+        sl["có teencode / viết tắt"] = text.str.contains(TEENCODE)
         sl["không dấu tiếng Việt"] = ~text.str.contains(VI_DIACRITIC)
     rows = [{"slice": "toàn bộ", "giá trị": "", "n lành": int((y == 0).sum()), "FPR (buộc tội oan)": _rate_ci(y == 0, flag, groups, cfg),
              "n độc hại": int((y == 1).sum()), "recall": _rate_ci(y == 1, flag, groups, cfg)}]
