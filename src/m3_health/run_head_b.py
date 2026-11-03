@@ -7,7 +7,6 @@ from __future__ import annotations
 
 import sys
 import time
-from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -26,6 +25,7 @@ from sklearn.metrics import (
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
+from src.eval.bootstrap import cluster_bootstrap
 from src.eval.calibration import ece, fit_calibrator
 from src.eval.report import append_ledger, data_hash, mean_sd
 from src.eval.splits import assert_no_group_leak, group_kfold, held_out_group_split
@@ -193,7 +193,29 @@ def run(dataset: str, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
     return pd.DataFrame(rows), pd.concat(oof, ignore_index=True), info
 
 
-def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dict) -> None:
+def bootstrap_ci(oof: pd.DataFrame, cfg: dict) -> pd.DataFrame:
+    """CI 95% cluster theo group cho out-of-fold ``tfidf_lr`` (không dùng test)."""
+    boot = cfg["bootstrap"]
+    rows = []
+    metrics = (("pr_auc", average_precision_score), ("roc_auc", roc_auc_score), ("brier", brier_score_loss))
+    for dataset, group in oof.groupby("dataset", sort=False):
+        for name, metric in metrics:
+            result = cluster_bootstrap(
+                metric,
+                group["y"].to_numpy(),
+                group["p"].to_numpy(),
+                group["group_id"].to_numpy(),
+                B=boot["B"],
+                ci=boot["ci"],
+                seed=cfg["test_seed"],
+            )
+            rows.append({"dataset": dataset, "model": "tfidf_lr", "metric": name, **result})
+            print(dataset, "bootstrap", name, f"CI=[{result['lo']:.4f}, {result['hi']:.4f}]", flush=True)
+    return pd.DataFrame(rows)
+
+
+def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, boots: pd.DataFrame, infos: dict,
+                 cfg: dict) -> None:
     hb = cfg["head_b"]
     lines = [
         "# Head B — kết quả CV trên tập train",
@@ -204,6 +226,8 @@ def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dic
         "> G1 dùng tiền tố trước lượt công kích; H1/H2 dùng từng bình luận. Mean ± SD qua các fold.",
         "> `length_lr`: chỉ đặc trưng độ dài ; `tfidf_lr_nolen`: TF-IDF + đặc trưng số trừ độ dài — "
         "kiểm tra mô hình học nội dung hay chỉ học độ dài tiền tố (G1). Acc/Macro-F1@0.5 trên xác suất đã hiệu chỉnh.",
+        f"> Bootstrap: cluster theo group, B = {cfg['bootstrap']['B']}, CI {cfg['bootstrap']['ci']:.0%} "
+        "trên out-of-fold `tfidf_lr` (không dùng test).",
         "",
     ]
     for dataset, result in all_res.groupby("dataset"):
@@ -237,6 +261,26 @@ def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dic
                 f"(FPR {at['fpr']:.3f}, precision {at['precision']:.3f}, recall {at['recall']:.3f}, "
                 f"F1 {at['f1']:.3f}).",
             ]
+        boot = boots[boots["dataset"] == dataset]
+        if not boot.empty:
+            first = boot.iloc[0]
+            lines += [
+                "",
+                f"**Bootstrap CI 95% cho `tfidf_lr` (cluster theo group, B = {int(first['B'])}, "
+                f"{int(first['B_valid'])} lần hợp lệ):**",
+                "",
+                "| Metric | Điểm | 95% CI | SE |",
+                "|---|---|---|---|",
+            ]
+            for metric in ("pr_auc", "roc_auc", "brier"):
+                row = boot[boot["metric"] == metric]
+                if row.empty:
+                    continue
+                row = row.iloc[0]
+                lines.append(
+                    f"| {metric} | {row['estimate']:.4f} | "
+                    f"[{row['lo']:.4f}, {row['hi']:.4f}] | {row['se']:.4f} |"
+                )
         lines.append("")
     out = ROOT / "docs" / "results" / "HEAD_B_CV.md"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -247,12 +291,15 @@ def write_report(all_res: pd.DataFrame, oof: pd.DataFrame, infos: dict, cfg: dic
 def main(datasets: list[str]) -> None:
     cfg = load_config()
     (ROOT / "reports").mkdir(exist_ok=True)
-    results, oofs, infos = [], [], {}
+    results, oofs, boots, infos = [], [], [], {}
     for dataset in datasets:
         result, oof, info = run(dataset, cfg)
         result.to_csv(ROOT / "reports" / f"headB_cv_{dataset}.csv", index=False)
+        oof.to_csv(ROOT / "reports" / f"headB_oof_{dataset}.csv", index=False)
+        boot = bootstrap_ci(oof, cfg)
         results.append(result)
         oofs.append(oof)
+        boots.append(boot)
         infos[dataset] = info
         digest = data_hash(PROC / dataset / "labels_headB_train.parquet", PROC / dataset / "messages.parquet")
         for model in MODELS:
@@ -270,7 +317,26 @@ def main(datasets: list[str]) -> None:
                 subset["pr_auc"],
                 notes=f"group K-fold K={cfg['head_b']['cv_folds']}, FPR<={cfg['head_b']['threshold_fpr']}",
             )
-    write_report(pd.concat(results, ignore_index=True), pd.concat(oofs, ignore_index=True), infos, cfg)
+        for metric_name in ("pr_auc", "roc_auc"):
+            row = boot[boot["metric"] == metric_name].iloc[0]
+            append_ledger(
+                "m3_headB",
+                "B",
+                cfg,
+                digest,
+                [cfg["test_seed"]],
+                f"{dataset}:tfidf_lr",
+                f"{metric_name}_bootstrap",
+                [row["estimate"]],
+                notes=(
+                    f"cluster bootstrap B={int(row['B'])}, CI95=[{row['lo']:.4f}, {row['hi']:.4f}], "
+                    f"SE={row['se']:.4f}"
+                ),
+                metric_sd=row["se"],
+            )
+    boot_all = pd.concat(boots, ignore_index=True)
+    boot_all.to_csv(ROOT / "reports" / "headB_bootstrap.csv", index=False)
+    write_report(pd.concat(results, ignore_index=True), pd.concat(oofs, ignore_index=True), boot_all, infos, cfg)
 
 
 if __name__ == "__main__":

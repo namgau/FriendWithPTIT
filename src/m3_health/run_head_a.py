@@ -124,6 +124,7 @@ def write_report(all_res: pd.DataFrame, taus: dict, cfg: dict, n_info: dict) -> 
         t = taus[d]
         lines += ["", f"**Mô hình tốt nhất theo PR-AUC:** `{t['model']}` + `{t['strategy']}`. "
                   f"Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (C_FN : C_FP = {t['c_fn']:g} : {t['c_fp']:g}, "
+                  f"τ2 = min(chi phí thực nghiệm, Bayes), "
                   f"recall mức hời hợt ≥ {t['shallow_recall']:g}): **τ1 = {t['tau1']:.3f}, τ2 = {t['tau2']:.3f}** ; "
                   f"tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = {t['level_share']} ; tại τ2: precision {t['at_tau2']['precision']:.3f}, "
                   f"recall {t['at_tau2']['recall']:.3f}.", ""]

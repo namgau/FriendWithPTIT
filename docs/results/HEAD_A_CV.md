@@ -1,5 +1,8 @@
 # Head A — kết quả CV trên tập train (A5, X2)
 
+> **Lưu ý 03/11:** logic chọn τ2 đã được sửa để chặn ngưỡng suy biến (`τ2 = min(cost, Bayes)`);
+> bảng dưới được sinh trước bản sửa và cần chạy lại khi có E1/E2.
+>
 > Sinh bởi `python -m src.m3_health.run_head_a`. Tập test **chưa mở** (khóa tới 20/11).
 > Outer: forward chaining K = 5 theo thời điểm bắt đầu group ; calibration trên 20% group muộn nhất của mỗi outer-train ; Δ = 48h ; đặc trưng T1 + T2 tối thiểu (`src/m3_health/features.py`). Mean ± SD qua 5 fold.
 
