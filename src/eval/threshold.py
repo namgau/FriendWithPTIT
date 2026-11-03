@@ -49,8 +49,14 @@ def threshold_by_recall(y, p, min_recall: float = 0.8) -> dict:
 
 
 def choose_tau1_tau2(y, p, c_fn: float = 3.0, c_fp: float = 1.0, shallow_recall: float = 0.8) -> tuple[float, float]:
-    """τ2 = ngưỡng chi phí (mức at_risk) ; τ1 = ngưỡng đạt recall ``shallow_recall`` (mức shallow), τ1 ≤ τ2."""
-    tau2 = threshold_by_cost(y, p, c_fn, c_fp)["threshold"]
+    """τ2 = min(chi phí thực nghiệm, ngưỡng Bayes) ; τ1 = ngưỡng đạt recall ``shallow_recall``, τ1 ≤ τ2.
+
+    Ngưỡng Bayes ``c_fp / (c_fn + c_fp)`` là ngưỡng tối ưu khi xác suất đã hiệu chỉnh. Chặn trên
+    bằng ngưỡng này tránh trường hợp validation có vài mẫu dương rất tự tin làm τ2 = 1.0 (không bao
+    giờ báo at_risk), trong khi ngưỡng thực nghiệm thấp hơn vẫn được giữ.
+    """
+    bayes = c_fp / (c_fn + c_fp) if c_fn + c_fp > 0 else 0.5
+    tau2 = min(threshold_by_cost(y, p, c_fn, c_fp)["threshold"], bayes)
     tau1 = min(threshold_by_recall(y, p, shallow_recall)["threshold"], tau2)
     return float(tau1), float(tau2)
 

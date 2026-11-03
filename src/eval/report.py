@@ -57,15 +57,20 @@ def mean_sd(values, digits: int = 3) -> str:
 
 
 def append_ledger(module: str, owner: str, cfg: dict, data_files, seeds, model: str,
-                  metric_name: str, values, notes: str = "", ledger: Path = LEDGER) -> dict:
-    """``data_files``: danh sách file dữ liệu, hoặc chuỗi băm đã tính sẵn (tránh băm lại file lớn)."""
+                  metric_name: str, values, notes: str = "", ledger: Path = LEDGER,
+                  metric_sd: float | None = None) -> dict:
+    """``data_files``: danh sách file dữ liệu, hoặc chuỗi băm đã tính sẵn (tránh băm lại file lớn).
+
+    ``metric_sd`` cho phép ghi SE/độ bất định từ bootstrap thay vì SD giữa các fold.
+    """
     v = np.asarray(values, float)
+    sd = float(metric_sd) if metric_sd is not None else (float(v.std(ddof=1)) if len(v) > 1 else 0.0)
     row = {"run_id": dt.datetime.now().strftime("%Y%m%d-%H%M%S"), "date": dt.date.today().isoformat(),
            "module": module, "owner": owner, "config_hash": config_hash(cfg),
            "data_hash": data_files if isinstance(data_files, str) else (data_hash(*data_files) if data_files else ""),
            "git_commit": git_commit(),
            "seeds": " ".join(map(str, seeds)), "model": model, "metric_name": metric_name,
-           "metric_mean": round(float(v.mean()), 5), "metric_sd": round(float(v.std(ddof=1)) if len(v) > 1 else 0.0, 5),
+           "metric_mean": round(float(v.mean()), 5), "metric_sd": round(sd, 5),
            "notes": notes}
     new = not ledger.exists() or ledger.stat().st_size == 0
     with open(ledger, "a", newline="", encoding="utf-8") as f:

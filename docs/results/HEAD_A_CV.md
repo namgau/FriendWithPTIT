@@ -23,7 +23,7 @@ N = 338,240 mẫu, 60,000 hội thoại (lấy ngẫu nhiên 60000 hội thoại
 | lgbm | oversample | 0.318 ± 0.002 | 0.827 ± 0.003 | 0.079 ± 0.001 | 0.010 ± 0.005 | 0.004 ± 0.002 |
 | lgbm | smote | 0.317 ± 0.002 | 0.826 ± 0.002 | 0.079 ± 0.001 | 0.084 ± 0.002 | 0.004 ± 0.002 |
 
-**Mô hình tốt nhất theo PR-AUC:** `lgbm` + `class_weight`. Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (C_FN : C_FP = 1 : 2, recall mức hời hợt ≥ 0.8): **τ1 = 0.141, τ2 = 1.000** ; tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = 0.65 / 0.35 / 0.00 ; tại τ2: precision 0.455, recall 0.001.
+**Mô hình tốt nhất theo PR-AUC:** `lgbm` + `class_weight`. Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (C_FN : C_FP = 1 : 2, τ2 = min(chi phí thực nghiệm, Bayes), recall mức hời hợt ≥ 0.8): **τ1 = 0.141, τ2 = 0.667** ; tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = 0.65 / 0.35 / 0.00 ; tại τ2: precision 0.570, recall 0.004.
 
 ## E2
 
@@ -45,5 +45,5 @@ N = 123,102 mẫu, 60,000 hội thoại (lấy ngẫu nhiên 60000 hội thoại
 | lgbm | oversample | 0.526 ± 0.032 | 0.697 ± 0.005 | 0.201 ± 0.006 | 0.032 ± 0.011 | 0.015 ± 0.004 |
 | lgbm | smote | 0.529 ± 0.029 | 0.699 ± 0.005 | 0.200 ± 0.006 | 0.128 ± 0.015 | 0.016 ± 0.004 |
 
-**Mô hình tốt nhất theo PR-AUC:** `lgbm` + `smote`. Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (C_FN : C_FP = 1 : 2, recall mức hời hợt ≥ 0.8): **τ1 = 0.266, τ2 = 0.667** ; tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = 0.38 / 0.60 / 0.02 ; tại τ2: precision 0.698, recall 0.050.
+**Mô hình tốt nhất theo PR-AUC:** `lgbm` + `smote`. Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (C_FN : C_FP = 1 : 2, τ2 = min(chi phí thực nghiệm, Bayes), recall mức hời hợt ≥ 0.8): **τ1 = 0.266, τ2 = 0.667** ; tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = 0.38 / 0.60 / 0.02 ; tại τ2: precision 0.698, recall 0.050.
 

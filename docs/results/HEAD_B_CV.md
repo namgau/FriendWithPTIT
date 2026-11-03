@@ -4,6 +4,7 @@
 > Outer: group K-fold K = 5 theo `group_id`; calibrator platt fit trên 20% group của outer-train; τ_B chọn theo FPR ≤ 5.0%.
 > G1 dùng tiền tố trước lượt công kích; H1/H2 dùng từng bình luận. Mean ± SD qua các fold.
 > `length_lr`: chỉ đặc trưng độ dài ; `tfidf_lr_nolen`: TF-IDF + đặc trưng số trừ độ dài — kiểm tra mô hình học nội dung hay chỉ học độ dài tiền tố (G1). Acc/Macro-F1@0.5 trên xác suất đã hiệu chỉnh.
+> Bootstrap: cluster theo group, B = 2000, CI 95% trên out-of-fold `tfidf_lr` (không dùng test).
 
 ## G1
 
@@ -19,6 +20,14 @@ N = 3,348 mẫu, 3,348 hội thoại, 1,446 group, prevalence 0.500.
 
 **τ_B toàn cục trên out-of-fold `tfidf_lr`:** 0.698 (FPR 0.050, precision 0.668, recall 0.100, F1 0.174).
 
+**Bootstrap CI 95% cho `tfidf_lr` (cluster theo group, B = 2000, 2000 lần hợp lệ):**
+
+| Metric | Điểm | 95% CI | SE |
+|---|---|---|---|
+| pr_auc | 0.6259 | [0.6069, 0.6472] | 0.0103 |
+| roc_auc | 0.6545 | [0.6372, 0.6717] | 0.0086 |
+| brier | 0.2325 | [0.2285, 0.2365] | 0.0020 |
+
 ## H1
 
 N = 26,719 mẫu, 26,719 hội thoại, 24,452 group, prevalence 0.173.
@@ -33,6 +42,14 @@ N = 26,719 mẫu, 26,719 hội thoại, 24,452 group, prevalence 0.173.
 
 **τ_B toàn cục trên out-of-fold `tfidf_lr`:** 0.406 (FPR 0.050, precision 0.710, recall 0.583, F1 0.640).
 
+**Bootstrap CI 95% cho `tfidf_lr` (cluster theo group, B = 2000, 2000 lần hợp lệ):**
+
+| Metric | Điểm | 95% CI | SE |
+|---|---|---|---|
+| pr_auc | 0.7061 | [0.6913, 0.7203] | 0.0073 |
+| roc_auc | 0.9042 | [0.8992, 0.9088] | 0.0024 |
+| brier | 0.0837 | [0.0812, 0.0861] | 0.0013 |
+
 ## H2
 
 N = 8,001 mẫu, 8,001 hội thoại, 660 group, prevalence 0.110.
@@ -46,3 +63,11 @@ N = 8,001 mẫu, 8,001 hội thoại, 660 group, prevalence 0.110.
 | tfidf_lr_nolen | 0.348 ± 0.038 | 0.779 ± 0.032 | 0.893 ± 0.002 | 0.542 ± 0.012 | 0.085 ± 0.003 | 0.016 ± 0.002 | 0.265 ± 0.019 | 0.417 ± 0.047 | 0.301 ± 0.104 | 0.341 ± 0.067 | 0.053 ± 0.019 |
 
 **τ_B toàn cục trên out-of-fold `tfidf_lr`:** 0.267 (FPR 0.050, precision 0.425, recall 0.297, F1 0.350).
+
+**Bootstrap CI 95% cho `tfidf_lr` (cluster theo group, B = 2000, 2000 lần hợp lệ):**
+
+| Metric | Điểm | 95% CI | SE |
+|---|---|---|---|
+| pr_auc | 0.3419 | [0.2629, 0.4212] | 0.0411 |
+| roc_auc | 0.7789 | [0.7469, 0.8045] | 0.0145 |
+| brier | 0.0853 | [0.0683, 0.1053] | 0.0096 |

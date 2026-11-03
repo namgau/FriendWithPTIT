@@ -73,6 +73,14 @@ def test_thresholds():
     assert T.levels(np.array([0.1, 0.5, 0.9]), 0.3, 0.6).tolist() == [0, 1, 2]
 
 
+def test_choose_tau2_not_degenerate_when_rare_confident_positive():
+    y = np.r_[np.zeros(990, dtype=int), np.ones(10, dtype=int)]
+    p = np.r_[np.full(990, 0.2), np.full(9, 0.2), [1.0]]
+    t1, t2 = T.choose_tau1_tau2(y, p, c_fn=1, c_fp=2, shallow_recall=0.8)
+    assert t1 <= t2 <= 2 / 3 + 1e-12
+    assert t2 < 1.0
+
+
 def test_report_cv_summary_and_ledger(tmp_path):
     res = pd.DataFrame({"model": ["a"] * 3 + ["b"] * 3, "auc": [0.7, 0.72, 0.74, 0.6, 0.6, 0.6]})
     s = R.cv_summary(res, ["model"], ["auc"]).set_index("model")
@@ -81,7 +89,9 @@ def test_report_cv_summary_and_ledger(tmp_path):
     assert R.mean_sd([0.7, 0.72, 0.74]) == "0.720 ± 0.020"
     ledger = tmp_path / "ledger.csv"
     R.append_ledger("m3", "A", {"x": 1}, [], [42, 43], "lr", "pr_auc", [0.5, 0.6], ledger=ledger)
-    R.append_ledger("m3", "A", {"x": 1}, [], [42], "lr", "pr_auc", [0.5], ledger=ledger)
+    R.append_ledger("m3", "A", {"x": 1}, [], [42], "lr", "pr_auc", [0.5], ledger=ledger,
+                    metric_sd=0.123)
     df = pd.read_csv(ledger)
     assert list(df.columns) == R.LEDGER_COLUMNS and len(df) == 2
     assert df["config_hash"].nunique() == 1
+    assert df.loc[1, "metric_sd"] == pytest.approx(0.123)
