@@ -90,3 +90,4 @@ run_id,date,module,owner,config_hash,data_hash,git_commit,seeds,model,metric_nam
 20261103-230822,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,90588be,42,E2:lgbm:undersample,pr_auc,0.51908,0.03254,"forward_chaining K=5, T1+T2 min"
 20261103-230822,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,90588be,42,E2:lgbm:oversample,pr_auc,0.52611,0.03158,"forward_chaining K=5, T1+T2 min"
 20261103-230822,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,90588be,42,E2:lgbm:smote,pr_auc,0.52916,0.02904,"forward_chaining K=5, T1+T2 min"
+20261104-001057,2026-11-04,m3_headB,B,124b9a621097,82b7acc62ba2,91790dd,42,G1:tfidf_lr,horizon_detected_frac,0.14704,0.0,"horizon exploratory; median_lead=1.00, n_detected=246/1674, FPR<=0.05"
