@@ -39,7 +39,6 @@ Bộ mã hóa nội dung của Module 3 về sau được **dùng lại cho Modu
 | **E2** | Customer Support on Twitter (Kaggle `thoughtvector/customer-support-on-twitter`) | Anh | Có | **Bộ thứ 2 cùng bài toán**, so sánh & cross-domain | hội thoại (group theo khách hàng) |
 | E3 | Reddit qua ConvoKit (vd `reddit-corpus-small`), chỉ chuỗi trả lời qua lại giữa 2 người | Anh | Có | Tùy chọn, bộ thứ 3 | thread / cặp user |
 | E4 | DailyDialog | Anh | **Không** | Chỉ để đánh giá bộ phát hiện câu hỏi/cảm xúc (có nhãn dialog act) | hội thoại |
-| S2 | Simulator (`src/synth/chat.py`) | — | Có | **Chỉ** để unit-test pipeline, không báo cáo như kết quả | — |
 
 **Dữ liệu cho Head B (derailment / độc hại):**
 

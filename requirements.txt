@@ -18,8 +18,8 @@ pytest>=8.0
 # torch                    (GRU)
 # transformers
 # sentence-transformers   (tầng T4: embedding đa ngữ)
-# scikit-survival          (survival: Cox, Random Survival Forest)
-# lifelines                (survival: Cox PH, Kaplan–Meier)
+scikit-survival>=0.24    # A6 survival: RSF, C-index, IBS
+lifelines>=0.29          # A6 survival: Cox PH
 # tabpfn                   (X7: foundation model bảng)
 # mapie                    (conformal prediction)
 # underthesea

@@ -28,6 +28,9 @@ Module 1 (xếp hạng swipe) và Module 2 (ảnh rõ dần) đang chạy bằng
   Module 3 sau khi huấn luyện (`serving/predictors.py`).
 - Backend: NestJS + PostgreSQL/PostGIS, xác thực OTP demo, hồ sơ, discover, swipe/match,
   chat, thông báo, report/block; Docker Compose kèm PostGIS. `npm run build` đã pass.
+- ML (Module 3, cập nhật 03/11): dữ liệu 5 bộ đã chuẩn hóa, nhãn + tập test khóa, khung đánh giá đủ ;
+  kết quả CV trên train ở `docs/results/` (Head A: `HEAD_A_CV.md`, `HEAD_A_SURVIVAL.md` ;
+  Head B: `HEAD_B_CV.md`, `IMBALANCE_B.md`). Tập test mở 1 lần ngày 20/11.
 
 ## Chạy nhanh
 
@@ -50,22 +53,18 @@ Tài khoản demo backend: `demo@ptit.edu.vn` — OTP `123456` — mật khẩu 
 
 ## Cấu trúc
 ```
-android/         App Android sản phẩm (Kotlin, Compose, Room, Google Maps)
-backend/         NestJS API + PostgreSQL/PostGIS + Docker Compose
-docs/            TẤT CẢ tài liệu md: kế hoạch, hướng dẫn, data_cards/, reference/ (tài liệu gốc)
-data/            raw/interim/processed (KHÔNG commit dữ liệu ; chỉ dataset công khai)
-configs/         YAML cấu hình thí nghiệm (siêu tham số + seeds)
-src/schema.py    schema hồ sơ & đặc trưng cặp dùng chung
-src/synth/       sinh dữ liệu tổng hợp S1 (profiles), S2 (chat)          [B: S1, C: S2]
-src/eval/        splits, imbalance, calibration, bootstrap, report        [A]
-src/m1_rank/     Module 1                                                  [A]
-src/m2_compat/   Module 2                                                  [B]
-src/m3_health/   Module 3                                                  [C]
-serving/         FastAPI: API cho app android/ (luật M1/M2/M3) + baseline Module 3 (Head A/B)
-experiments/     ledger.csv (mỗi lần chạy 1 dòng)
-models/          model + metadata.json theo version
-notebooks/       EDA (đặt tên: <module>_<mô tả>_<tên viết tắt>.ipynb)
-tests/           pytest (bắt buộc cho src/eval: test không rò rỉ group)
+android/              App Android sản phẩm (Kotlin, Compose, Room, Google Maps)
+backend/              NestJS API + PostgreSQL/PostGIS + Docker Compose
+serving/              FastAPI: API cho app android/ (luật M1/M2/M3) + chỗ cắm mô hình Module 3
+docs/                 Kế hoạch, hướng dẫn, data_cards/, results/ (bảng kết quả sinh từ code), reference/
+src/data/             Tải về → bảng tin nhắn chung (prepare.py) + Data Card (cards.py)
+src/eval/             splits, bootstrap, imbalance, calibration, threshold, report
+src/m3_health/        Module 3: labels (nhãn + tập test khóa), features, run_head_a, run_head_b,
+                      run_imbalance_b, run_survival
+configs/              default.yaml (siêu tham số, seed, Δ, chi phí) + test_lock.json (băm tập test)
+data/                 raw/ processed/ locked/ (KHÔNG commit ; locked/ chỉ A mở) + checksums.txt
+experiments/          ledger.csv (mỗi lần chạy 1 dòng, ghi commit + băm config/dữ liệu)
+tests/                pytest: chống rò rỉ split, nhãn, đặc trưng không nhìn tương lai, eval, serving
 ```
 
 ## Bắt đầu phần ML
