@@ -8,6 +8,7 @@ mô hình ``tfidf_lr`` theo đúng fold/calibration của runner, chấm các ti
 """
 from __future__ import annotations
 
+import re
 import sys
 
 import numpy as np
@@ -25,10 +26,14 @@ ERRORS = ROOT / "reports" / "headB_errors.csv"
 SLICES = ROOT / "reports" / "headB_error_slices.csv"
 HORIZON = ROOT / "reports" / "headB_horizon.csv"
 REPORT = ROOT / "docs" / "results" / "HEAD_B_ERRORS.md"
+_URL = re.compile(r"https?://\S+", re.IGNORECASE)
+_MENTION = re.compile(r"@[\w.]+")
 
 
 def _snippet(value, limit: int = 180) -> str:
     text = " ".join(str(value).split())
+    text = _URL.sub("<URL>", text)
+    text = _MENTION.sub("@<user>", text)
     return text if len(text) <= limit else text[: limit - 1] + "…"
 
 
@@ -193,7 +198,10 @@ def horizon_g1(cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         p_cal = calibrator(model.predict_proba(frame.iloc[cal])[:, 1])
         tau = threshold_by_fpr(y[cal], p_cal, hb["threshold_fpr"])["threshold"]
 
-        va_ids = set(frame.iloc[va]["conversation_id"])
+        va_frame = frame.iloc[va]
+        va_ids = set(va_frame["conversation_id"])
+        p_full = dict(zip(va_frame["conversation_id"],
+                          calibrator(model.predict_proba(va_frame)[:, 1])))
         subset = prefixes[prefixes["conversation_id"].isin(va_ids)].copy()
         if subset.empty:
             continue
@@ -208,6 +216,7 @@ def horizon_g1(cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
             attack_turn = int(group["attack_turn_idx"].iloc[0])
             prefix_len = int(group["prefix_len"].iloc[0])
             first_len = int(hit["eval_len"].iloc[0]) if not hit.empty else np.nan
+            score_full = float(p_full[conversation_id])
             row = {
                 "dataset": "G1",
                 "fold": fold,
@@ -218,6 +227,8 @@ def horizon_g1(cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
                 "first_alert_len": first_len,
                 "lead_turns": attack_turn - first_len if np.isfinite(first_len) else np.nan,
                 "detected": int(not hit.empty),
+                "p_full": score_full,
+                "detected_full": int(score_full >= tau),
                 "threshold": tau,
             }
             rows.append(row)
@@ -225,12 +236,15 @@ def horizon_g1(cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
 
         fold_df = pd.DataFrame(fold_rows)
         if not fold_df.empty:
+            full = fold_df[fold_df["detected_full"] == 1]
             folds.append({
                 "fold": fold,
                 "n": len(fold_df),
                 "detected": int(fold_df["detected"].sum()),
                 "detected_frac": float(fold_df["detected"].mean()),
                 "median_lead": float(fold_df.loc[fold_df.detected == 1, "lead_turns"].median()),
+                "tp_full": len(full),
+                "median_lead_full": float(full["lead_turns"].median()) if not full.empty else np.nan,
                 "threshold": tau,
             })
 
@@ -269,7 +283,10 @@ def _write_report(errors: pd.DataFrame, slices: pd.DataFrame, summary: pd.DataFr
             continue
         lines += [f"### {dataset}", ""]
         for error_type, title, ascending in (("FP", "Báo nhầm (FP)", False), ("FN", "Bỏ sót (FN)", True)):
-            subset = group[group["error_type"] == error_type].sort_values("p", ascending=ascending).head(5)
+            subset = (group[group["error_type"] == error_type]
+                      .drop_duplicates(subset=["text"])
+                      .sort_values("p", ascending=ascending)
+                      .head(5))
             lines += [f"**{title} — top 5 theo xác suất**", "",
                       "| p | n_messages | Nhãn | Nội dung rút gọn |", "|---|---|---|---|"]
             for row in subset.itertuples():
@@ -295,23 +312,34 @@ def _write_report(errors: pd.DataFrame, slices: pd.DataFrame, summary: pd.DataFr
         lines.append("Không có hội thoại hỏng để đánh giá.")
     else:
         detected = horizon[horizon["detected"] == 1]
+        full = horizon[horizon["detected_full"] == 1]
         lines += [
-            "| Fold | N | Phát hiện | Tỉ lệ | Median lead | τ_B |",
-            "|---|---|---|---|---|---|",
+            "| Fold | N | Phát hiện sớm | Tỉ lệ | Median lead | TP tại prefix | Median lead TP | τ_B |",
+            "|---|---|---|---|---|---|---|---|",
         ]
         for row in fold_horizon.itertuples():
             median = "—" if pd.isna(row.median_lead) else f"{row.median_lead:.1f}"
-            lines.append(f"| {row.fold} | {row.n} | {row.detected} | {row.detected_frac:.3f} | "
-                         f"{median} | {row.threshold:.3f} |")
+            median_full = "—" if pd.isna(row.median_lead_full) else f"{row.median_lead_full:.1f}"
+            lines.append(
+                f"| {row.fold} | {row.n} | {row.detected} | {row.detected_frac:.3f} | "
+                f"{median} | {row.tp_full} | {median_full} | {row.threshold:.3f} |"
+            )
         lines += [
             "",
-            f"- Tổng số hội thoại hỏng: **{len(horizon)}**; phát hiện: **{len(detected)}** "
-            f"({len(detected) / len(horizon):.1%}).",
-            f"- Lead trung vị (trong số phát hiện): **{detected['lead_turns'].median():.1f} lượt**; "
-            f"IQR: **{detected['lead_turns'].quantile(0.25):.1f}–{detected['lead_turns'].quantile(0.75):.1f}**.",
-            f"- Phát hiện trước ≥1 lượt: **{(detected['lead_turns'] >= 1).mean():.1%}**; "
-            f"≥2 lượt: **{(detected['lead_turns'] >= 2).mean():.1%}**; "
-            f"≥3 lượt: **{(detected['lead_turns'] >= 3).mean():.1%}** (trong số phát hiện).",
+            f"- Tổng số hội thoại hỏng: **{len(horizon)}**; cảnh báo sớm ở bất kỳ tiền tố nào: "
+            f"**{len(detected)}** ({len(detected) / len(horizon):.1%}).",
+            f"- Tại tiền tố triển khai (đúng giao thức hiện tại): **{len(full)} TP "
+            f"({len(full) / len(horizon):.1%})**. Trong số TP này, lead trung vị: "
+            f"**{full['lead_turns'].median():.1f} lượt**; IQR: "
+            f"**{full['lead_turns'].quantile(0.25):.1f}–{full['lead_turns'].quantile(0.75):.1f}**.",
+            f"- Trong số TP tại prefix, phát hiện trước ≥1 lượt: "
+            f"**{(full['lead_turns'] >= 1).mean():.1%}**; ≥2 lượt: "
+            f"**{(full['lead_turns'] >= 2).mean():.1%}**; ≥3 lượt: "
+            f"**{(full['lead_turns'] >= 3).mean():.1%}**.",
+            f"- Trên toàn bộ hội thoại hỏng, cảnh báo trước ≥1 lượt: "
+            f"**{(detected['lead_turns'] >= 1).sum() / len(horizon):.1%}**; ≥2 lượt: "
+            f"**{(detected['lead_turns'] >= 2).sum() / len(horizon):.1%}**; ≥3 lượt: "
+            f"**{(detected['lead_turns'] >= 3).sum() / len(horizon):.1%}**.",
             "",
             "> Lưu ý: mô hình được huấn luyện trên tiền tố ngay trước lượt công kích; điểm ở các "
             "tiền tố ngắn hơn là ngoài phân phối huấn luyện. Ngưỡng giữ nguyên theo calibration, nên "
