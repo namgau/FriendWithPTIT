@@ -56,3 +56,31 @@ run_id,date,module,owner,config_hash,data_hash,git_commit,seeds,model,metric_nam
 20261103-112910,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,e4c4f53,42,E1:lgbm:undersample,pr_auc,0.30259,0.00822,"forward_chaining K=5, T1+T2 min"
 20261103-112910,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,e4c4f53,42,E1:lgbm:oversample,pr_auc,0.31751,0.00245,"forward_chaining K=5, T1+T2 min"
 20261103-112910,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,e4c4f53,42,E1:lgbm:smote,pr_auc,0.31676,0.00241,"forward_chaining K=5, T1+T2 min"
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:conformal:marginal,coverage_lower_90,1.0,0.0,X8 CQR α=0.1; cov_upper=0.920
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:conformal:qr_raw,coverage_lower_90,0.99988,0.00026,X8 CQR α=0.1; cov_upper=0.898
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:conformal:cqr,coverage_lower_90,0.99988,0.00026,X8 CQR α=0.1; cov_upper=0.901
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:conf_shift:E2 CQR,coverage_lower_90,0.59145,0.01248,X8 CQR α=0.1; cov_upper=0.927
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:conf_shift:E2 CQR + trọng số,coverage_lower_90,0.9882,0.02081,X8 CQR α=0.1; cov_upper=0.998
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,"E1:conf_shift:E2 mô hình, calib lại trên E1",coverage_lower_90,0.89848,0.00318,X8 CQR α=0.1; cov_upper=0.902
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:conformal:marginal,coverage_lower_90,0.91141,0.01511,X8 CQR α=0.1; cov_upper=0.994
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:conformal:qr_raw,coverage_lower_90,0.89037,0.01576,X8 CQR α=0.1; cov_upper=0.737
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:conformal:cqr,coverage_lower_90,0.90298,0.00956,X8 CQR α=0.1; cov_upper=0.935
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:conf_shift:E1 CQR,coverage_lower_90,1.0,0.0,X8 CQR α=0.1; cov_upper=0.564
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:conf_shift:E1 CQR + trọng số,coverage_lower_90,1.0,0.0,X8 CQR α=0.1; cov_upper=0.967
+20261103-215443,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,"E2:conf_shift:E1 mô hình, calib lại trên E2",coverage_lower_90,0.91141,0.01511,X8 CQR α=0.1; cov_upper=0.897
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:ablation:T1_rhythm,pr_auc,0.25268,0.00312,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:ablation:T1,pr_auc,0.29648,0.00093,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:ablation:T1+T2 (đủ),pr_auc,0.32049,0.00541,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:ablation:− T1_rhythm,pr_auc,0.18072,0.01623,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:ablation:− T1_clock,pr_auc,0.32194,0.00471,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:ablation:− T1_asym,pr_auc,0.2797,0.00504,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:cross:in-domain,pr_auc,0.32049,0.00541,X4 lgbm none
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,15add61b51a2,45961ce,42,E1:cross:E2 → E1,pr_auc,0.13218,0.0034,X4 lgbm none
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:ablation:T1_rhythm,pr_auc,0.4356,0.02799,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:ablation:T1,pr_auc,0.47417,0.02695,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:ablation:T1+T2 (đủ),pr_auc,0.53027,0.02873,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:ablation:− T1_rhythm,pr_auc,0.47622,0.03042,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:ablation:− T1_clock,pr_auc,0.52927,0.02914,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:ablation:− T1_asym,pr_auc,0.48989,0.02815,"X1 lgbm none, forward_chaining K=5"
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:cross:in-domain,pr_auc,0.53027,0.02873,X4 lgbm none
+20261103-215856,2026-11-03,m3_headA,A,124b9a621097,0a29dba7c1e7,45961ce,42,E2:cross:E1 → E2,pr_auc,0.3307,0.02544,X4 lgbm none
