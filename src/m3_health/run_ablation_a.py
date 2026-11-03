@@ -35,7 +35,8 @@ GROUPS = {
 }
 T1 = GROUPS["T1_rhythm"] + GROUPS["T1_clock"] + GROUPS["T1_asym"]
 ALL = T1 + GROUPS["T2_surface"]
-SETS = {"T1": T1, "T1+T2 (đủ)": ALL, **{f"− {g}": [c for c in ALL if c not in cols] for g, cols in GROUPS.items()}}
+SETS = {"T1_rhythm": GROUPS["T1_rhythm"], "T1": T1, "T1+T2 (đủ)": ALL,  # tích lũy ; bỏ T2 = T1
+        **{f"− {g}": [c for c in ALL if c not in cols] for g, cols in GROUPS.items() if g != "T2_surface"}}
 
 
 def _fit(X: pd.DataFrame, y: np.ndarray, cols: list[str], seed: int) -> LGBMClassifier:
