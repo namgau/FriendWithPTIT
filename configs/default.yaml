@@ -21,8 +21,9 @@ head_a:
   every: 2                                 # lấy mỗi 2 tin để giảm tự tương quan
   cv_max_conversations: 60000              # giới hạn tài nguyên cho CV (E1 có 360k hội thoại train)
   threshold:
-    c_fn: 1                                # C_FN : C_FP = 1 : 2 (06 §3.4: làm phiền đắt hơn bỏ sót)
-    c_fp: 2
+    alert_budget: 0.10                     # τ2 = top 10% điểm → mức "nguy cơ" (ổn định giữa miền ; app kiểm soát số lần nhắc)
+    c_fn: 1                                # C_FN : C_FP chỉ dùng cho phân tích độ nhạy (HEAD_A_COST.md) ;
+    c_fp: 2                                # 1:2 làm τ2 gần như không báo trên E1 (recall 0.4%) → bỏ làm mặc định
     shallow_recall: 0.8                    # τ1: mức "hời hợt" bắt được ≥ 80% ca tắt
   survival:                                # A6 (run_survival.py)
     admin_cap_s: 604800                    # kiểm duyệt hành chính T ở 7 ngày (không đổi S(Δ ≤ 72h))

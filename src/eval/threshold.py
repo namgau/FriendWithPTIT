@@ -1,6 +1,7 @@
 """Chọn ngưỡng trên validation (không bao giờ trên test).
 
-- Head A: τ2 (at_risk) theo chi phí FN:FP ; τ1 (shallow) theo recall mục tiêu ; ``levels`` → 3 mức.
+- Head A: τ2 (at_risk) theo ngân sách cảnh báo (top-k) — mặc định ; theo chi phí FN:FP chỉ để phân tích độ nhạy ;
+  τ1 (shallow) theo recall mục tiêu ; ``levels`` → 3 mức.
 - Head B: τ_B theo FPR tối đa (hạn chế "buộc tội oan").
 """
 from __future__ import annotations
@@ -57,6 +58,21 @@ def choose_tau1_tau2(y, p, c_fn: float = 3.0, c_fp: float = 1.0, shallow_recall:
     """
     bayes = c_fp / (c_fn + c_fp) if c_fn + c_fp > 0 else 0.5
     tau2 = min(threshold_by_cost(y, p, c_fn, c_fp)["threshold"], bayes)
+    tau1 = min(threshold_by_recall(y, p, shallow_recall)["threshold"], tau2)
+    return float(tau1), float(tau2)
+
+
+def threshold_by_budget(p, budget: float = 0.10) -> float:
+    """Ngưỡng để khoảng ``budget`` phần mẫu có điểm cao nhất bị cảnh báo (p ≥ τ) — kiểu top-k / precision@k.
+
+    Không phụ thuộc prevalence nên ổn định giữa các miền ; app kiểm soát được số lần nhắc.
+    """
+    return float(np.quantile(np.asarray(p, float), 1 - budget, method="higher"))
+
+
+def choose_tau1_tau2_budget(y, p, alert_budget: float = 0.10, shallow_recall: float = 0.8) -> tuple[float, float]:
+    """τ2 = ngưỡng ngân sách cảnh báo ; τ1 = ngưỡng đạt recall ``shallow_recall``, τ1 ≤ τ2."""
+    tau2 = threshold_by_budget(p, alert_budget)
     tau1 = min(threshold_by_recall(y, p, shallow_recall)["threshold"], tau2)
     return float(tau1), float(tau2)
 

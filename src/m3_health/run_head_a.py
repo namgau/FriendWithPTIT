@@ -24,7 +24,7 @@ from src.eval.calibration import ece, fit_calibrator
 from src.eval.imbalance import STRATEGIES, make_pipeline, prior_shift, train_prevalence_after
 from src.eval.report import append_ledger, cv_summary, data_hash, mean_sd
 from src.eval.splits import assert_no_group_leak, assert_time_order, forward_chaining, held_out_time_split
-from src.eval.threshold import choose_tau1_tau2, confusion_at, levels
+from src.eval.threshold import choose_tau1_tau2_budget, confusion_at, levels
 from src.m3_health.features import extract_features, rule_score
 from src.m3_health.labels import PROC, ROOT, load_config, load_train
 
@@ -123,11 +123,12 @@ def write_report(all_res: pd.DataFrame, taus: dict, cfg: dict, n_info: dict) -> 
                          f"{cell('ece_raw')} | {cell('ece_isotonic')} |")
         t = taus[d]
         lines += ["", f"**Mô hình tốt nhất theo PR-AUC:** `{t['model']}` + `{t['strategy']}`. "
-                  f"Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (C_FN : C_FP = {t['c_fn']:g} : {t['c_fp']:g}, "
-                  f"τ2 = min(chi phí thực nghiệm, Bayes), "
-                  f"recall mức hời hợt ≥ {t['shallow_recall']:g}): **τ1 = {t['tau1']:.3f}, τ2 = {t['tau2']:.3f}** ; "
-                  f"tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = {t['level_share']} ; tại τ2: precision {t['at_tau2']['precision']:.3f}, "
-                  f"recall {t['at_tau2']['recall']:.3f}.", ""]
+                  f"Ngưỡng chọn trên dự đoán out-of-fold đã hiệu chỉnh (τ2 = ngân sách cảnh báo top "
+                  f"{t['alert_budget']:.0%}, recall mức hời hợt ≥ {t['shallow_recall']:g}): "
+                  f"**τ1 = {t['tau1']:.3f}, τ2 = {t['tau2']:.3f}** ; tỉ lệ 3 mức khỏe / hời hợt / nguy cơ = "
+                  f"{t['level_share']} ; tại τ2: precision {t['at_tau2']['precision']:.3f}, recall "
+                  f"{t['at_tau2']['recall']:.3f}, lift {t['at_tau2']['precision'] / info['prevalence']:.2f}× so với "
+                  "cảnh báo ngẫu nhiên. Ngưỡng theo chi phí C_FN : C_FP: xem `HEAD_A_COST.md`.", ""]
     out = ROOT / "docs" / "results" / "HEAD_A_CV.md"
     out.parent.mkdir(exist_ok=True)
     out.write_text("\n".join(lines) + "\n", encoding="utf-8", newline="\n")
@@ -146,7 +147,7 @@ def main(datasets: list[str]) -> None:
         summ = cv_summary(res[res["model"].isin(MODELS)], ["model", "strategy"], ["pr_auc"])
         best = summ.sort_values("pr_auc_mean", ascending=False).iloc[0]
         o = oof[(oof.model == best.model) & (oof.strategy == best.strategy)]
-        tau1, tau2 = choose_tau1_tau2(o.y, o.p, th["c_fn"], th["c_fp"], th["shallow_recall"])
+        tau1, tau2 = choose_tau1_tau2_budget(o.y, o.p, th["alert_budget"], th["shallow_recall"])
         share = np.bincount(levels(o.p, tau1, tau2), minlength=3) / len(o)
         taus[d] = {"model": best.model, "strategy": best.strategy, "tau1": tau1, "tau2": tau2, **th,
                    "level_share": " / ".join(f"{x:.2f}" for x in share), "at_tau2": confusion_at(o.y, o.p, tau2)}
@@ -154,6 +155,10 @@ def main(datasets: list[str]) -> None:
         for (m, s), g in res.groupby(["model", "strategy"], sort=False):
             append_ledger("m3_headA", "A", cfg, dh, [cfg["test_seed"]], f"{d}:{m}:{s}", "pr_auc",
                           g["pr_auc"], notes=f"forward_chaining K={cfg['cv']['outer_k']}, T1+T2 min")
+        at = taus[d]["at_tau2"]
+        append_ledger("m3_headA", "A", cfg, dh, [cfg["test_seed"]], f"{d}:{best.model}:{best.strategy}@budget",
+                      "precision_at_tau2", [at["precision"]], notes=f"OOF isotonic; alert_budget={th['alert_budget']}, "
+                      f"tau1={tau1:.3f}, tau2={tau2:.3f}, recall={at['recall']:.3f}")
     write_report(pd.concat(all_res), taus, cfg, n_info)
 
 

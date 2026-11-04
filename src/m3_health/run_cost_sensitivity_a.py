@@ -1,4 +1,4 @@
-"""Head A — độ nhạy của τ2 theo tỉ lệ chi phí C_FN : C_FP (để chốt cấu hình ; docs/06 §3.4).
+"""Head A — độ nhạy của τ2: theo tỉ lệ chi phí C_FN : C_FP và theo ngân sách cảnh báo (cấu hình mặc định ; docs/06 §3.4).
 
 Chạy:  python -m src.m3_health.run_cost_sensitivity_a
 
@@ -11,11 +11,12 @@ from __future__ import annotations
 import pandas as pd
 
 from src.eval.report import append_ledger, data_hash
-from src.eval.threshold import choose_tau1_tau2, confusion_at
+from src.eval.threshold import choose_tau1_tau2, confusion_at, threshold_by_budget
 from src.m3_health.labels import PROC, ROOT, load_config
 from src.m3_health.run_error_analysis import _md_table, oof_head_a
 
 RATIOS = [(1, 3), (1, 2), (1, 1), (2, 1), (3, 1), (5, 1)]
+BUDGETS = [0.05, 0.10, 0.20]
 
 
 def main() -> None:
@@ -23,7 +24,7 @@ def main() -> None:
     th = cfg["head_a"]["threshold"]
     lines = ["# Head A — độ nhạy τ2 theo tỉ lệ chi phí C_FN : C_FP", "",
              "> Sinh bởi `python -m src.m3_health.run_cost_sensitivity_a`. OOF train (LightGBM + none, isotonic). "
-             f"Cấu hình hiện tại: {th['c_fn']} : {th['c_fp']}. C_FN = bỏ sót một ca sắp tắt ; C_FP = làm phiền một cặp "
+             f"Mặc định: τ2 theo ngân sách cảnh báo {th['alert_budget']:.0%} ; bảng chi phí để so sánh. C_FN = bỏ sót một ca sắp tắt ; C_FP = làm phiền một cặp "
              "vẫn đang ổn. Ngưỡng Bayes = C_FP / (C_FN + C_FP).", ""]
     for d in ("E1", "E2"):
         _, _, y, p, _, _ = oof_head_a(d, cfg)
@@ -35,10 +36,17 @@ def main() -> None:
             cost = (c_fn * ((y == 1) & ~flag).sum() + c_fp * ((y == 0) & flag).sum()) / len(y)
             rows.append({"C_FN : C_FP": f"{c_fn} : {c_fp}", "τ2": tau2, "precision": at["precision"],
                          "recall": at["recall"], "FPR": at["fpr"], "tỉ lệ cảnh báo": flag.mean(), "chi phí / mẫu": cost})
-        df = pd.DataFrame(rows)
+        for b in BUDGETS:
+            tau2 = threshold_by_budget(p, b)
+            at = confusion_at(y, p, tau2)
+            flag = p >= tau2
+            rows.append({"C_FN : C_FP": f"ngân sách {b:.0%}", "τ2": tau2, "precision": at["precision"],
+                         "recall": at["recall"], "FPR": at["fpr"], "tỉ lệ cảnh báo": flag.mean(), "chi phí / mẫu": float("nan")})
+        df = pd.DataFrame(rows).rename(columns={"C_FN : C_FP": "Cách chọn τ2"})
+        df["lift"] = df["precision"] / y.mean()
         lines += [f"## {d} (prevalence {y.mean():.3f}, {len(y):,} mẫu OOF)", "", *_md_table(df), ""]
         dh = data_hash(PROC / d / "labels_headA_train.parquet", PROC / d / "messages.parquet")
-        for r in rows:
+        for r in rows[: len(RATIOS)]:
             append_ledger("m3_headA", "A", cfg, dh, [cfg["test_seed"]], f"{d}:lgbm:none@cost{r['C_FN : C_FP'].replace(' ', '')}",
                           "recall_at_tau2", [r["recall"]], notes=f"tau2={r['τ2']:.3f}, precision={r['precision']:.3f}, "
                           f"alert_rate={r['tỉ lệ cảnh báo']:.3f}")

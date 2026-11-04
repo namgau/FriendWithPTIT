@@ -192,7 +192,7 @@ Survival là phần "kiến thức ngoài chương trình" chính: dùng đượ
 
 ### 3.4. Ngưỡng & calibration
 - Calibration: Platt vs isotonic, chọn theo Brier trên calib set; reliability diagram cho từng dataset.
-- τ1, τ2 (Head A) chọn trên validation theo chi phí `C_FN : C_FP` (bỏ sót vs làm phiền), mặc định 1 : 2, kèm phân tích độ nhạy. Test chỉ báo cáo.
+- τ2 (Head A) chọn trên validation theo **ngân sách cảnh báo** `alert_budget` = 10% (top 10% điểm → mức nguy cơ ; báo precision/recall/lift @10%) ; τ1 theo recall ≥ 80%. Chọn theo chi phí `C_FN : C_FP` (1 : 2) đã thử và bỏ làm mặc định: prevalence E1 = 0.10 nên gần như không báo (recall 0.4%), và cùng một tỉ lệ cho tỉ lệ cảnh báo rất khác giữa E1 và E2 → giữ làm phân tích độ nhạy (`docs/results/HEAD_A_COST.md`). Test chỉ báo cáo.
 - τ_B (Head B): **báo nhầm = "buộc tội oan"** → ưu tiên precision; chọn τ_B sao cho FPR ≤ 5% trên validation (giá trị nhóm chốt), báo recall đạt được.
 
 ### 3.5. Bias–variance
@@ -268,7 +268,7 @@ Learning curve theo số hội thoại; so train vs CV; SD giữa các fold th�
 | **PR-AUC** (chính) | lớp "tắt" là thiểu số; PR-AUC nhạy với lớp dương hơn ROC-AUC | R1–R5 |
 | ROC-AUC | so sánh với tài liệu khác, không phụ thuộc prevalence | R1–R5 |
 | Brier, ECE + reliability diagram | ngưỡng τ1/τ2 dựa trên xác suất → xác suất phải đúng | R1, R4 |
-| Precision/Recall/F-β tại τ2, recall@precision = 0.5 | đúng quyết định triển khai (cảnh báo hay không) | R4 |
+| Precision/Recall/lift tại τ2 (top 10%), recall@precision = 0.5 | đúng quyết định triển khai (cảnh báo hay không) | R4 |
 | **Lead time** | báo trước bao lâu mới có giá trị cho người dùng | R4, 5b |
 | C-index, time-dependent AUC, Integrated Brier Score | đánh giá survival, dùng được dữ liệu bị censor | R6 |
 | Coverage + độ rộng khoảng (conformal) | bất định có bảo đảm | X8 |

@@ -95,3 +95,13 @@ def test_report_cv_summary_and_ledger(tmp_path):
     assert list(df.columns) == R.LEDGER_COLUMNS and len(df) == 2
     assert df["config_hash"].nunique() == 1
     assert df.loc[1, "metric_sd"] == pytest.approx(0.123)
+
+
+def test_budget_threshold_alerts_top_share():
+    rng = np.random.default_rng(0)
+    p = rng.random(10_000)
+    y = (rng.random(10_000) < p).astype(int)
+    tau2 = T.threshold_by_budget(p, 0.10)
+    assert abs((p >= tau2).mean() - 0.10) < 0.002
+    t1, t2 = T.choose_tau1_tau2_budget(y, p, 0.10, 0.8)
+    assert t2 == tau2 and t1 <= t2

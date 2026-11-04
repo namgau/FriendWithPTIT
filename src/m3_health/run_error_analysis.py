@@ -24,7 +24,7 @@ from src.eval.calibration import fit_calibrator
 from src.eval.report import append_ledger, data_hash
 from src.eval.splits import (assert_no_group_leak, assert_time_order, forward_chaining, group_kfold,
                              held_out_group_split, held_out_time_split)
-from src.eval.threshold import choose_tau1_tau2, confusion_at, threshold_by_fpr
+from src.eval.threshold import choose_tau1_tau2_budget, confusion_at, threshold_by_fpr
 from src.m3_health.labels import PROC, ROOT, load_config
 from src.m3_health.run_head_a import MODELS, load as load_a
 from src.m3_health.run_head_b import _fit_calibration, load as load_b, make_model
@@ -116,13 +116,13 @@ def learning_curve(d: str, cfg: dict, fracs=(0.1, 0.25, 0.5, 1.0)) -> pd.DataFra
 def head_a(d: str, cfg: dict, examples: list[str]) -> tuple[list[str], dict]:
     th = cfg["head_a"]["threshold"]
     lab, X, y, p, contrib, _ = oof_head_a(d, cfg)
-    tau1, tau2 = choose_tau1_tau2(y, p, th["c_fn"], th["c_fp"], th["shallow_recall"])
+    tau1, tau2 = choose_tau1_tau2_budget(y, p, th["alert_budget"], th["shallow_recall"])
     flag2, flag1 = p >= tau2, p >= tau1
     at2 = confusion_at(y, p, tau2)
     tn, fp, fn, tp = (int(((y == a) & (flag2 == b)).sum()) for a, b in ((0, 0), (0, 1), (1, 0), (1, 1)))
     lt1, lt2 = lead_time(lab, X, y, flag1), lead_time(lab, X, y, flag2)
     lines = [f"## Head A — {d}", "", f"OOF: {len(y):,} mẫu, prevalence {y.mean():.3f} ; LightGBM + none, isotonic. "
-             f"τ1 = {tau1:.3f}, τ2 = {tau2:.3f} (chọn trên chính OOF này, C_FN : C_FP = {th['c_fn']}:{th['c_fp']}).", "",
+             f"τ1 = {tau1:.3f}, τ2 = {tau2:.3f} (chọn trên chính OOF này ; τ2 = ngân sách cảnh báo top {th['alert_budget']:.0%}).", "",
              "**E1 — confusion tại τ2**", "", "| | Báo (p ≥ τ2) | Không báo |", "|---|---|---|",
              f"| Tắt thật | TP {tp:,} | FN {fn:,} |", f"| Không tắt | FP {fp:,} | TN {tn:,} |", "",
              f"Precision {at2['precision']:.3f}, recall {at2['recall']:.3f}, FPR {at2['fpr']:.3f}. "
