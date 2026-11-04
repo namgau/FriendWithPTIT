@@ -127,6 +127,55 @@ def build_g1(messages: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
+def build_g1_prefixes(messages: pd.DataFrame, labels: pd.DataFrame, min_prefix: int = 1) -> pd.DataFrame:
+    """Một dòng cho mỗi tiền tố dài ``min_prefix..prefix_len`` của từng hội thoại G1.
+
+    Chỉ dùng các lượt ``turn_idx < eval_len``; dùng cho phân tích horizon/lead-time,
+    không tham gia huấn luyện mô hình chính.
+    """
+    meta = labels.copy()
+    meta["eval_len"] = meta["prefix_len"].map(
+        lambda n: list(range(min_prefix, int(n) + 1)) if pd.notna(n) and int(n) >= min_prefix else []
+    )
+    meta = meta.explode("eval_len").dropna(subset=["eval_len"])
+    if meta.empty:
+        return meta.assign(eval_len=pd.Series(dtype=int))
+    meta["eval_len"] = meta["eval_len"].astype(int)
+
+    frame = messages.merge(meta[["conversation_id", "eval_len"]], on="conversation_id", how="inner")
+    frame = frame[frame["turn_idx"] < frame["eval_len"]]
+    frame = frame.sort_values(["conversation_id", "eval_len", "turn_idx"], kind="stable")
+    grouped = frame.groupby(["conversation_id", "eval_len"], sort=False)
+    aggregated = pd.DataFrame({
+        "text": grouped["text"].apply(lambda values: " ".join(_as_text(v) for v in values)),
+        "last_text": grouped["text"].last().apply(_as_text),
+        "n_messages": grouped.size(),
+        "n_senders": grouped["sender_id"].nunique(),
+        "sender_switch": grouped["sender_id"].apply(_sender_switch),
+        "first_ts": grouped["timestamp_s"].first(),
+        "last_ts": grouped["timestamp_s"].last(),
+        "last_gap_log": grouped["timestamp_s"].apply(_last_gap),
+    }).reset_index()
+    aggregated["span_log"] = np.log1p(
+        (pd.to_numeric(aggregated["last_ts"], errors="coerce")
+         - pd.to_numeric(aggregated["first_ts"], errors="coerce")).clip(lower=0)
+    ).fillna(0.0)
+    aggregated = aggregated.drop(columns=["first_ts", "last_ts"])
+
+    out = meta.merge(aggregated, on=["conversation_id", "eval_len"], how="left")
+    out["text"] = out["text"].fillna("")
+    out["last_text"] = out["last_text"].fillna("")
+    for column in ["n_messages", "n_senders"]:
+        out[column] = out[column].fillna(0).astype(int)
+    for column in ["sender_switch", "span_log", "last_gap_log"]:
+        out[column] = out[column].fillna(0.0)
+    stats = _text_stats(out["text"])
+    last = _last_stats(out["last_text"])
+    out = pd.concat([out.reset_index(drop=True), stats.reset_index(drop=True), last.reset_index(drop=True)], axis=1)
+    out["y"] = out["derailed"].astype(int)
+    return out.reset_index(drop=True)
+
+
 def build_single(messages: pd.DataFrame, labels: pd.DataFrame) -> pd.DataFrame:
     out = labels.merge(messages[["conversation_id", "text"]], on="conversation_id", how="left")
     out["text"] = out["text"].fillna("")

@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from src.m3_health.features_b import NUMERIC_COLUMNS, build_g1, build_single
+from src.m3_health.features_b import NUMERIC_COLUMNS, build_g1, build_g1_prefixes, build_single
 
 
 def _g1_messages():
@@ -48,6 +48,21 @@ def test_g1_future_edits_do_not_change_features():
     edited = build_g1(changed, _g1_labels())
     columns = ["conversation_id", "text", "last_text", *NUMERIC_COLUMNS]
     pd.testing.assert_frame_equal(original[columns], edited[columns])
+
+
+def test_g1_prefix_grid_never_includes_attack_or_future():
+    labels = _g1_labels().assign(attack_turn_idx=[2, -1], n_turns=[4, 3])
+    out = build_g1_prefixes(_g1_messages(), labels).set_index(["conversation_id", "eval_len"])
+    bad = out.loc["bad"]
+    assert bad.index.tolist() == [1, 2]
+    assert bad.loc[1, "text"] == "hello"
+    assert bad.loc[2, "text"] == "hello how are you?"
+    assert bad["n_messages"].tolist() == [1, 2]
+    assert "ATTACK_MARKER" not in " ".join(bad["text"])
+    assert "FUTURE_MARKER" not in " ".join(bad["text"])
+    ok = out.loc["ok"]
+    assert ok.index.tolist() == [1, 2]
+    assert "FUTURE_CALM" not in " ".join(ok["text"])
 
 
 def test_single_comment_features():

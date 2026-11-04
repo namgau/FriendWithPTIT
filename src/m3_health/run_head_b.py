@@ -178,6 +178,7 @@ def run(dataset: str, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame, dict]:
                     "dataset": dataset,
                     "fold": fold,
                     "model": name,
+                    "conversation_id": frame.iloc[va]["conversation_id"].to_numpy(),
                     "y": y[va],
                     "p": p_va,
                     "group_id": groups[va],
