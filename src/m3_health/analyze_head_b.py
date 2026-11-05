@@ -26,6 +26,7 @@ ERRORS = ROOT / "reports" / "headB_errors.csv"
 SLICES = ROOT / "reports" / "headB_error_slices.csv"
 HORIZON = ROOT / "reports" / "headB_horizon.csv"
 REPORT = ROOT / "docs" / "results" / "HEAD_B_ERRORS.md"
+EXAMPLES = ROOT / "reports" / "headB_error_examples.md"  # có nội dung bình luận → không commit
 _URL = re.compile(r"https?://\S+", re.IGNORECASE)
 _MENTION = re.compile(r"@[\w.]+")
 
@@ -276,22 +277,27 @@ def _write_report(errors: pd.DataFrame, slices: pd.DataFrame, summary: pd.DataFr
             f"{row.fpr:.3f} | {row.fp} | {row.fn} |"
         )
 
-    lines += ["", "## Ví dụ lỗi", ""]
+    lines += ["", "## Ví dụ lỗi", "",
+              f"Top 5 FP và top 5 FN mỗi tập (có nội dung bình luận) ở `{EXAMPLES.relative_to(ROOT).as_posix()}` "
+              "— không commit nội dung tin nhắn lên repo.", ""]
+    examples = ["# Head B — ví dụ lỗi (OOF train, không commit)", ""]
     for dataset in ("G1", "H1", "H2"):
         group = errors[errors["dataset"] == dataset]
         if group.empty:
             continue
-        lines += [f"### {dataset}", ""]
+        examples += [f"### {dataset}", ""]
         for error_type, title, ascending in (("FP", "Báo nhầm (FP)", False), ("FN", "Bỏ sót (FN)", True)):
             subset = (group[group["error_type"] == error_type]
                       .drop_duplicates(subset=["text"])
                       .sort_values("p", ascending=ascending)
                       .head(5))
-            lines += [f"**{title} — top 5 theo xác suất**", "",
-                      "| p | n_messages | Nhãn | Nội dung rút gọn |", "|---|---|---|---|"]
+            examples += [f"**{title} — top 5 theo xác suất**", "",
+                         "| p | n_messages | Nhãn | Nội dung rút gọn |", "|---|---|---|---|"]
             for row in subset.itertuples():
-                lines.append(f"| {row.p:.3f} | {row.n_messages} | {row.y} | {row.text} |")
-            lines.append("")
+                examples.append(f"| {row.p:.3f} | {row.n_messages} | {row.y} | {row.text} |")
+            examples.append("")
+    EXAMPLES.parent.mkdir(parents=True, exist_ok=True)
+    EXAMPLES.write_text("\n".join(examples) + "\n", encoding="utf-8", newline="\n")
 
     lines += ["## Metric theo slice", "",
               "| Tập | Slice | Giá trị | N | Dương tính | PR-AUC | Precision | Recall | FPR |",

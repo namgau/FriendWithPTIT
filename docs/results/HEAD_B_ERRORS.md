@@ -13,71 +13,7 @@
 
 ## Ví dụ lỗi
 
-### G1
-
-**Báo nhầm (FP) — top 5 theo xác suất**
-
-| p | n_messages | Nhãn | Nội dung rút gọn |
-|---|---|---|---|
-| 0.945 | 16 | 0 | Reverting all my edits tonight is wiki-stalking. There is no consensus to warrent a mass-revert of all my work. I urge you to undo your reverts, or i will have to take this higher… |
-| 0.906 | 10 | 0 | I'd like to point you to wiki_link where it says "''Participants, including participating administrators, should not reopen non-admin closures.''" You opined in that discussion an… |
-| 0.893 | 10 | 0 | Well then its the same about deleting whatever I'm adding until i discuss it here to add ) so it goes against WP:BOLD also . for sure . — Preceding unsigned comment added by No it… |
-| 0.863 | 4 | 0 | Below, you the researcher of Surrealism will find one of the many, many, many reference sources on Surrealism and Revolution. Here is one(at least I do the work and try to help!):… |
-| 0.861 | 10 | 0 | Have a question for you? what do you think of this editions?? and ..this has been added to projects all over...is this clear to you what is being said and asked?? Should we reword… |
-
-**Bỏ sót (FN) — top 5 theo xác suất**
-
-| p | n_messages | Nhãn | Nội dung rút gọn |
-|---|---|---|---|
-| 0.126 | 4 | 1 | Soran in Northern Hama seized by Government troops per SOHR. <URL> — Preceding unsigned comment added by In other news, visual evidence that another one of Ced_Lab's maps is wrong… |
-| 0.181 | 9 | 1 | The article already briefly mention the reason, why "fiscal austerity" was a necessary evil to implement in the midst of the Greek government-debt crisis: The initial position of … |
-| 0.201 | 2 | 1 | The current article would be more accurately called "Islamic Charities who have been smeared as having terrorist links mainly by US government organizations". Which is a long titl… |
-| 0.203 | 4 | 1 | OK, REFER TO THE "WU-TANG FOREVER" ALBUM BOOKLET, IN ONE OF THE LAST PAGES THEY HAVE A PAGE FOR FANS TO ORDER A "WU-TANG ID CARD". AS AN EXAMPLE OF WHAT IT WILL LOOK LIKE, THEY HA… |
-| 0.210 | 3 | 1 | When Amy Adams engaged her new boyfriend, Jonas Andromeda on January 14, 2011, her daughter Aviana Olea Le Gallo might be renamed to Aviana Olea Andromeda. Where's your source? - … |
-
-### H1
-
-**Báo nhầm (FP) — top 5 theo xác suất**
-
-| p | n_messages | Nhãn | Nội dung rút gọn |
-|---|---|---|---|
-| 1.000 | 1 | 0 | 📌<URL> AE CHƠI CÁ ĐỘ BANH BÓNG CẦN VỀ BỜ LIÊN HỆ @<user> Thế Xuân . KÈO LÊN FREE TRONG NHÓM KHÔNG THU PHÍ , KO LỢI DỤNG AE . RẤT CÓ TÂM VÀ NHIỆT TÌNH . RẤT NHIỀU AE ĐÃ VỀ BỜ . AE … |
-| 1.000 | 1 | 0 | Trong thới giới thứ 3 những người đáng được tôn trọng và đáng được tuyên vương rất nhiều nhưng ko thấy ai biet đến bởi vì họ nghèo, còn nhung thứ đang sống trong cái kiếp giàu san… |
-| 0.997 | 1 | 0 | đm mấy cái đồng bạc thay lốp vá xăm mà chúng nó coi rẻ mạng người vl :( |
-| 0.995 | 1 | 0 | Lol :))) |
-| 0.994 | 1 | 0 | Dm đéo hiểu sao giờ vẫn hỏi bác Thăng :))) báo thì 1 năm trc rồi! câu like vl ad ơi. |
-
-**Bỏ sót (FN) — top 5 theo xác suất**
-
-| p | n_messages | Nhãn | Nội dung rút gọn |
-|---|---|---|---|
-| 0.003 | 1 | 1 | 12:03 Toang cmmr |
-| 0.003 | 1 | 1 | Anh em yếu sly ib |
-| 0.006 | 1 | 1 | Các bác sống nhanh vaicutt :((( |
-| 0.009 | 1 | 1 | anh trung cô hồn |
-| 0.009 | 1 | 1 | 20/10 em tăng abe một bó nhan nhé! |
-
-### H2
-
-**Báo nhầm (FP) — top 5 theo xác suất**
-
-| p | n_messages | Nhãn | Nội dung rút gọn |
-|---|---|---|---|
-| 0.875 | 1 | 0 | Người lớn đánh người lớn đã là tội hình sự rồi, người lớn đánh trẻ em tội nặng thêm...Phải xử tên côn đồ này cho thật nghiêm.Cô giáo thì chỉ có thể phân xử cho 2 đứa con nít chứ s… |
-| 0.850 | 1 | 0 | Nếu có trường hợp ntn.- Bố Mẹ chỉ có 1 người con trai, người con lập gia đình sinh ra đứa cháu đích tôn. Chẳng may hai vợ chồng người con mất. Cháu đích tôn ở cùng Ông Bà Nội. Sau… |
-| 0.830 | 1 | 0 | Không hiểu nổi rằng chỉ tên các nhân vật quan trọng và hiển thị như vậy lại bị đặt tên sai? Do đâu? Sở giao thôg công chánh làm sai? Hay do nhà in thi công bảng hiệu sai? Việc này… |
-| 0.819 | 1 | 0 | Đào tạo quan trong là chất lượng chứ không phải mấy tờ giấy xin phép . Thu hồi bằng chỉ vì thủ tục hành chánh vậy ai phải là người chịu trách nhiệm? Học viên có tội tình gì , khi … |
-| 0.788 | 1 | 0 | Bạn lớn nhà mình năm nay lớp 4, trc khi vào lớp 1 cháu chỉ biết các chữ cái đơn, nhưng mình rất nhà khi kèm con học. Bé em năm nay vào lớp 1, thấy thật sự vất vả, đi học cả ngày t… |
-
-**Bỏ sót (FN) — top 5 theo xác suất**
-
-| p | n_messages | Nhãn | Nội dung rút gọn |
-|---|---|---|---|
-| 0.000 | 1 | 1 | Tinh thần thể thao thì có, mà ý thức tham gia giao thông an toàn thì không có. Các anh nghĩ gì nếu lỡ ma men đang lái xe hơi, hoặc một anh tài xế mệt mỏi và… |
-| 0.002 | 1 | 1 | LIONEL MESSI: 6 QBV, 6 GIÀY VÀNG, 34 DANH HIỆUCRISTIANO RONALDO : 5 QBV, 4 GIÀY VÀNG, 30 DANH HIỆUKL. LIONEL MESSI > CRISTIANO RONALDO |
-| 0.010 | 1 | 1 | Tôi chưa bao giờ có khai niệm thích hàng trung quốc |
-| 0.012 | 1 | 1 | Kế hoạch lãi 10tr đồng nhưng khi thực hiện thành 140 tỷ |
-| 0.013 | 1 | 1 | 67 nhìn mặt như 97 và sức thì hơn 27 |
+Top 5 FP và top 5 FN mỗi tập (có nội dung bình luận) ở `reports/headB_error_examples.md` — không commit nội dung tin nhắn lên repo.
 
 ## Metric theo slice
 
