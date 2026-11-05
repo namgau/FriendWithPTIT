@@ -26,7 +26,7 @@ from src.eval.report import append_ledger, cv_summary, data_hash, mean_sd
 from src.eval.splits import assert_no_group_leak, assert_time_order, forward_chaining, held_out_time_split
 from src.eval.threshold import choose_tau1_tau2_budget, confusion_at, levels
 from src.m3_health.features import extract_features, rule_score
-from src.m3_health.labels import PROC, ROOT, load_config, load_train
+from src.m3_health.labels import PROC, ROOT, cv_conversations, load_config, load_train
 
 MODELS = {
     "lr": lambda seed: LogisticRegression(max_iter=1000),
@@ -39,10 +39,8 @@ MODELS = {
 def load(d: str, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     lab = load_train(d)
     lab = lab[lab["y"].notna()].reset_index(drop=True)  # bỏ mẫu censored ở bài nhị phân
-    cap = cfg["head_a"]["cv_max_conversations"]
-    convs = lab["conversation_id"].unique()
-    if len(convs) > cap:  # giới hạn tài nguyên: lấy ngẫu nhiên theo hội thoại, ghi vào báo cáo
-        keep = np.random.default_rng(cfg["test_seed"]).choice(convs, cap, replace=False)
+    keep = cv_conversations(lab, cfg)  # giới hạn tài nguyên: lấy ngẫu nhiên theo hội thoại, ghi vào báo cáo
+    if len(keep) < lab["conversation_id"].nunique():
         lab = lab[lab["conversation_id"].isin(keep)].reset_index(drop=True)
         lab.attrs["capped"] = True
     msgs = pd.read_parquet(PROC / d / "messages.parquet")

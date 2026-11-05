@@ -27,7 +27,7 @@ from sksurv.util import Surv
 from src.eval.report import append_ledger, data_hash, mean_sd
 from src.eval.splits import assert_no_group_leak, forward_chaining
 from src.m3_health.features import extract_features
-from src.m3_health.labels import PROC, ROOT, label_at, load_config, load_train
+from src.m3_health.labels import PROC, ROOT, cv_conversations, label_at, load_config, load_train
 from src.m3_health.run_head_a import MODELS
 
 H = 3600.0
@@ -36,11 +36,7 @@ H = 3600.0
 def load(d: str, cfg: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Chọn hội thoại giống run_head_a.load, nhưng giữ cả mẫu censored của các hội thoại đó."""
     lab = load_train(d)
-    convs = lab.loc[lab["y"].notna(), "conversation_id"].unique()
-    cap = cfg["head_a"]["cv_max_conversations"]
-    if len(convs) > cap:
-        convs = np.random.default_rng(cfg["test_seed"]).choice(convs, cap, replace=False)
-    lab = lab[lab["conversation_id"].isin(convs)].reset_index(drop=True)
+    lab = lab[lab["conversation_id"].isin(cv_conversations(lab, cfg))].reset_index(drop=True)
     return lab, extract_features(pd.read_parquet(PROC / d / "messages.parquet"), lab)
 
 

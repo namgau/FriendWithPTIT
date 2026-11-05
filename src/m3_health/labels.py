@@ -164,6 +164,16 @@ def build(datasets: list[str] | None = None) -> dict:
     return lock
 
 
+def cv_conversations(lab: pd.DataFrame, cfg: dict) -> np.ndarray:
+    """Hội thoại dùng cho CV Head A: có ít nhất 1 mẫu không censored ; nếu nhiều hơn
+    `cv_max_conversations` thì lấy ngẫu nhiên (seed = test_seed). Mọi script Head A dùng chung hàm này."""
+    convs = lab.loc[lab["y"].notna(), "conversation_id"].unique()
+    cap = cfg["head_a"]["cv_max_conversations"]
+    if len(convs) > cap:
+        convs = np.random.default_rng(cfg["test_seed"]).choice(convs, cap, replace=False)
+    return convs
+
+
 def load_train(dataset: str) -> pd.DataFrame:
     """Nhãn tập train (để CV). Không có hàm tương ứng cho test: test chỉ A mở, ngày 20/11."""
     f = next((PROC / dataset).glob("labels_head*_train.parquet"))
