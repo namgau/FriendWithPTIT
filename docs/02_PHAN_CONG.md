@@ -54,7 +54,7 @@
 | A7 | Ablation T1→T5 (X1), độ nhạy Δ (X5) | 19/11 — **T1/T2 + X4 cross-domain E1 ↔ E2 xong 03/11** (`HEAD_A_ABLATION.md`) ; X5 có trong `HEAD_A_SURVIVAL.md` ; chờ T3 (B5), T4–T5 (C1, B8) | Trả lời RQ1 |
 | A8 | **Chạy lại toàn bộ từ config + seed** sau khi mở test ; đối chiếu số với báo cáo | 22/11 | Tiêu chí "auditable" |
 | A9 | Phân tích lỗi cả 2 head (`06_*` §5b) + **Practical limits** (`06_*` §6) | 25/11 — **bản trên OOF train xong 04/11** (`docs/results/ERROR_ANALYSIS.md`) ; chạy lại trên test sau 20/11 ; còn E5 (sửa lỗi + so trước/sau) | Thầy yêu cầu phân tích lỗi & điểm yếu |
-| A10 | **Ghép báo cáo cuối** theo mẫu `01_*` §4 + checklist §5 ; slide | nháp 27/11 ; bản cuối 29/11 | Một người chịu trách nhiệm tổng thể |
+| A10 | **Ghép báo cáo cuối** theo mẫu `01_*` §4 + checklist §5 ; slide | nháp 27/11 ; bản cuối 29/11 — **khung + số CV/OOF train viết 06/11** (`docs/08_BAO_CAO_M3.md`), ô `[TEST 20/11]` / `[CHỜ …]` điền dần | Một người chịu trách nhiệm tổng thể |
 > **Nguyên tắc tài nguyên:** việc nào **tốn GPU hoặc token (API LLM)** giao cho B/C ; A chỉ chạy việc CPU để dành thời gian kiểm soát chất lượng. Mọi lần chạy GPU vẫn phải ghi config + seed vào `experiments/ledger.csv` để A kiểm tra.
 > Ước lượng khối lượng: **A ≈ 25 người-ngày**, B ≈ 24, C ≈ 20 (5 tuần ≈ 25 ngày làm việc).
 
@@ -67,24 +67,24 @@
 | B4 | Đặc trưng **T1** (hành vi thời gian) + **T2** (bề mặt văn bản, từ điển Anh/Việt) | 10/11 — A đã làm bản tối thiểu 21 đặc trưng (`src/m3_health/features.py`) ; B mở rộng |
 | B5 | Đặc trưng **T3** (LSM, mirroring, turn-taking) | 13/11 |
 | B6 | Đánh giá bộ phát hiện câu hỏi/tin cụt trên DailyDialog (có nhãn dialog act) (X6) | 18/11 |
-| B8 | **[GPU]** Tính & **cache embedding** (mô hình C1 chọn) cho mọi tin nhắn của E1, E2, G1, H1, H2 → file `.npy` dùng chung (C cho T4/T5, A cho imbalance) ; ghi thời gian chạy, phần cứng | 09/11 |
+| B8 | **[GPU]** Tính & **cache embedding** (mô hình C1 chọn) cho mọi tin nhắn của E1, E2, G1, H1, H2 → file `.npy` dùng chung (C cho T4/T5, A cho imbalance) ; ghi thời gian chạy, phần cứng. **Cách làm (A chốt 06/11):** (1) `python -m src.m3_health.embed_ids` → `data/processed/<ID>/embed_conversation_ids.txt` ; **chỉ embed tin của các hội thoại trong file này** (E1 2,35 / 9,15 triệu tin ; E2 0,62 / 2,36 triệu ; G1, H1, H2 lấy hết) — file đã gộp train + test, không nhãn, không cần mở `data/locked/`. (2) Mô hình **BGE-M3**, fp16, `max_length` 256, chỉ vector dense, chuẩn hóa L2. (3) Lưu `data/processed/<ID>/emb_bge-m3.npy` (float16, mỗi dòng 1 tin) + `emb_bge-m3_index.parquet` (`conversation_id, turn_idx` đúng thứ tự dòng). (4) Ghi 1 dòng ledger: GPU, thời gian chạy, số tin. **Không** commit `.npy` | 09/11 |
 | B9 | **[GPU]** **TabPFN v2** cho Head A (X7) — nhận từ A ; so với LightGBM của A theo kích thước train ; dùng split/khung đánh giá của A | 18/11 |
 | B10 | **[GPU]** Phần imbalance cần GPU trên H2: fine-tune PhoBERT/XLM-R (pipeline của C2) với weighted loss và với oversampling ; giao kết quả cho A tổng hợp (A5b) | 18/11 |
 | B7 | Viết phần **Objective and data** + mô tả dữ liệu trong báo cáo ; duyệt chéo phần của C | 27/11 |
-| B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo `serving/schemas_mobile.py` | 16/11 |
-| B-app2 | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng | 23/11 |
+| B-app1 | **Backend luật** (nhận từ A): lọc cứng + xếp hạng M1 (trường, khoa, tầng GPA, tuổi, khoảng cách, trạng thái tốt nghiệp ; sắp theo số tag trùng) + hàm luật blur M2 (theo số tin & số ngày chat) + test đơn vị, theo `serving/schemas_mobile.py` | 16/11 — **bản đầu có từ 27/10** (`serving/engines.py` `rank()`, `compatibility()` + `android/.../core/ai/CompatibilityEngine.kt`, test `tests/test_serving_mobile.py`). **Còn lệch so với yêu cầu (A kiểm 06/11):** (a) M1 **chưa lọc cứng** — mọi ứng viên đều được chấm điểm, không loại ai (cần loại theo `mode`, khoảng tuổi, khoảng cách tối đa ; người xem chọn trường/khoa) ; (b) `alumni` (đã tốt nghiệp) có trong schema nhưng **chưa dùng** ; (c) sắp theo **điểm gộp có trọng số**, chưa theo số tag trùng — chọn 1 cách và ghi luật + trọng số vào `04_*` ; (d) M2 blur tính từ điểm từ khóa / độ cân bằng, **chưa dùng số ngày chat** (lấy từ `created_at` của tin) ; (e) sửa xong phải sửa **cả bản Python lẫn bản Kotlin** và thêm test để hai bản ra cùng số |
+| B-app2 | **Màn Swipe (M1):** thẻ hồ sơ ảnh mờ, thích/bỏ qua, tạo match, gọi API xếp hạng | 23/11 — **khung có sẵn** (`feature/discover/`: `SwipeCard`, `MatchCelebration`, gọi `m1/rank`). Còn: dùng luật mới của B-app1, hiện lý do xếp hạng, thử end-to-end với backend |
 
 ## 4. Người C — đọc nội dung, Head B, tích hợp
 
 | Mã | Việc | Hạn |
 |---|---|---|
-| C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) |
+| C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) — **chốt BGE-M3 06/11** (A đồng ý ; cấu hình như B8). Còn: ghi lý do (điểm VN-MTEB so với MiniLM) vào PR + `06_*` §2 T4 ; T4 + PCA hạn 13/11 |
 | C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do A làm) | 13/11 |
 | C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 — baseline TF-IDF + LR trên G1/H1/H2 **B đã làm 02/11** (`src/m3_health/run_head_b.py`) ; C làm tiếp CRAFT-like |
 | C5 | **Cross-lingual Head B** (X14): điểm độc hại từ bộ phân loại tiếng Việt làm đặc trưng cho G1 ; hỗ trợ A chạy cross-domain Head A E1 ↔ E2 (X4) | 23/11 |
 | C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 |
 | C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 |
-| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 |
+| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 — **khung có sẵn** (`feature/chat/`: blur, `CompatibilityOrb`, `HealthPill`, gọi `m2/compat`, `m3/health`). Còn: (a) **chưa có Head B** — thêm hộp "Bạn có chắc muốn gửi?" gọi `/safety/score` trước khi gửi (không chặn, không phạt) ; (b) hiện 3 mức khỏe / hời hợt / nguy cơ theo τ1, τ2 của A ; (c) dùng luật blur mới của B-app1 |
 
 ## 5. Phụ thuộc (điểm dễ nghẽn — A theo dõi)
 ```
