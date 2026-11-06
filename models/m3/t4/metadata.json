@@ -27,7 +27,7 @@
   },
   "handoff": {
     "config_path": "configs\\embedding.yaml",
-    "config_sha256": "52cd8edc72e65329b62142dd2445d0e810d5f258de21c47f18c8e1869120cb9f",
+    "config_sha256": "ecd219564da2b6525ae1f48f6b9dddeff17759c28743153dbc3516e8a0dc3456",
     "identity_fields_verified": [
       "model_id",
       "revision",
@@ -36,7 +36,7 @@
       "normalize",
       "empty_policy"
     ],
-    "note": "encoder.config_sha256 la hash luc fit; hash handoff duoc giu rieng, khong ghi de lich su."
+    "note": "encoder.config_sha256 la snapshot lich su luc fit 03/11; handoff.config_sha256 la config dong bang chinh thuc 06/11; khong ghi de lich su."
   },
   "data": {
     "n_train_utterances": 87171,

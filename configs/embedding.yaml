@@ -11,7 +11,7 @@ empty_policy: zero
 # model chay vua RTX 3060 12 GB. Benchmark dai dien tiep tuc dung script ben duoi.
 selection:
   status: frozen
-  date: "2026-11-03"
+  date: "2026-11-06"
   source: https://arxiv.org/html/2507.21500v1
   bge_m3_vn_mteb_avg: 64.90
   minilm_l12_vn_mteb_avg: 46.05
