@@ -9,6 +9,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vn.ptit.fwp.AppContainer
 import vn.ptit.fwp.core.design.PtitRed
+import vn.ptit.fwp.feature.campus.CampusScreen
 import vn.ptit.fwp.feature.chats.ChatsScreen
 import vn.ptit.fwp.feature.discover.DiscoverScreen
 import vn.ptit.fwp.feature.explore.ExploreScreen
@@ -40,6 +42,7 @@ private data class MainTab(val label: String, val icon: ImageVector)
 private val tabs = listOf(
     MainTab("Hôm nay", Icons.Rounded.LocalFireDepartment),
     MainTab("Khám phá", Icons.Rounded.Explore),
+    MainTab("Campus", Icons.Rounded.School),
     MainTab("Match", Icons.Rounded.Favorite),
     MainTab("Chat", Icons.Rounded.Forum),
     MainTab("Tôi", Icons.Rounded.Person)
@@ -73,8 +76,8 @@ fun MainScreen(
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val badge = when (index) {
-                        2 -> incomingLikes
-                        3 -> unreadMessages
+                        3 -> incomingLikes
+                        4 -> unreadMessages
                         else -> 0
                     }
                     NavigationBarItem(
@@ -118,22 +121,23 @@ fun MainScreen(
                 )
                 1 -> ExploreScreen(
                     onOpenProfile = onOpenProfile,
-                    onOpenMatches = { selected = 2 },
+                    onOpenMatches = { selected = 3 },
                     onOpenNearby = onOpenNearby
                 )
-                2 -> MatchesScreen(
+                2 -> CampusScreen()
+                3 -> MatchesScreen(
                     onOpenChat = onOpenChat,
                     onOpenProfile = onOpenProfile,
                     onOpenDoubleDate = onOpenDoubleDate
                 )
-                3 -> ChatsScreen(
+                4 -> ChatsScreen(
                     onOpenChat = onOpenChat,
-                    onOpenMatches = { selected = 2 }
+                    onOpenMatches = { selected = 3 }
                 )
                 else -> ProfileScreen(
                     onEditProfile = onEditProfile,
                     onSettings = onOpenSettings,
-                    onOpenMatches = { selected = 2 }
+                    onOpenMatches = { selected = 3 }
                 )
             }
         }

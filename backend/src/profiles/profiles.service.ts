@@ -11,6 +11,7 @@ import {
   distanceKm,
   normaliseInterest,
 } from '../common/matching';
+import { isUuid } from '../common/anonymity';
 import { ProfileView, toProfileView } from '../common/profile.view';
 import {
   DiscoverQueryDto,
@@ -162,6 +163,9 @@ export class ProfilesService {
     ).filter(
       (item) =>
         (item.action === 'LIKE' || item.action === 'SUPER_LIKE') &&
+        // Likes sent through anonymous Campus discovery must not reveal the
+        // sender here; they only surface as an anonymous match.
+        !item.anonymous &&
         !alreadySwiped.has(item.fromUserId),
     );
     if (!incoming.length) return { total: 0, items: [] };
@@ -220,6 +224,8 @@ export class ProfilesService {
 
   async detail(userId: string, profileId: string) {
     const viewer = await this.ensureProfile(userId);
+    // Masked anonymous-match ids (`anon:<matchId>`) never resolve to a profile.
+    if (!isUuid(profileId)) throw new NotFoundException('Profile not found');
     const profile = await this.profiles.findOne({
       where: [{ id: profileId }, { userId: profileId }],
     });
@@ -265,7 +271,12 @@ export class ProfilesService {
         where: [{ blockerId: userId }, { blockedId: userId }],
       }),
     ]);
-    const result = new Set(swipes.map((item) => item.targetUserId));
+    // Anonymous Campus swipes are not excluded: otherwise the author would
+    // vanish from ordinary Discover right after the swipe, letting the viewer
+    // identify them by diffing the list before and after.
+    const result = new Set(
+      swipes.filter((item) => !item.anonymous).map((item) => item.targetUserId),
+    );
     for (const block of blocks) {
       result.add(block.blockerId === userId ? block.blockedId : block.blockerId);
     }

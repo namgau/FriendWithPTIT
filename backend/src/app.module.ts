@@ -4,6 +4,7 @@ import { JwtModule, JwtSignOptions } from '@nestjs/jwt';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AppController } from './app.controller';
 import { AuthModule } from './auth/auth.module';
+import { CampusModule } from './campus/campus.module';
 import { ChatModule } from './chat/chat.module';
 import { ENTITIES } from './database/entities';
 import { NotificationsModule } from './notifications/notifications.module';
@@ -26,6 +27,13 @@ import { SocialModule } from './social/social.module';
           'postgresql://fwp:fwp@localhost:5432/fwp',
         ),
         entities: ENTITIES,
+        // Migrations only extend an existing base schema (they do not create
+        // `users`), so running them at boot is opt-in. They run BEFORE
+        // synchronize, and every Campus migration is idempotent, so enabling
+        // both on a database that already has the tables is safe.
+        migrations: [`${__dirname}/database/migrations/*{.ts,.js}`],
+        migrationsRun:
+          config.get<string>('DB_MIGRATIONS_RUN', 'false') === 'true',
         synchronize: config.get<string>('DB_SYNCHRONIZE', 'true') === 'true',
         logging: config.get<string>('DB_LOGGING', 'false') === 'true',
         retryAttempts: 8,
@@ -52,6 +60,7 @@ import { SocialModule } from './social/social.module';
     AuthModule,
     ProfilesModule,
     SocialModule,
+    CampusModule,
     ChatModule,
     NotificationsModule,
     SeedModule,

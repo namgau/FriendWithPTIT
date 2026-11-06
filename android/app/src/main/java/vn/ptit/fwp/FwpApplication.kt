@@ -6,9 +6,11 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 import vn.ptit.fwp.core.ai.RemoteAiClient
+import vn.ptit.fwp.core.data.CampusRepository
 import vn.ptit.fwp.core.data.FwpRepository
 import vn.ptit.fwp.core.data.SettingsStore
 import vn.ptit.fwp.core.data.local.FwpDatabase
+import vn.ptit.fwp.core.data.remote.CampusApiFactory
 
 class FwpApplication : Application() {
     lateinit var container: AppContainer
@@ -24,6 +26,8 @@ class AppContainer(context: Application) {
     val database: FwpDatabase = FwpDatabase.get(context)
     val settingsStore = SettingsStore(context)
     val repository = FwpRepository(database, settingsStore)
+    val campusApi = CampusApiFactory()
+    val campusRepository = CampusRepository(campusApi, settingsStore, repository)
     val remoteAi = RemoteAiClient()
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

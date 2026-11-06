@@ -42,19 +42,30 @@ Khi `FWP_AI_BASE_URL` trống, app dùng các engine quy tắc cục bộ và hi
 - Mở **Khám phá → Bản đồ** để xem hồ sơ quanh bạn. Khi có `MAPS_API_KEY`, app dùng
   Google Maps; nếu không có key, app hiển thị bản đồ radar mô phỏng và danh sách
   khoảng cách, không crash.
+- **Campus Feed** là tab riêng, dùng backend NestJS thật: đăng bài ẩn danh, ảnh,
+  like, bookmark, bình luận, báo cáo và Swipe tác giả `DISCOVERABLE`. Cần chạy
+  backend và build với `-PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/`; nếu thiếu
+  cấu hình, tab hiển thị hướng dẫn thay vì dữ liệu giả.
+- Campus dùng OTP demo hiện có (`123456`) để lấy JWT; đây là auth demo, không phải
+  cơ chế đăng nhập production.
+- Match tạo từ Campus đã được backend ghi nhận thật. Tab **Match/Chat hiện vẫn đọc
+  dữ liệu Room/demo local**, chưa đồng bộ danh sách match backend, nên app hiển thị
+  thông báo match ẩn danh nhưng chưa mở được cuộc trò chuyện backend từ tab đó.
 
 ## Kiến trúc
 
 ```
 app/src/main/java/vn/ptit/fwp/
   core/model        Domain models, filters, catalog trường/khoa
-  core/data         Room entities/DAO, repository, DemoSeed, SettingsStore
+  core/data         Room entities/DAO, repository, DemoSeed, SettingsStore,
+                    CampusRepository (NestJS Campus Feed)
+  core/data/remote  CampusApi/Retrofit + auth/profile sync
   core/ai           RankingEngine (M1), CompatibilityEngine (M2), HealthEngine (M3),
                     ConversationAssistant, RemoteAiClient (FastAPI)
   core/design       Theme PTIT, components, avatar, compatibility orb, celebration
   feature/*         Splash, onboarding, auth, setup, discover, explore, nearby,
                     detail, matches, chats, chat, profile, settings,
-                    notifications, double date
+                    notifications, double date, campus
   navigation        Routes + NavHost
 ```
 

@@ -11,6 +11,7 @@ import {
   Notification,
   Profile,
 } from '../database/entities';
+import { isIdentityRevealed, maskedIdentityId } from '../common/anonymity';
 import { SendMessageDto } from './chat.dto';
 
 @Injectable()
@@ -25,6 +26,7 @@ export class ChatService {
 
   async list(userId: string, matchId: string, before?: string, limit = 50) {
     const match = await this.loadMatch(userId, matchId);
+    const masked = await this.isMasked(match);
     const capped = Math.min(Math.max(limit, 1), 100);
     const beforeDate = before ? new Date(before) : null;
     const where = beforeDate
@@ -41,7 +43,7 @@ export class ChatService {
       total: await this.messages.count({ where: { matchId: match.id } }),
       hasMore,
       nextBefore: hasMore && page.length ? page[0].createdAt : null,
-      items: page.map((message) => this.view(message, userId)),
+      items: page.map((message) => this.view(message, userId, masked)),
     };
   }
 
@@ -68,18 +70,30 @@ export class ChatService {
       this.profiles.findOne({ where: { userId } }),
       this.profiles.findOne({ where: { userId: otherUserId } }),
     ]);
+    const masked = await this.isMasked(match);
     if (other) {
       await this.notifications.save(
         this.notifications.create({
           userId: otherUserId,
           kind: 'MESSAGE',
-          title: sender?.nickname || sender?.fullName || 'Tin nhắn mới',
+          title: masked
+            ? 'Tin nhắn từ người ẩn danh'
+            : sender?.nickname || sender?.fullName || 'Tin nhắn mới',
           body: text.slice(0, 160),
-          data: { matchId: match.id, profileId: sender?.id ?? null },
+          data: masked
+            ? { matchId: match.id }
+            : { matchId: match.id, profileId: sender?.id ?? null },
         }),
       );
     }
-    return this.view(message, userId);
+    return this.view(message, userId, masked);
+  }
+
+  /** Anonymous Campus matches stay masked until the reveal conditions are met. */
+  private async isMasked(match: Match): Promise<boolean> {
+    if (!match.anonymous) return false;
+    const count = await this.messages.count({ where: { matchId: match.id } });
+    return !isIdentityRevealed(match, count);
   }
 
   private async loadMatch(userId: string, matchId: string): Promise<Match> {
@@ -92,11 +106,14 @@ export class ChatService {
     return match;
   }
 
-  private view(message: Message, viewerId: string) {
+  private view(message: Message, viewerId: string, masked = false) {
     return {
       id: message.id,
       matchId: message.matchId,
-      senderId: message.senderId,
+      senderId:
+        masked && message.senderId !== viewerId
+          ? maskedIdentityId(message.matchId)
+          : message.senderId,
       text: message.text,
       type: message.type,
       meta: message.meta,

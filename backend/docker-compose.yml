@@ -31,11 +31,19 @@ services:
       DEMO_OTP: "123456"
       SEED_DEMO: "true"
       DB_SYNCHRONIZE: "true"
+      CAMPUS_UPLOAD_DIR: /app/uploads/campus
+      CAMPUS_MAX_IMAGE_BYTES: "4194304"
+      CAMPUS_REPORT_HIDE_THRESHOLD: "5"
+      REQUEST_BODY_LIMIT: 24mb
+      CAMPUS_MEDIA_URL_TTL_SECONDS: "86400"
       AI_BASE_URL: http://host.docker.internal:8000
     ports:
       - "3000:3000"
+    volumes:
+      - campus-uploads:/app/uploads/campus
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
 volumes:
   fwp-pgdata:
+  campus-uploads:

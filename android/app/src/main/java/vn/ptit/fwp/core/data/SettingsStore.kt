@@ -21,6 +21,8 @@ data class AppSettings(
     val authenticated: Boolean = false,
     val profileComplete: Boolean = false,
     val email: String = "",
+    val backendToken: String = "",
+    val backendEmail: String = "",
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val aiAnalysisEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
@@ -37,6 +39,8 @@ class SettingsStore(private val context: Context) {
         val authenticated = booleanPreferencesKey("authenticated")
         val profileComplete = booleanPreferencesKey("profile_complete")
         val email = stringPreferencesKey("email")
+        val backendToken = stringPreferencesKey("backend_token")
+        val backendEmail = stringPreferencesKey("backend_email")
         val theme = stringPreferencesKey("theme")
         val aiAnalysis = booleanPreferencesKey("ai_analysis")
         val notifications = booleanPreferencesKey("notifications")
@@ -53,6 +57,8 @@ class SettingsStore(private val context: Context) {
             authenticated = prefs[Keys.authenticated] ?: false,
             profileComplete = prefs[Keys.profileComplete] ?: false,
             email = prefs[Keys.email] ?: "",
+            backendToken = prefs[Keys.backendToken] ?: "",
+            backendEmail = prefs[Keys.backendEmail] ?: "",
             themeMode = runCatching { ThemeMode.valueOf(prefs[Keys.theme] ?: "SYSTEM") }.getOrDefault(ThemeMode.SYSTEM),
             aiAnalysisEnabled = prefs[Keys.aiAnalysis] ?: true,
             notificationsEnabled = prefs[Keys.notifications] ?: true,
@@ -74,6 +80,18 @@ class SettingsStore(private val context: Context) {
     suspend fun signOut() = context.fwpSettings.edit {
         it[Keys.authenticated] = false
         it[Keys.profileComplete] = false
+        it.remove(Keys.backendToken)
+        it.remove(Keys.backendEmail)
+    }
+
+    suspend fun setBackendSession(token: String, email: String) = context.fwpSettings.edit {
+        it[Keys.backendToken] = token
+        it[Keys.backendEmail] = email
+    }
+
+    suspend fun clearBackendSession() = context.fwpSettings.edit {
+        it.remove(Keys.backendToken)
+        it.remove(Keys.backendEmail)
     }
 
     suspend fun completeProfile() = context.fwpSettings.edit { it[Keys.profileComplete] = true }
