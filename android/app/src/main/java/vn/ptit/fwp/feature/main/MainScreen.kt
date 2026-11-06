@@ -1,6 +1,8 @@
 package vn.ptit.fwp.feature.main
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -29,6 +31,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vn.ptit.fwp.AppContainer
+import vn.ptit.fwp.core.data.AppSettings
+import vn.ptit.fwp.core.data.allowsLocalDemo
+import vn.ptit.fwp.core.data.demoCountOrZero
 import vn.ptit.fwp.core.design.PtitRed
 import vn.ptit.fwp.feature.campus.CampusScreen
 import vn.ptit.fwp.feature.chats.ChatsScreen
@@ -63,6 +68,8 @@ fun MainScreen(
     val matches by container.repository.matches.collectAsState(initial = emptyList())
     val profiles by container.repository.profiles.collectAsState(initial = emptyList())
     val swipes by container.repository.swipes.collectAsState(initial = emptyList())
+    val settings by container.settingsStore.settings.collectAsState(initial = AppSettings())
+    val demo = allowsLocalDemo(settings.authenticated, settings.localDemoSession)
     val unreadMessages = matches.sumOf { it.unreadCount }
     val swipedIds = swipes.map { it.targetId }.toSet()
     val incomingLikes = profiles.count { it.likedYou && it.id !in swipedIds }
@@ -76,8 +83,8 @@ fun MainScreen(
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val badge = when (index) {
-                        3 -> incomingLikes
-                        4 -> unreadMessages
+                        3 -> demoCountOrZero(demo, incomingLikes)
+                        4 -> demoCountOrZero(demo, unreadMessages)
                         else -> 0
                     }
                     NavigationBarItem(
@@ -115,25 +122,37 @@ fun MainScreen(
                 .padding(padding)
         ) {
             when (selected) {
-                0 -> DiscoverScreen(
+                0 -> if (!demo) LocalDemoUnavailable() else Column {
+                  Text("Khám phá demo trên thiết bị · không đồng bộ tài khoản backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  DiscoverScreen(
                     onOpenChat = onOpenChat,
                     onOpenNotifications = onOpenNotifications
-                )
-                1 -> ExploreScreen(
+                  )
+                }
+                1 -> if (!demo) LocalDemoUnavailable() else Column {
+                  Text("Hồ sơ gợi ý demo trên thiết bị", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  ExploreScreen(
                     onOpenProfile = onOpenProfile,
                     onOpenMatches = { selected = 3 },
                     onOpenNearby = onOpenNearby
-                )
+                  )
+                }
                 2 -> CampusScreen()
-                3 -> MatchesScreen(
+                3 -> if (!demo) LocalDemoUnavailable() else Column {
+                  Text("Match demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  MatchesScreen(
                     onOpenChat = onOpenChat,
                     onOpenProfile = onOpenProfile,
                     onOpenDoubleDate = onOpenDoubleDate
-                )
-                4 -> ChatsScreen(
+                  )
+                }
+                4 -> if (!demo) LocalDemoUnavailable() else Column {
+                  Text("Chat demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  ChatsScreen(
                     onOpenChat = onOpenChat,
                     onOpenMatches = { selected = 3 }
-                )
+                  )
+                }
                 else -> ProfileScreen(
                     onEditProfile = onEditProfile,
                     onSettings = onOpenSettings,
@@ -141,5 +160,12 @@ fun MainScreen(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun LocalDemoUnavailable() {
+    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
+        Text("Khám phá, Match và Chat backend chưa tích hợp. Dữ liệu demo trên thiết bị được giữ riêng và không hiển thị trong tài khoản này.", modifier = Modifier.padding(24.dp))
     }
 }

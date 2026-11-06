@@ -1,9 +1,5 @@
 package vn.ptit.fwp.core.data
 
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import retrofit2.HttpException
 import vn.ptit.fwp.core.data.remote.CampusApi
 import vn.ptit.fwp.core.data.remote.CampusApiFactory
 import vn.ptit.fwp.core.data.remote.CampusCommentDto
@@ -12,8 +8,6 @@ import vn.ptit.fwp.core.data.remote.CampusSwipeRequest
 import vn.ptit.fwp.core.data.remote.CreateCampusCommentRequest
 import vn.ptit.fwp.core.data.remote.CreateCampusImageRequest
 import vn.ptit.fwp.core.data.remote.CreateCampusPostRequest
-import vn.ptit.fwp.core.data.remote.OtpRequest
-import vn.ptit.fwp.core.data.remote.UpdateRemoteProfileRequest
 import vn.ptit.fwp.core.data.remote.UpdateCampusSettingsRequest
 import vn.ptit.fwp.core.data.remote.UpdateCampusPostRequest
 import vn.ptit.fwp.core.model.CampusAuthorProfile
@@ -22,19 +16,13 @@ import vn.ptit.fwp.core.model.CampusCommentPage
 import vn.ptit.fwp.core.model.CampusFeedPage
 import vn.ptit.fwp.core.model.CampusPost
 import vn.ptit.fwp.core.model.CampusSwipeResult
-import vn.ptit.fwp.core.model.Gender
 import vn.ptit.fwp.core.model.PickedCampusImage
-import vn.ptit.fwp.core.model.Profile
 import vn.ptit.fwp.core.model.toDomain
 
 class CampusRepository(
-    private val apiFactory: CampusApiFactory,
-    private val settingsStore: SettingsStore,
-    private val localRepository: FwpRepository
+    private val sessions: BackendSessionManager
 ) {
-    private val sessionMutex = Mutex()
-
-    data class Session(val api: CampusApi, val authorization: String)
+    private val apiFactory get() = sessions.apiFactory
 
     val isConfigured: Boolean get() = apiFactory.isConfigured
 
@@ -158,78 +146,7 @@ class CampusRepository(
             )
         }
 
-    suspend fun clearSession() = settingsStore.clearBackendSession()
-
     private suspend fun <T> withAuth(
         block: suspend (CampusApi, String) -> T
-    ): T {
-        var session = session()
-        return try {
-            block(session.api, session.authorization)
-        } catch (error: HttpException) {
-            if (error.code() != 401) throw error
-            settingsStore.clearBackendSession()
-            session = session(force = true)
-            block(session.api, session.authorization)
-        }
-    }
-
-    private suspend fun session(force: Boolean = false): Session =
-        sessionMutex.withLock {
-            val api = apiFactory.api
-                ?: throw IllegalStateException(
-                    "Campus Feed cần FWP_BACKEND_BASE_URL trỏ tới NestJS backend."
-                )
-            val settings = settingsStore.settings.first()
-            val email = settings.email.ifBlank { DEMO_EMAIL }
-            if (!force && settings.backendToken.isNotBlank() &&
-                settings.backendEmail.equals(email, ignoreCase = true)
-            ) {
-                return@withLock Session(api, "Bearer ${settings.backendToken}")
-            }
-            val auth = api.verifyOtp(OtpRequest(email = email, code = DEMO_OTP))
-            settingsStore.setBackendSession(auth.accessToken, email)
-            val session = Session(api, "Bearer ${auth.accessToken}")
-            syncLocalProfileIfNeeded(api, session.authorization)
-            session
-        }
-
-    private suspend fun syncLocalProfileIfNeeded(api: CampusApi, authorization: String) {
-        val local = localRepository.myProfile.first() ?: return
-        val remote = runCatching { api.myProfile(authorization) }.getOrNull()
-        if (remote != null && remote.profileComplete && remote.nickname.isNotBlank()) {
-            return
-        }
-        runCatching {
-            api.updateProfile(authorization, local.toRemoteProfileRequest())
-        }
-    }
-
-    private fun Profile.toRemoteProfileRequest() = UpdateRemoteProfileRequest(
-        nickname = nickname.ifBlank { "Sinh viên FwP" },
-        fullName = fullName.ifBlank { nickname.ifBlank { "Sinh viên FwP" } },
-        age = age,
-        gender = when (gender) {
-            Gender.FEMALE -> "FEMALE"
-            Gender.MALE -> "MALE"
-            else -> "OTHER"
-        },
-        school = school,
-        campus = campus,
-        faculty = faculty,
-        major = major,
-        academicYear = academicYear,
-        alumni = alumni,
-        gpa = gpa,
-        gpaTier = gpaTier.name,
-        bio = bio,
-        interests = interests,
-        avatarSeed = avatarSeed,
-        mode = mode.name
-    )
-
-    companion object {
-        const val DEMO_EMAIL = "demo@ptit.edu.vn"
-        const val DEMO_OTP = "123456"
-    }
+    ): T = sessions.withAuth { api, authorization, _ -> block(api, authorization) }
 }

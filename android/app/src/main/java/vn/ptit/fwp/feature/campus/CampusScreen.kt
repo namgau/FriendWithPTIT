@@ -103,6 +103,8 @@ import vn.ptit.fwp.core.model.CampusComment
 import vn.ptit.fwp.core.model.CampusPost
 import vn.ptit.fwp.core.model.PickedCampusImage
 import vn.ptit.fwp.core.data.remote.UpdateCampusSettingsRequest
+import vn.ptit.fwp.core.data.AppSettings
+import vn.ptit.fwp.core.data.presentationIdentity
 import vn.ptit.fwp.core.util.appContainer
 import vn.ptit.fwp.core.util.fwpViewModel
 import java.text.SimpleDateFormat
@@ -113,7 +115,10 @@ import java.util.Locale
 @Composable
 fun CampusScreen() {
     val container = appContainer()
-    val viewModel = fwpViewModel { CampusViewModel(container) }
+    val sessionSettings by container.settingsStore.settings.collectAsState(initial = AppSettings())
+    val sessionGeneration by container.backendSession.sessionGeneration.collectAsState()
+    val identity = presentationIdentity(sessionSettings, sessionGeneration)
+    val viewModel = fwpViewModel(key = "campus:$identity") { CampusViewModel(container) }
     val state by viewModel.state.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

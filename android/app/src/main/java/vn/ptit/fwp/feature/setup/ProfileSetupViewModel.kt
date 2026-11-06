@@ -15,6 +15,9 @@ import vn.ptit.fwp.core.model.MyProfileDraft
 import vn.ptit.fwp.core.model.Profile
 import vn.ptit.fwp.core.model.University
 import vn.ptit.fwp.core.model.UniversityCatalog
+import vn.ptit.fwp.core.data.remote.RemoteProfileDto
+import vn.ptit.fwp.core.data.toDraft
+import kotlinx.coroutines.CancellationException
 
 data class SetupUiState(
     val step: Int = 0,
@@ -27,7 +30,9 @@ data class SetupUiState(
     val done: Boolean = false,
     val isEdit: Boolean = false,
     val showSchoolList: Boolean = false,
-    val loaded: Boolean = false
+    val loaded: Boolean = false,
+    val backendProfile: Boolean = false,
+    val conflict: Boolean = false
 ) {
     val totalSteps: Int get() = 4
     val progress: Float get() = (step + 1) / totalSteps.toFloat()
@@ -40,20 +45,25 @@ class ProfileSetupViewModel(
 ) : ViewModel() {
     private val _state = MutableStateFlow(SetupUiState(isEdit = editMode))
     val state: StateFlow<SetupUiState> = _state.asStateFlow()
+    private var original: RemoteProfileDto? = null
 
     init {
+        load()
+    }
+
+    fun load() {
+        _state.update { it.copy(loaded = false, error = null, conflict = false) }
         viewModelScope.launch {
+          try {
             val settings = container.settingsStore.settings.first()
-            val existing = container.repository.myProfile.first()
             val university = UniversityCatalog.universityForEmail(settings.email) ?: UniversityCatalog.ptit
-            val draft = existing?.toDraft(settings.email) ?: MyProfileDraft(
-                email = settings.email,
-                school = university.name,
-                campus = university.campuses.first()
-            )
-            if (editMode && existing == null) {
-                _state.update { it.copy(error = "Chưa tìm thấy hồ sơ để chỉnh sửa.", loaded = true) }
+            if (!settings.localDemoSession) {
+                val remote = container.backendProfile.load()
+                original = remote
+                _state.update { it.copy(draft = remote.toDraft(settings.email), email = settings.email, loaded = true, backendProfile = true) }
             } else {
+                val existing = container.repository.myProfile.first()
+                val draft = existing?.toDraft(settings.email) ?: MyProfileDraft(email = settings.email, school = university.name, campus = university.campuses.first())
                 _state.update {
                     it.copy(
                         draft = draft,
@@ -63,10 +73,15 @@ class ProfileSetupViewModel(
                     )
                 }
             }
+          } catch (e: CancellationException) { throw e }
+          catch (e: Exception) {
+              _state.update { it.copy(loaded = false, error = e.message ?: "Không tải được hồ sơ. Kiểm tra kết nối và thử lại.") }
+          }
         }
     }
 
     fun setNickname(value: String) = updateDraft { copy(nickname = value.take(24)) }
+    fun setFullName(value: String) = updateDraft { copy(fullName = value.take(140)) }
     fun setBio(value: String) = updateDraft { copy(bio = value.take(300)) }
     fun setGender(gender: vn.ptit.fwp.core.model.Gender) = updateDraft { copy(gender = gender) }
     fun setAge(age: Int) = updateDraft { copy(age = age.coerceIn(18, 35)) }
@@ -84,7 +99,13 @@ class ProfileSetupViewModel(
     fun setShowGpa(value: Boolean) = updateDraft { copy(showGpa = value) }
     fun setShowLocation(value: Boolean) = updateDraft { copy(showLocation = value) }
 
-    fun setPhotoUri(uri: String?) = updateDraft { copy(photoUrl = uri) }
+    fun setPhotoUri(uri: String?) {
+        if (_state.value.backendProfile && uri != null) {
+            _state.update { it.copy(error = "Ảnh từ thiết bị chỉ hỗ trợ hồ sơ demo; backend chưa hỗ trợ tải ảnh hồ sơ.") }
+            return
+        }
+        updateDraft { copy(photoUrl = uri) }
+    }
 
     fun toggleInterest(interest: String) = updateDraft {
         val next = if (interests.contains(interest)) interests - interest else interests + interest
@@ -127,6 +148,7 @@ class ProfileSetupViewModel(
             _state.update { it.copy(error = error) }
             return
         }
+        if (!s.loaded || s.saving) return
         if (s.step < s.totalSteps - 1) {
             _state.update { it.copy(step = s.step + 1, error = null) }
         } else {
@@ -149,18 +171,24 @@ class ProfileSetupViewModel(
         }
         _state.update { it.copy(saving = true, error = null) }
         viewModelScope.launch {
-            val draft = s.draft.copy(email = s.email)
-            container.repository.saveMyProfile(draft)
-            container.settingsStore.setShowGpa(draft.showGpa)
-            container.settingsStore.setShowLocation(draft.showLocation)
-            container.settingsStore.setLocationEnabled(draft.showLocation)
-            container.settingsStore.completeProfile()
-            _state.update { it.copy(saving = false, done = true) }
+            try {
+                val draft = s.draft.copy(email = s.email)
+                if (s.backendProfile) {
+                    val saved = container.backendProfile.save(original ?: throw IllegalStateException("Hãy tải lại hồ sơ trước khi lưu."), draft)
+                    original = saved
+                    if (!saved.profileComplete) throw IllegalStateException("Backend chưa xác nhận hồ sơ hoàn chỉnh. Hãy kiểm tra các trường bắt buộc.")
+                } else {
+                    container.repository.saveMyProfile(draft)
+                }
+                _state.update { it.copy(saving = false, done = true) }
+            } catch (e: CancellationException) { throw e }
+            catch (e: Exception) { _state.update { it.copy(saving = false, conflict = e is vn.ptit.fwp.core.data.ProfileConflictException, error = if (e is IllegalStateException) e.message else "Không lưu được hồ sơ. Bản sửa vẫn còn trên màn hình; hãy thử lại.") } }
         }
     }
 
     private fun validate(step: Int, draft: MyProfileDraft): String? = when (step) {
         0 -> when {
+            _state.value.backendProfile && draft.fullName.isBlank() -> "Hãy nhập họ tên cho hồ sơ backend."
             draft.nickname.trim().length < 2 -> "Nickname cần ít nhất 2 ký tự."
             draft.bio.trim().length < 10 -> "Hãy viết vài dòng giới thiệu (ít nhất 10 ký tự) để mọi người hiểu bạn hơn."
             else -> null
@@ -182,6 +210,7 @@ class ProfileSetupViewModel(
         _state.update { it.copy(draft = it.draft.block(), error = null) }
 
     private fun Profile.toDraft(email: String) = MyProfileDraft(
+        fullName = fullName,
         nickname = nickname,
         age = age,
         gender = gender,

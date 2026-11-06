@@ -21,8 +21,7 @@ data class AppSettings(
     val authenticated: Boolean = false,
     val profileComplete: Boolean = false,
     val email: String = "",
-    val backendToken: String = "",
-    val backendEmail: String = "",
+    val localDemoSession: Boolean = false,
     val themeMode: ThemeMode = ThemeMode.SYSTEM,
     val aiAnalysisEnabled: Boolean = true,
     val notificationsEnabled: Boolean = true,
@@ -33,14 +32,20 @@ data class AppSettings(
     val showLocationPublic: Boolean = true
 )
 
-class SettingsStore(private val context: Context) {
+interface AuthStateStorage {
+    suspend fun setAuthenticatedSession(email: String, profileComplete: Boolean)
+    suspend fun signOut()
+}
+
+class SettingsStore(private val context: Context) : AuthStateStorage {
     private object Keys {
         val onboarding = booleanPreferencesKey("onboarding_done")
         val authenticated = booleanPreferencesKey("authenticated")
         val profileComplete = booleanPreferencesKey("profile_complete")
         val email = stringPreferencesKey("email")
-        val backendToken = stringPreferencesKey("backend_token")
+        val backendToken = stringPreferencesKey("backend_token") // legacy plaintext, removed on next auth transition
         val backendEmail = stringPreferencesKey("backend_email")
+        val localDemoSession = booleanPreferencesKey("local_demo_session")
         val theme = stringPreferencesKey("theme")
         val aiAnalysis = booleanPreferencesKey("ai_analysis")
         val notifications = booleanPreferencesKey("notifications")
@@ -57,8 +62,7 @@ class SettingsStore(private val context: Context) {
             authenticated = prefs[Keys.authenticated] ?: false,
             profileComplete = prefs[Keys.profileComplete] ?: false,
             email = prefs[Keys.email] ?: "",
-            backendToken = prefs[Keys.backendToken] ?: "",
-            backendEmail = prefs[Keys.backendEmail] ?: "",
+            localDemoSession = prefs[Keys.localDemoSession] ?: false,
             themeMode = runCatching { ThemeMode.valueOf(prefs[Keys.theme] ?: "SYSTEM") }.getOrDefault(ThemeMode.SYSTEM),
             aiAnalysisEnabled = prefs[Keys.aiAnalysis] ?: true,
             notificationsEnabled = prefs[Keys.notifications] ?: true,
@@ -72,24 +76,32 @@ class SettingsStore(private val context: Context) {
 
     suspend fun completeOnboarding() = context.fwpSettings.edit { it[Keys.onboarding] = true }
 
-    suspend fun signIn(email: String) = context.fwpSettings.edit {
+    suspend fun signInDemo(email: String) = context.fwpSettings.edit {
         it[Keys.authenticated] = true
         it[Keys.email] = email
-    }
-
-    suspend fun signOut() = context.fwpSettings.edit {
-        it[Keys.authenticated] = false
-        it[Keys.profileComplete] = false
+        it[Keys.localDemoSession] = true
         it.remove(Keys.backendToken)
         it.remove(Keys.backendEmail)
     }
 
-    suspend fun setBackendSession(token: String, email: String) = context.fwpSettings.edit {
-        it[Keys.backendToken] = token
-        it[Keys.backendEmail] = email
-    }
+    override suspend fun setAuthenticatedSession(email: String, profileComplete: Boolean) { context.fwpSettings.edit {
+        it[Keys.authenticated] = true
+        it[Keys.email] = email
+        it[Keys.profileComplete] = profileComplete
+        it[Keys.localDemoSession] = false
+        it.remove(Keys.backendToken)
+        it.remove(Keys.backendEmail)
+    } }
 
-    suspend fun clearBackendSession() = context.fwpSettings.edit {
+    override suspend fun signOut() { context.fwpSettings.edit {
+        it[Keys.authenticated] = false
+        it[Keys.profileComplete] = false
+        it.remove(Keys.backendToken)
+        it.remove(Keys.backendEmail)
+        it.remove(Keys.localDemoSession)
+    } }
+
+    suspend fun clearLegacyBackendSession() = context.fwpSettings.edit {
         it.remove(Keys.backendToken)
         it.remove(Keys.backendEmail)
     }

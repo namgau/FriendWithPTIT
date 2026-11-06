@@ -35,8 +35,10 @@ Khi `FWP_AI_BASE_URL` trống, app dùng các engine quy tắc cục bộ và hi
 
 ## Chạy demo
 
-- Mở app → Onboarding → **Dùng chế độ demo** (hoặc đăng nhập OTP).
-- Email demo: `demo@ptit.edu.vn`; OTP: `123456`.
+- Đăng ký hoặc đăng nhập bằng email và mật khẩu qua backend. Tài khoản này cũng
+  được dùng cho Campus Feed; không tự đăng nhập qua OTP demo.
+- Trong bản debug có thể chọn **demo trên thiết bị**. Demo local không có phiên
+  backend và không truy cập Campus; hồ sơ và lịch sử Room hiện có được giữ lại.
 - Dữ liệu demo: 20 hồ sơ, 3 cuộc trò chuyện, thông báo và match có sẵn.
 - Chat demo tự trả lời sau vài giây; nút gợi ý mở đầu và phân tích M2/M3 hoạt động offline.
 - Mở **Khám phá → Bản đồ** để xem hồ sơ quanh bạn. Khi có `MAPS_API_KEY`, app dùng
@@ -46,11 +48,36 @@ Khi `FWP_AI_BASE_URL` trống, app dùng các engine quy tắc cục bộ và hi
   like, bookmark, bình luận, báo cáo và Swipe tác giả `DISCOVERABLE`. Cần chạy
   backend và build với `-PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/`; nếu thiếu
   cấu hình, tab hiển thị hướng dẫn thay vì dữ liệu giả.
-- Campus dùng OTP demo hiện có (`123456`) để lấy JWT; đây là auth demo, không phải
-  cơ chế đăng nhập production.
-- Match tạo từ Campus đã được backend ghi nhận thật. Tab **Match/Chat hiện vẫn đọc
-  dữ liệu Room/demo local**, chưa đồng bộ danh sách match backend, nên app hiển thị
-  thông báo match ẩn danh nhưng chưa mở được cuộc trò chuyện backend từ tab đó.
+- Session backend được mã hóa bằng Android Keystore; khi server trả 401, cần đăng
+  nhập lại. Bản release yêu cầu URL backend HTTPS.
+- Backend hiện vẫn cung cấp `/auth/demo` và `/auth/otp/verify` demo có thể cấp
+  token không an toàn. Không triển khai backend này cho production trước khi
+  vô hiệu hóa hoặc thay các endpoint demo bằng xác thực thực sự; Android không
+  gọi chúng trong luồng đăng nhập mới. Backend cũng chưa có thu hồi JWT khi logout.
+- Hồ sơ server hiển thị từ `/auth/me`; bản Room demo không được tự động đồng bộ
+  hay ghi đè. Ảnh hồ sơ từ thiết bị chỉ dành cho demo, backend chưa hỗ trợ upload.
+- Match tạo từ Campus đã được backend ghi nhận thật. Trong phiên backend, các tab
+  **Hôm nay/Khám phá/Match/Chat** thông báo chưa tích hợp; không hiển thị hồ sơ,
+  lịch sử, số lượt thích/tin nhắn hoặc thành tích Room như dữ liệu của tài khoản.
+- Các route con hồ sơ demo, chat demo, Nearby, Double Date và thông báo đều kiểm
+  tra phiên trước khi dựng màn hình. `authorToken` và `anon:<matchId>` không được
+  dùng để tra cứu hồ sơ/chat Room. Thông báo match Campus chưa mở chat backend.
+- Repository ngừng quan sát dữ liệu demo và từ chối thao tác social Room ngoài
+  phiên demo local. Đổi phiên/đăng xuất không xóa Room; trở lại demo dùng lịch sử
+  đã lưu. State Campus và hồ sơ được phân biệt theo tài khoản và thế hệ phiên.
+
+## Kiểm thử hồi quy Phase 3B-II
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug --no-daemon --console=plain
+```
+
+- 34 unit test: session/profile (16), cách ly luồng/route/badge/định danh (6),
+  state thống kê/thành tích hồ sơ (3), Campus contract (7), Settings policy (2).
+- Có kiểm tra demo → backend, hai tài khoản backend, logout/login, kết quả request
+  tài khoản cũ và trở lại demo mà lịch sử nguồn vẫn còn nguyên.
+- Đây là test JVM với nguồn dữ liệu/API giả; chưa phải kiểm thử Room SQLite,
+  Compose/back stack, Android Keystore hoặc HTTP end-to-end trên thiết bị thật.
 
 ## Kiến trúc
 

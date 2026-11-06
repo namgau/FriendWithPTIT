@@ -2,6 +2,8 @@ package vn.ptit.fwp.core.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import vn.ptit.fwp.core.data.local.FwpDatabase
 import vn.ptit.fwp.core.data.local.MatchEntity
 import vn.ptit.fwp.core.data.local.MessageEntity
@@ -34,21 +36,31 @@ class FwpRepository(
     private val messageDao = db.messageDao()
     private val notificationDao = db.notificationDao()
 
-    val myProfile: Flow<Profile?> = profileDao.observeMe().map { it?.toDomain() }
-    val profiles: Flow<List<Profile>> = profileDao.observeProfiles().map { list -> list.map { it.toDomain() } }
-    val swipes: Flow<List<Swipe>> = swipeDao.observeSwipes().map { list -> list.map { it.toDomain() } }
-    val matches: Flow<List<FwpMatch>> = matchDao.observeAll().map { list -> list.map { it.toDomain() } }
-    val notifications: Flow<List<FwpNotification>> = notificationDao.observeAll().map { list -> list.map { it.toDomain() } }
-    val unreadNotifications: Flow<Int> = notificationDao.observeUnreadCount()
+    val myProfile: Flow<Profile?> = profileDao.observeMe().map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
+    val profiles: Flow<List<Profile>> = profileDao.observeProfiles().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
+    val swipes: Flow<List<Swipe>> = swipeDao.observeSwipes().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
+    val matches: Flow<List<FwpMatch>> = matchDao.observeAll().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
+    val notifications: Flow<List<FwpNotification>> = notificationDao.observeAll().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
+    val unreadNotifications: Flow<Int> = notificationDao.observeUnreadCount().demoOnly(settingsStore.settings, 0)
 
     fun messages(matchId: String): Flow<List<ChatMessage>> =
-        messageDao.observeByMatch(matchId).map { list -> list.map { it.toDomain() } }
+        if (isDemoMatchId(matchId))
+            messageDao.observeByMatch(matchId).map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
+        else flowOf(emptyList())
 
     fun match(matchId: String): Flow<FwpMatch?> =
-        matchDao.observeById(matchId).map { it?.toDomain() }
+        if (isDemoMatchId(matchId))
+            matchDao.observeById(matchId).map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
+        else flowOf(null)
 
     fun profile(id: String): Flow<Profile?> =
-        profileDao.observeById(id).map { it?.toDomain() }
+        if (id == "me" || isDemoProfileId(id))
+            profileDao.observeById(id).map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
+        else flowOf(null)
+
+    private suspend fun isDemoSession(): Boolean = settingsStore.settings.first().let {
+        allowsLocalDemo(it.authenticated, it.localDemoSession)
+    }
 
     suspend fun initialize() {
         val existing = profileDao.getAll().count { it.id != "me" }
@@ -62,6 +74,7 @@ class FwpRepository(
     }
 
     suspend fun saveMyProfile(draft: MyProfileDraft): Profile {
+        check(isDemoSession()) { "Hồ sơ Room chỉ được lưu trong phiên demo." }
         val tier = GpaTier.fromGpa(draft.gpa)
         val profile = Profile(
             id = "me",
@@ -97,6 +110,7 @@ class FwpRepository(
     }
 
     suspend fun updateMyProfile(profile: Profile) {
+        if (!isDemoSession()) return
         profileDao.upsert(profile.copy(id = "me").toEntity())
     }
 
@@ -109,6 +123,7 @@ class FwpRepository(
     }
 
     suspend fun swipe(targetId: String, action: SwipeAction): SwipeOutcome? {
+        if (!isDemoSession() || !isDemoProfileId(targetId)) return null
         val profile = profileDao.getById(targetId)?.toDomain() ?: return null
         swipeDao.upsert(
             SwipeEntity(
@@ -146,10 +161,12 @@ class FwpRepository(
     }
 
     suspend fun resetSwipes() {
+        if (!isDemoSession()) return
         swipeDao.clear()
     }
 
     suspend fun rewind(): Boolean {
+        if (!isDemoSession()) return false
         val last = swipeDao.getLast() ?: return false
         swipeDao.delete(last.targetId)
         val match = matchDao.getByProfile(last.targetId)
@@ -168,6 +185,7 @@ class FwpRepository(
         text: String,
         type: MessageType = MessageType.TEXT
     ) {
+        if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val now = System.currentTimeMillis()
         messageDao.insert(
             MessageEntity(
@@ -198,31 +216,37 @@ class FwpRepository(
     }
 
     suspend fun markRead(matchId: String) {
+        if (!isDemoSession() || !isDemoMatchId(matchId)) return
         messageDao.markIncomingRead(matchId)
         matchDao.clearUnread(matchId)
     }
 
     suspend fun updateCompatibility(matchId: String, score: Int) {
+        if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val match = matchDao.getById(matchId) ?: return
         matchDao.upsert(match.copy(compatibility = score))
     }
 
     suspend fun setRevealOptIn(matchId: String, enabled: Boolean) {
+        if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val match = matchDao.getById(matchId) ?: return
         matchDao.upsert(match.copy(revealOptInMe = enabled))
     }
 
     suspend fun setPartnerRevealOptIn(matchId: String, enabled: Boolean) {
+        if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val match = matchDao.getById(matchId) ?: return
         matchDao.upsert(match.copy(revealOptInThem = enabled))
     }
 
     suspend fun unmatch(matchId: String) {
+        if (!isDemoSession() || !isDemoMatchId(matchId)) return
         messageDao.deleteByMatch(matchId)
         matchDao.delete(matchId)
     }
 
     suspend fun blockProfile(profileId: String, reason: String? = null) {
+        if (!isDemoSession() || !isDemoProfileId(profileId)) return
         profileDao.setBlocked(profileId, true)
         val match = matchDao.getByProfile(profileId)
         if (match != null) {
@@ -237,6 +261,7 @@ class FwpRepository(
     }
 
     suspend fun reportProfile(profileId: String, reason: String) {
+        if (!isDemoSession() || !isDemoProfileId(profileId)) return
         profileDao.setBlocked(profileId, true)
         val match = matchDao.getByProfile(profileId)
         if (match != null) {
@@ -251,6 +276,7 @@ class FwpRepository(
     }
 
     suspend fun addNotification(type: NotificationType, title: String, body: String) {
+        if (!isDemoSession()) return
         notificationDao.upsert(
             NotificationEntity(
                 id = UUID.randomUUID().toString(),
@@ -263,9 +289,12 @@ class FwpRepository(
         )
     }
 
-    suspend fun markNotificationsRead() = notificationDao.markAllRead()
+    suspend fun markNotificationsRead() {
+        if (isDemoSession()) notificationDao.markAllRead()
+    }
 
     suspend fun createDoubleDate(firstMatchId: String, secondMatchId: String): FwpMatch? {
+        if (!isDemoSession() || !isDemoMatchId(firstMatchId) || !isDemoMatchId(secondMatchId)) return null
         val first = matchDao.getById(firstMatchId) ?: return null
         val second = matchDao.getById(secondMatchId) ?: return null
         if (first.id == second.id) return null

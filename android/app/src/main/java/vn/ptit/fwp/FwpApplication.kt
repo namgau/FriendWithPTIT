@@ -9,6 +9,9 @@ import vn.ptit.fwp.core.ai.RemoteAiClient
 import vn.ptit.fwp.core.data.CampusRepository
 import vn.ptit.fwp.core.data.FwpRepository
 import vn.ptit.fwp.core.data.SettingsStore
+import vn.ptit.fwp.core.data.BackendSessionManager
+import vn.ptit.fwp.core.data.SecureSessionStore
+import vn.ptit.fwp.core.data.BackendProfileRepository
 import vn.ptit.fwp.core.data.local.FwpDatabase
 import vn.ptit.fwp.core.data.remote.CampusApiFactory
 
@@ -27,7 +30,9 @@ class AppContainer(context: Application) {
     val settingsStore = SettingsStore(context)
     val repository = FwpRepository(database, settingsStore)
     val campusApi = CampusApiFactory()
-    val campusRepository = CampusRepository(campusApi, settingsStore, repository)
+    val backendSession = BackendSessionManager(campusApi, SecureSessionStore(context), settingsStore)
+    val backendProfile = BackendProfileRepository(backendSession)
+    val campusRepository = CampusRepository(backendSession)
     val remoteAi = RemoteAiClient()
     val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 

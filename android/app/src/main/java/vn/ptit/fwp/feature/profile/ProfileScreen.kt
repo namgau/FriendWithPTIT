@@ -32,6 +32,8 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -43,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import vn.ptit.fwp.core.data.AppSettings
+import vn.ptit.fwp.core.data.presentationIdentity
 import vn.ptit.fwp.core.design.DemoPortrait
 import vn.ptit.fwp.core.design.GpaBadge
 import vn.ptit.fwp.core.design.InfoRow
@@ -67,14 +70,23 @@ fun ProfileScreen(
     onOpenMatches: () -> Unit
 ) {
     val container = appContainer()
-    val viewModel = fwpViewModel { ProfileViewModel(container) }
-    val state by viewModel.uiState.collectAsState()
     val settings by container.settingsStore.settings.collectAsState(initial = AppSettings())
-    val me = state.me
+    val sessionGeneration by container.backendSession.sessionGeneration.collectAsState()
+    val identity = presentationIdentity(settings, sessionGeneration)
+    val viewModel = fwpViewModel(key = "profile:$identity") { ProfileViewModel(container) }
+    val state by viewModel.uiState.collectAsState()
+    val me = state.me.takeIf { state.identity == presentationIdentity(settings, sessionGeneration) }
+
+    LaunchedEffect(settings.authenticated, settings.localDemoSession, settings.email, sessionGeneration) { viewModel.refresh() }
 
     if (me == null) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            androidx.compose.material3.CircularProgressIndicator()
+            if (state.error == null) androidx.compose.material3.CircularProgressIndicator()
+            else Column {
+                Text(state.error.orEmpty(), color = MaterialTheme.colorScheme.error)
+                TextButton(onClick = viewModel::refresh) { Text("Thử lại") }
+                TextButton(onClick = onSettings) { Text("Cài đặt") }
+            }
         }
         return
     }
@@ -162,7 +174,7 @@ fun ProfileScreen(
                             }
                             Surface(shape = RoundedCornerShape(50), color = PtitGold) {
                                 Text(
-                                    "DEMO",
+                                    if (state.backendProfile) "BACKEND" else "DEMO",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color(0xFF4A3800),
                                     fontWeight = FontWeight.Bold,
@@ -175,7 +187,7 @@ fun ProfileScreen(
             }
         }
 
-        item {
+        if (!state.backendProfile) item {
             Surface(
                 shape = RoundedCornerShape(24.dp),
                 color = MaterialTheme.colorScheme.surface,
@@ -285,12 +297,12 @@ fun ProfileScreen(
                     }
                 }
                 Spacer(Modifier.height(22.dp))
-                SectionHeader(title = "Huy hiệu", subtitle = "Những cột mốc nhỏ trên hành trình kết nối.")
+                if (!state.backendProfile) SectionHeader(title = "Huy hiệu", subtitle = "Những cột mốc nhỏ trên hành trình kết nối.")
                 Spacer(Modifier.height(10.dp))
             }
         }
 
-        item {
+        if (!state.backendProfile) item {
             LazyRow(
                 contentPadding = PaddingValues(horizontal = 18.dp),
                 horizontalArrangement = Arrangement.spacedBy(9.dp)
@@ -314,9 +326,9 @@ fun ProfileScreen(
                         Icon(Icons.Rounded.Lock, null, tint = Color(0xFF7A5C00), modifier = Modifier.size(22.dp))
                         Spacer(Modifier.width(10.dp))
                         Column {
-                            Text("Chế độ demo đang bật", style = MaterialTheme.typography.titleSmall, color = Color(0xFF6D5100))
+                            Text(if (state.backendProfile) "Hồ sơ backend" else "Chế độ demo đang bật", style = MaterialTheme.typography.titleSmall, color = Color(0xFF6D5100))
                             Text(
-                                "Dữ liệu hồ sơ, tin nhắn và điểm số là mô phỏng cục bộ. ${if (settings.aiAnalysisEnabled) "Phân tích hội thoại đang bật." else "Phân tích hội thoại đang tắt."}",
+                                if (state.backendProfile) "Hồ sơ được tải từ backend. Match và chat demo được giữ riêng." else "Dữ liệu hồ sơ, tin nhắn và điểm số là mô phỏng cục bộ. ${if (settings.aiAnalysisEnabled) "Phân tích hội thoại đang bật." else "Phân tích hội thoại đang tắt."}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

@@ -15,7 +15,9 @@ import retrofit2.http.Query
 import vn.ptit.fwp.BuildConfig
 import java.util.concurrent.TimeUnit
 
-data class OtpRequest(val email: String, val code: String)
+data class CredentialsRequest(val email: String, val password: String)
+
+data class AuthMeDto(val user: RemoteUserDto, val profileComplete: Boolean, val profile: RemoteProfileDto?)
 
 data class AuthSessionDto(
     val accessToken: String,
@@ -44,14 +46,17 @@ data class RemoteProfileDto(
     val major: String = "",
     val academicYear: String = "",
     val alumni: Boolean = false,
-    val gpa: Double = 0.0,
-    val gpaTier: String = "GOOD",
+    val gpa: Double? = null,
+    val gpaTier: String? = null,
     val bio: String = "",
-    val interests: List<String> = emptyList(),
+    val interests: List<String>? = null,
     val avatarSeed: Int = 1,
     val mode: String = "DATING",
     val verified: Boolean = false,
-    val profileComplete: Boolean = false
+    val profileComplete: Boolean = false,
+    val showGpaPublic: Boolean = true,
+    val showLocationPublic: Boolean = true,
+    val updatedAt: String? = null
 )
 
 data class UpdateRemoteProfileRequest(
@@ -70,7 +75,9 @@ data class UpdateRemoteProfileRequest(
     val bio: String? = null,
     val interests: List<String>? = null,
     val avatarSeed: Int? = null,
-    val mode: String? = null
+    val mode: String? = null,
+    val showGpaPublic: Boolean? = null,
+    val showLocationPublic: Boolean? = null
 )
 
 data class CampusAuthorBadgeDto(
@@ -195,14 +202,19 @@ data class CampusAuthorProfileDto(
 )
 
 interface CampusApi {
+    @POST("auth/login")
+    suspend fun login(@Body request: CredentialsRequest): AuthSessionDto
+
+    @POST("auth/register")
+    suspend fun register(@Body request: CredentialsRequest): AuthSessionDto
+
+    @GET("auth/me")
+    suspend fun authMe(@Header("Authorization") authorization: String): AuthMeDto
     @GET("campus/settings")
     suspend fun settings(@Header("Authorization") authorization: String): CampusSettingsDto
 
     @PATCH("campus/settings")
     suspend fun updateSettings(@Header("Authorization") authorization: String, @Body request: UpdateCampusSettingsRequest): CampusSettingsDto
-    @POST("auth/otp/verify")
-    suspend fun verifyOtp(@Body request: OtpRequest): AuthSessionDto
-
     @GET("profiles/me")
     suspend fun myProfile(@Header("Authorization") authorization: String): RemoteProfileDto
 
@@ -317,6 +329,7 @@ class CampusApiFactory(
     baseUrl: String = BuildConfig.BACKEND_BASE_URL
 ) {
     private val root = baseUrl.trim().trimEnd('/')
+    val baseUrl: String get() = root
     val isConfigured: Boolean = root.isNotBlank()
 
     val api: CampusApi? = if (isConfigured) {
