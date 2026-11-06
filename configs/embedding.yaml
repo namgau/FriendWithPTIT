@@ -1,0 +1,48 @@
+# C1 — encoder da ngon ngu dung chung cho T4 va cache B8.
+# Revision duoc pin de benchmark/cache co the tai lap. Chi doi sau khi A duyet.
+selected_model: bge_m3
+seed: 42
+normalize: true
+cache_dtype: float32
+empty_policy: zero
+
+# Table 3, VN-MTEB (Pham et al., 2025): trung binh 41 dataset / 6 nhom tac vu.
+# BGE-M3 duoc dong bang vi diem Viet cao hon; smoke CPU/GPU trong C1 xac nhan
+# model chay vua RTX 3060 12 GB. Benchmark dai dien tiep tuc dung script ben duoi.
+selection:
+  status: frozen
+  date: "2026-11-03"
+  source: https://arxiv.org/html/2507.21500v1
+  bge_m3_vn_mteb_avg: 64.90
+  minilm_l12_vn_mteb_avg: 46.05
+  reason: BGE-M3 co chat luong tieng Viet cao hon ro ret va chay duoc tren GPU muc tieu.
+
+models:
+  bge_m3:
+    model_id: BAAI/bge-m3
+    revision: 5617a9f61b028005a4858fdac845db406aefb181
+    dimension: 1024
+    max_length: 256
+    batch_size: 32
+    device: auto
+    compute_dtype: float16
+  minilm:
+    model_id: sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2
+    revision: e8f8c211226b894fcb81acc59f3b34ba3efd5f42
+    dimension: 384
+    max_length: 128
+    batch_size: 64
+    device: auto
+    compute_dtype: float16
+
+benchmark:
+  sample_per_source: 1000
+  warmup: 2
+  repeats: 5
+  cpu_batches: [1, 8]
+  gpu_batches: [1, 32, 64]
+
+pca:
+  n_components: 32
+  whiten: false
+  random_state: 42

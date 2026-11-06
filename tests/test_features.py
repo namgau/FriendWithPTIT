@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-from src.m3_health.features import extract_features
+from src.m3_health.features import extract_features, extract_features_with_t4
 
 
 def _msgs(n=12, seed=0):
@@ -37,3 +37,20 @@ def test_values():
     assert f["short_last"].iloc[0] == 1  # tin 6 là "ok"
     assert f["double_text"].iloc[0] == 0  # 2 bên nhắn xen kẽ
     assert not f.isna().any().any()
+
+
+def test_t4_integration_keeps_sample_alignment():
+    msgs = _msgs()
+    samples = pd.DataFrame(
+        {"conversation_id": ["b", "a"], "turn_idx": [8, 6]}, index=[12, 4]
+    )
+    keyed = {
+        (row.conversation_id, row.turn_idx): np.array(
+            [1.0, float(row.turn_idx + 1), 0.5], dtype=np.float32
+        )
+        for row in msgs.itertuples()
+    }
+    features = extract_features_with_t4(msgs, samples, keyed)
+    assert features.index.tolist() == [12, 4]
+    assert {"gap_last", "t4_topic_novelty", "t4_reply_cos_mean"}.issubset(features.columns)
+    assert np.isfinite(features.to_numpy()).all()
