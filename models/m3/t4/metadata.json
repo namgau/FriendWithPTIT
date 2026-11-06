@@ -27,7 +27,7 @@
   },
   "handoff": {
     "config_path": "configs\\embedding.yaml",
-    "config_sha256": "e0b0f590252677cc1589a4ab998ad765f9a4ae5ed628751ddb43bb47194f4429",
+    "config_sha256": "52cd8edc72e65329b62142dd2445d0e810d5f258de21c47f18c8e1869120cb9f",
     "identity_fields_verified": [
       "model_id",
       "revision",

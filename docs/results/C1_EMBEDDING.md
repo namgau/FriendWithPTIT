@@ -10,7 +10,7 @@
 
 ## Benchmark dữ liệu thật ngày 06/11/2026
 
-Mẫu cố định seed 42: 1.000 tin E1 + 1.000 tin E2 cho tiếng Anh; 1.000 tin H1 + 1.000 tin H2 cho tiếng Việt. Mỗi cấu hình warmup 2 lần, đo 5 lần; máy đích RTX 3060. Report máy đọc nằm ở `reports/c1_embedding_benchmark.json` và `.csv` (không commit vì `reports/` bị ignore).
+Mẫu cố định seed 42: 1.000 tin E1 + 1.000 tin E2 cho tiếng Anh; 1.000 tin H1 + 1.000 tin H2 cho tiếng Việt. Mỗi cấu hình warmup 2 lần, đo 5 lần; máy đích RTX 3060. Report máy đọc nằm ở `reports/c1_embedding_benchmark.json` và `.csv`; hai file này đã được commit cùng C1 để có thể audit số liệu.
 
 | Model | Thiết bị | Batch | Anh (tin/s) | Việt (tin/s) | Peak GPU lớn nhất |
 |---|---:|---:|---:|---:|---:|
@@ -39,6 +39,6 @@ Audit provenance 06/11/2026: 20 dòng benchmark trong JSON/CSV đều có `n_tex
 
 ## Bàn giao cho B8
 
-B dùng nguyên `configs/embedding.yaml` và `src/m3_health/embeddings.py`; ưu tiên GPU batch 64, ghi cache theo shard/memmap để có thể kiểm tra từng phần. Không fit lại PCA trên E1/E2/G1/H1/H2.
+B dùng nguyên `configs/embedding.yaml` và `src/m3_health/embeddings.py`; `encode_to_memmap()` ghi float16 theo `cache_dtype`, ưu tiên GPU batch 64 và cache theo shard để có thể kiểm tra từng phần. Không fit lại PCA trên E1/E2/G1/H1/H2.
 
-Tổng cache BGE-M3 FP32 ước tính khoảng 44,16 GiB cho 11.575.218 tin; PCA32 FP32 khoảng 1,38 GiB. Đây là ước tính dung lượng để B chuẩn bị ổ đĩa, không phải kết quả cache B8.
+Nếu embed toàn bộ 11.575.218 tin, cache BGE-M3 float16 có cận trên khoảng 22,08 GiB và PCA32 float32 khoảng 1,38 GiB. B8 thực tế chỉ embed các hội thoại trong `embed_conversation_ids.txt`, nên dung lượng sẽ nhỏ hơn; đây chỉ là cận trên để chuẩn bị ổ đĩa, không phải kết quả cache B8.

@@ -115,11 +115,19 @@ class EmbeddingEncoder:
     model: dict
     normalize: bool = True
     empty_policy: str = "zero"
+    cache_dtype: str = "float32"
     backend: EmbeddingBackend | None = None
 
     def __post_init__(self) -> None:
         if self.empty_policy != "zero":
             raise ValueError("C1 chi ho tro empty_policy=zero")
+        try:
+            dtype = np.dtype(self.cache_dtype)
+        except (TypeError, ValueError) as exc:
+            raise ValueError(f"cache_dtype khong hop le: {self.cache_dtype!r}") from exc
+        if dtype not in {np.dtype(np.float16), np.dtype(np.float32)}:
+            raise ValueError("cache_dtype chi ho tro float16 hoac float32")
+        self.cache_dtype = dtype.name
 
     @property
     def dimension(self) -> int:
@@ -182,7 +190,8 @@ def make_encoder(config: Mapping | None = None, model_name: str | None = None,
     cfg = dict(config or load_embedding_config())
     name, model = selected_model_config(cfg, model_name)
     return EmbeddingEncoder(name=name, model=model, normalize=bool(cfg.get("normalize", True)),
-                            empty_policy=str(cfg.get("empty_policy", "zero")), backend=backend)
+                            empty_policy=str(cfg.get("empty_policy", "zero")),
+                            cache_dtype=str(cfg.get("cache_dtype", "float32")), backend=backend)
 
 
 @lru_cache(maxsize=1)
@@ -207,11 +216,12 @@ def encode_batches(texts: Sequence[str], encoder: EmbeddingEncoder,
 
 def encode_to_memmap(texts: Sequence[str], output: str | Path, encoder: EmbeddingEncoder,
                      shard_size: int = 50_000) -> np.memmap:
-    """Ghi cache FP32 theo shard; orchestration B8 co the them checkpoint/resume."""
+    """Ghi cache theo ``cache_dtype`` theo shard; B8 co the them checkpoint/resume."""
     path = Path(output)
     path.parent.mkdir(parents=True, exist_ok=True)
     cache = np.lib.format.open_memmap(
-        path, mode="w+", dtype=np.float32, shape=(len(texts), encoder.dimension)
+        path, mode="w+", dtype=np.dtype(encoder.cache_dtype),
+        shape=(len(texts), encoder.dimension)
     )
     for rows, values in encode_batches(texts, encoder, shard_size):
         cache[rows] = values

@@ -3,7 +3,7 @@
 selected_model: bge_m3
 seed: 42
 normalize: true
-cache_dtype: float32
+cache_dtype: float16
 empty_policy: zero
 
 # Table 3, VN-MTEB (Pham et al., 2025): trung binh 41 dataset / 6 nhom tac vu.
