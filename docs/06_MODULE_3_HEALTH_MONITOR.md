@@ -135,10 +135,12 @@ Chữ ký hàm chốt cùng lúc:
 ### Tầng T4 — Ngữ nghĩa đa ngữ (cầu nối Anh ↔ Việt)
 | Đặc trưng | Cách làm |
 |---|---|
-| Embedding câu đa ngữ (`paraphrase-multilingual-MiniLM-L12-v2` hoặc LaBSE) | một không gian chung cho tiếng Anh & Việt |
+| Embedding câu đa ngữ (`BAAI/bge-m3`) | một không gian chung cho tiếng Anh & Việt; chỉ lấy dense embedding, tính fp16, `max_length = 256`, chuẩn hóa L2 |
 | Độ liên quan giữa tin trả lời và tin trước (cosine) | trả lời lạc đề/qua loa |
 | **Topic drift**, **topic novelty** (khoảng cách embedding giữa cửa sổ hiện tại và trước đó) | hội thoại cạn chủ đề |
 | Cảm xúc/độ nhiệt tình: mô hình đa ngữ có sẵn, hoặc PhoBERT fine-tune UIT-VSMEC | ablation: có giúp không? |
+
+> **Quyết định C1 (đóng băng 06/11/2026):** chọn `BAAI/bge-m3` thay cho `paraphrase-multilingual-MiniLM-L12-v2` vì điểm trung bình VN-MTEB của BGE-M3 là **64,90**, cao hơn MiniLM-L12 **46,05** (41 bộ dữ liệu, 6 nhóm tác vụ). BGE-M3 lớn và chậm hơn, nhưng benchmark C1 trên RTX 3060 vẫn đạt 630,8–713,5 tin/giây ở batch 32–64; chi phí này chấp nhận được vì B8 cache embedding một lần để dùng chung. Model/revision và cấu hình đóng băng nằm trong `configs/embedding.yaml`; số liệu benchmark và provenance nằm trong `docs/results/C1_EMBEDDING.md`.
 
 > Nếu giảm chiều embedding bằng PCA: **fit 1 lần trên E4 (DailyDialog)** — bộ không dùng để đánh giá — rồi đóng băng, dùng chung cho E1, E2.
 
