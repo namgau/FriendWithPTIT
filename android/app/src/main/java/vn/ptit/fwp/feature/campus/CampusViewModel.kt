@@ -406,9 +406,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
                 }
                 .onFailure { error ->
                     if (!authorGeneration.isCurrent(generation) || error is CancellationException) return@onFailure
-                    _state.update {
-                        it.copy(authorLoading = false, message = humanError(error))
-                    }
+                    _state.update { it.copy(authorLoading = false, message = humanError(error)) }
                     if (error is HttpException && error.code() == 404) refresh()
                 }
         }
@@ -455,8 +453,11 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
                 }
                 .onFailure { error ->
                     if (!authorGeneration.isCurrent(generation) || error is CancellationException) return@onFailure
-                    _state.update {
-                        it.copy(authorLoading = false, message = humanError(error))
+                    if (error is HttpException && error.code() == 409) {
+                        closeAuthor()
+                        _state.update { it.copy(message = "Không thể tạo kết nối ẩn danh với cuộc trò chuyện đã có lịch sử.") }
+                    } else {
+                        _state.update { it.copy(authorLoading = false, message = humanError(error)) }
                     }
                     if (error is HttpException && error.code() == 404) {
                         closeAuthor()

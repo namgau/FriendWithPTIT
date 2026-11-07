@@ -165,6 +165,27 @@ class BackendSocialTest {
         assertTrue(result.await().exceptionOrNull() is SessionRequiredException)
     }
 
+    @Test fun lateChatAndNotificationResponsesAreDiscardedOnLogoutAndAccountSwitch() = runBlocking {
+        for (endpoint in listOf("messages", "notifications")) {
+            for (logout in listOf(true, false)) {
+                val started = CompletableDeferred<Unit>()
+                val reply = CompletableDeferred<Any>()
+                val (manager, settings, api) = environment { name, args ->
+                    assertEquals(endpoint, name)
+                    started.complete(Unit)
+                    @Suppress("UNCHECKED_CAST") val continuation = args.last() as Continuation<Any>
+                    reply.invokeOnCompletion { continuation.resumeWith(Result.success(reply.getCompleted())) }
+                    COROUTINE_SUSPENDED
+                }
+                val result = async { runCatching { if (endpoint == "messages") api.messages(matchId) else api.notifications() } }
+                started.await()
+                if (logout) manager.logout() else settings.value = settings.value.copy(email = "b@test.invalid")
+                reply.complete(if (endpoint == "messages") SocialMessagesDto(0, false, null, emptyList()) else SocialNotificationsDto(0, emptyList()))
+                assertTrue("$endpoint logout=$logout", result.await().exceptionOrNull() is SessionRequiredException)
+            }
+        }
+    }
+
     @Test fun unavailableMatchAndConflictArePropagatedWithoutFakeMatchOrNewMessage() = runBlocking {
         val (_, _, api) = environment { name, _ -> throw HttpException(Response.error<Any>(if (name == "match") 404 else 409, "".toResponseBody())) }
         assertEquals(404, (runCatching { api.match(matchId) }.exceptionOrNull() as HttpException).code())

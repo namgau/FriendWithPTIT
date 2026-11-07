@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -60,6 +61,22 @@ export class SocialService {
     const existingSwipe = await this.swipes.findOne({
       where: { fromUserId: userId, targetUserId: dto.targetUserId },
     });
+    // A previously identified conversation contains identifying history. It
+    // cannot safely be reused as a new anonymous Campus match without a
+    // separate conversation/history boundary, which the current schema lacks.
+    if (dto.action !== 'PASS') {
+      const reciprocalSwipe = await this.swipes.findOne({
+        where: { fromUserId: dto.targetUserId, targetUserId: userId },
+      });
+      if (viaCampus || existingSwipe?.anonymous === true || reciprocalSwipe?.anonymous === true) {
+        const [userAId, userBId] = [userId, dto.targetUserId].sort();
+        const previousMatch = await this.matches.findOne({ where: { userAId, userBId } });
+        if (previousMatch && (!previousMatch.anonymous ||
+            (previousMatch.unmatchedAt && await this.messages.count({ where: { matchId: previousMatch.id } }) > 0))) {
+          throw new ConflictException('This conversation cannot be reused anonymously');
+        }
+      }
+    }
     if (existingSwipe) {
       // Duplicate swipes are idempotent. The anonymous origin is sticky: a
       // later ordinary swipe must not downgrade an anonymous one.
@@ -121,10 +138,14 @@ export class SocialService {
     // The match is anonymous if EITHER side's swipe came from Campus Feed.
     // This covers the reverse order: the author liking back through ordinary
     // discovery must not turn an anonymous like into an identified match.
-    const matchAnonymous = viaCampus || reciprocal.anonymous === true;
+    const matchAnonymous = viaCampus || existingSwipe?.anonymous === true || reciprocal.anonymous === true;
 
     const [userAId, userBId] = [userId, dto.targetUserId].sort();
     let match = await this.matches.findOne({ where: { userAId, userBId } });
+    if (match && ((matchAnonymous && !match.anonymous) ||
+        (match.anonymous && match.unmatchedAt && await this.messages.count({ where: { matchId: match.id } }) > 0))) {
+      throw new ConflictException('This conversation cannot be reused anonymously');
+    }
     if (match?.unmatchedAt) {
       match.unmatchedAt = null;
       if (match.anonymous) {
@@ -147,6 +168,9 @@ export class SocialService {
         // Concurrent mutual likes: the unique pair index makes the loser retry.
         match = await this.matches.findOne({ where: { userAId, userBId } });
         if (!match) throw error;
+        if (matchAnonymous && !match.anonymous) {
+          throw new ConflictException('This conversation cannot be reused anonymously');
+        }
         return {
           matched: true,
           match: await this.summary(
