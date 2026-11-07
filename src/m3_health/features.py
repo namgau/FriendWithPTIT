@@ -98,6 +98,32 @@ def extract_features(msgs: pd.DataFrame, samples: pd.DataFrame, window: int = 10
     return f
 
 
+def extract_features_with_t4(
+    msgs: pd.DataFrame,
+    samples: pd.DataFrame,
+    embeddings,
+    *,
+    pca=None,
+    window: int = 10,
+    recent: int = 5,
+) -> pd.DataFrame:
+    """Ghép đặc trưng bảng T1/T2 hiện có với ngữ nghĩa T4 đã cache.
+
+    Hàm này giữ nguyên ``extract_features`` để các baseline cũ tái lập được.
+    Encoder chạy ở bước cache B8; tại đây chỉ căn hàng embedding và gọi PCA
+    đã đóng băng, nên việc trích đặc trưng không tải hoặc fit mô hình ngầm.
+    """
+    from src.m3_health.features_t4 import extract_t4_features
+
+    base = extract_features(msgs, samples, window=window)
+    semantic = extract_t4_features(
+        msgs, samples, embeddings, pca=pca, window=window, recent=recent
+    )
+    if not base.index.equals(semantic.index):
+        raise ValueError("T1/T2 va T4 khong cung thu tu mau")
+    return pd.concat([base, semantic], axis=1)
+
+
 def _burstiness(gaps: np.ndarray) -> np.ndarray:
     mu, sd = np.nanmean(gaps, 1), np.nanstd(gaps, 1)
     return np.where(mu + sd > 0, (sd - mu) / np.where(mu + sd > 0, mu + sd, 1), 0.0)

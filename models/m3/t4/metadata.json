@@ -1,0 +1,59 @@
+{
+  "schema_version": 1,
+  "status": "frozen",
+  "fit_dataset": "DailyDialog",
+  "fit_split": "train",
+  "validation_split": "validation",
+  "seed": 42,
+  "encoder": {
+    "model_name": "bge_m3",
+    "model_id": "BAAI/bge-m3",
+    "revision": "5617a9f61b028005a4858fdac845db406aefb181",
+    "dimension": 1024,
+    "max_length": 256,
+    "normalize": true,
+    "empty_policy": "zero",
+    "config_hash": "a613e179d111",
+    "selection": {
+      "status": "frozen",
+      "date": "2026-11-03",
+      "source": "https://arxiv.org/html/2507.21500v1",
+      "bge_m3_vn_mteb_avg": 64.9,
+      "minilm_l12_vn_mteb_avg": 46.05,
+      "reason": "BGE-M3 co chat luong tieng Viet cao hon ro ret va chay duoc tren GPU muc tieu."
+    },
+    "config_path": "configs\\embedding.yaml",
+    "config_sha256": "4ed7615651c52f491184d5753ffe3d0183df7d8bf823fcbc586a7944194b0466"
+  },
+  "handoff": {
+    "config_path": "configs\\embedding.yaml",
+    "config_sha256": "ecd219564da2b6525ae1f48f6b9dddeff17759c28743153dbc3516e8a0dc3456",
+    "identity_fields_verified": [
+      "model_id",
+      "revision",
+      "dimension",
+      "max_length",
+      "normalize",
+      "empty_policy"
+    ],
+    "note": "encoder.config_sha256 la snapshot lich su luc fit 03/11; handoff.config_sha256 la config dong bang chinh thuc 06/11; khong ghi de lich su."
+  },
+  "data": {
+    "n_train_utterances": 87171,
+    "n_validation_utterances": 8069,
+    "train_text_sha256": "0eb890f119fa728cd69e66f0aac4c6bfeaf427be0e4cae9418fe7d7e0419095c",
+    "validation_text_sha256": "206cc096e0e61ae902016ab07a92d596c879cfe870bce560bc813758e847f5ad"
+  },
+  "evaluation": {
+    "train_explained_variance_ratio": 0.4207953214645386,
+    "validation_reconstruction_rmse": 0.017239736393094063
+  },
+  "artifact": "pca.pkl",
+  "artifact_sha256": "9aacf6273fbb0c1a4b5d2bef72f1a31ca936d52d023205cdd593f4a83fbae9e8",
+  "pca": {
+    "n_components": 32,
+    "input_dim": 1024,
+    "whiten": false,
+    "explained_variance_ratio": 0.4207953214645386
+  }
+}
