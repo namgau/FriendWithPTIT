@@ -1,7 +1,9 @@
 import { Profile } from '../database/entities';
+import { maskedAvatarSeed, maskedIdentityId } from './anonymity';
 import { distanceKm } from './matching';
 
 export interface ProfileView {
+  anonymous?: boolean;
   id: string;
   userId: string;
   nickname: string;
@@ -26,6 +28,35 @@ export interface ProfileView {
   compatibility?: number;
   showGpaPublic: boolean;
   showLocationPublic: boolean;
+}
+
+/** Placeholder shown for the counterpart of a not-yet-revealed anonymous match. */
+export function toAnonymousProfileView(matchId: string): ProfileView {
+  const id = maskedIdentityId(matchId);
+  return {
+    anonymous: true,
+    id,
+    userId: id,
+    nickname: 'Ẩn danh',
+    fullName: 'Người ẩn danh',
+    age: 0,
+    gender: '',
+    school: '',
+    campus: '',
+    faculty: '',
+    major: '',
+    academicYear: '',
+    alumni: false,
+    bio: '',
+    interests: [],
+    avatarSeed: maskedAvatarSeed(matchId),
+    mode: '',
+    distanceKm: 0,
+    verified: false,
+    profileComplete: true,
+    showGpaPublic: false,
+    showLocationPublic: false,
+  };
 }
 
 export function toProfileView(

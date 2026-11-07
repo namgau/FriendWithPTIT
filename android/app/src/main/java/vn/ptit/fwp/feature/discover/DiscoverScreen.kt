@@ -323,7 +323,7 @@ fun DiscoverScreen(
 }
 
 @Composable
-private fun SwipeCard(
+internal fun SwipeCard(
     ranked: RankedProfile,
     me: Profile?,
     busy: Boolean,
@@ -421,7 +421,7 @@ private fun SwipeCard(
                         }
                     }
                 }
-                CompatibilityOrb(
+                if (profile.isDemo) CompatibilityOrb(
                     score = ranked.score,
                     personality = ranked.score,
                     emotion = (ranked.score - 6).coerceAtLeast(20),
@@ -430,7 +430,10 @@ private fun SwipeCard(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(8.dp)
-                )
+                ) else Surface(
+                    shape = RoundedCornerShape(18.dp), color = PtitRed,
+                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
+                ) { Text("${ranked.score}% · Backend", color = Color.White, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(12.dp)) }
 
                 Column(
                     Modifier
@@ -467,7 +470,7 @@ private fun SwipeCard(
                     )
                     Spacer(Modifier.height(7.dp))
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        GpaBadge(profile.gpaTier, compact = true)
+                        if (profile.isDemo || profile.showGpa) GpaBadge(profile.gpaTier, compact = true)
                         Spacer(Modifier.width(7.dp))
                         Text(
                             profile.school.substringBefore(" – ").ifBlank { profile.school },
@@ -478,7 +481,7 @@ private fun SwipeCard(
                         )
                         Spacer(Modifier.width(7.dp))
                         Text(
-                            formatDistance(profile.distanceKm),
+                            if (profile.isDemo || profile.showLocation) formatDistance(profile.distanceKm) else "Khoảng cách ẩn",
                             style = MaterialTheme.typography.labelSmall,
                             color = PtitGold
                         )
@@ -552,7 +555,7 @@ private fun CircleAction(
 }
 
 @Composable
-private fun FilterSheet(
+internal fun FilterSheet(
     initial: DiscoveryFilters,
     onApply: (DiscoveryFilters) -> Unit,
     onReset: () -> Unit

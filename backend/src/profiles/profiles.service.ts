@@ -11,6 +11,7 @@ import {
   distanceKm,
   normaliseInterest,
 } from '../common/matching';
+import { isUuid } from '../common/anonymity';
 import { ProfileView, toProfileView } from '../common/profile.view';
 import {
   DiscoverQueryDto,
@@ -157,18 +158,26 @@ export class ProfilesService {
     const viewer = await this.ensureProfile(userId);
     const mine = await this.swipes.find({ where: { fromUserId: userId } });
     const alreadySwiped = new Set(mine.map((item) => item.targetUserId));
+    const blockedPairs = await this.blocks.find({
+      where: [{ blockerId: userId }, { blockedId: userId }],
+    });
+    const blocked = new Set(blockedPairs.map((item) => item.blockerId === userId ? item.blockedId : item.blockerId));
     const incoming = (
       await this.swipes.find({ where: { targetUserId: userId } })
     ).filter(
       (item) =>
         (item.action === 'LIKE' || item.action === 'SUPER_LIKE') &&
+        // Likes sent through anonymous Campus discovery must not reveal the
+        // sender here; they only surface as an anonymous match.
+        !item.anonymous &&
+        !blocked.has(item.fromUserId) &&
         !alreadySwiped.has(item.fromUserId),
     );
     if (!incoming.length) return { total: 0, items: [] };
     const profiles = await this.profiles.find();
     const byUser = new Map(profiles.map((profile) => [profile.userId, profile]));
     return {
-      total: incoming.length,
+      total: incoming.filter((swipe) => byUser.has(swipe.fromUserId)).length,
       items: incoming.flatMap((swipe) => {
         const profile = byUser.get(swipe.fromUserId);
         if (!profile) return [];
@@ -220,6 +229,8 @@ export class ProfilesService {
 
   async detail(userId: string, profileId: string) {
     const viewer = await this.ensureProfile(userId);
+    // Masked anonymous-match ids (`anon:<matchId>`) never resolve to a profile.
+    if (!isUuid(profileId)) throw new NotFoundException('Profile not found');
     const profile = await this.profiles.findOne({
       where: [{ id: profileId }, { userId: profileId }],
     });
@@ -265,7 +276,12 @@ export class ProfilesService {
         where: [{ blockerId: userId }, { blockedId: userId }],
       }),
     ]);
-    const result = new Set(swipes.map((item) => item.targetUserId));
+    // Anonymous Campus swipes are not excluded: otherwise the author would
+    // vanish from ordinary Discover right after the swipe, letting the viewer
+    // identify them by diffing the list before and after.
+    const result = new Set(
+      swipes.filter((item) => !item.anonymous).map((item) => item.targetUserId),
+    );
     for (const block of blocks) {
       result.add(block.blockerId === userId ? block.blockedId : block.blockerId);
     }

@@ -6,6 +6,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import vn.ptit.fwp.AppContainer
@@ -34,23 +35,30 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
     fun setNotifications(enabled: Boolean) = viewModelScope.launch { settingsStore.setNotifications(enabled) }
-    fun setProfileVisible(visible: Boolean) = viewModelScope.launch { settingsStore.setProfileVisible(visible) }
+    fun setProfileVisible(visible: Boolean) = viewModelScope.launch {
+        if (canEditDemoPrivacy(settingsStore.settings.first())) settingsStore.setProfileVisible(visible)
+    }
     fun setDemoMode(enabled: Boolean) = viewModelScope.launch { settingsStore.setDemoMode(enabled) }
-    fun setShowGpa(show: Boolean) = viewModelScope.launch { settingsStore.setShowGpa(show) }
-    fun setShowLocation(show: Boolean) = viewModelScope.launch { settingsStore.setShowLocation(show) }
+    fun setShowGpa(show: Boolean) = viewModelScope.launch {
+        if (canEditDemoPrivacy(settingsStore.settings.first())) settingsStore.setShowGpa(show)
+    }
+    fun setShowLocation(show: Boolean) = viewModelScope.launch {
+        if (canEditDemoPrivacy(settingsStore.settings.first())) settingsStore.setShowLocation(show)
+    }
     fun setLocationEnabled(enabled: Boolean) = viewModelScope.launch { settingsStore.setLocationEnabled(enabled) }
 
     fun logOut() {
         viewModelScope.launch {
-            settingsStore.signOut()
-            _loggedOut.value = true
+            try {
+                container.backendSession.logout()
+                _loggedOut.value = true
+            } catch (_: Exception) { _message.value = "Không thể xóa phiên trên thiết bị. Hãy thử đăng xuất lại." }
         }
     }
 
     fun deleteAccount() {
         viewModelScope.launch {
-            container.repository.clearAll()
-            _deleted.value = true
+            _message.value = "Xóa tài khoản backend chưa được hỗ trợ. Không có dữ liệu nào bị xóa."
         }
     }
 

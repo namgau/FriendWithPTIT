@@ -228,6 +228,7 @@ data class CompatibilityReport(
 )
 
 data class MyProfileDraft(
+    val fullName: String = "",
     val nickname: String = "",
     val age: Int = 20,
     val gender: Gender = Gender.FEMALE,

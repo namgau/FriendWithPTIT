@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -107,7 +108,7 @@ fun ProfileSetupScreen(
             title = if (editMode) "Chỉnh sửa hồ sơ" else "Hoàn thiện hồ sơ",
             subtitle = "Bước ${state.step + 1}/${state.totalSteps} · ${stepTitle(state.step)}",
             onBack = {
-                if (state.step > 0) viewModel.back() else onExit()
+                if (state.step > 0) viewModel.back() else if (editMode) onExit()
             }
         )
         StepProgress(current = state.step, total = state.totalSteps, modifier = Modifier.padding(horizontal = 20.dp))
@@ -119,7 +120,8 @@ fun ProfileSetupScreen(
         ) {
             if (!state.loaded) {
                 Box(Modifier.fillMaxWidth().height(220.dp), contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.CircularProgressIndicator()
+                    if (state.error == null) androidx.compose.material3.CircularProgressIndicator()
+                    else Column { Text(state.error.orEmpty(), color = MaterialTheme.colorScheme.error); TextButton(onClick = viewModel::load) { Text("Thử lại") } }
                 }
                 return@Column
             }
@@ -148,6 +150,7 @@ fun ProfileSetupScreen(
                         modifier = Modifier.padding(12.dp)
                     )
                 }
+                if (state.conflict) TextButton(onClick = viewModel::load) { Text("Bỏ bản sửa và tải lại hồ sơ") }
             }
             Spacer(Modifier.height(24.dp))
         }
@@ -172,6 +175,7 @@ fun ProfileSetupScreen(
                 },
                 icon = if (state.step == state.totalSteps - 1) Icons.Rounded.Check else null,
                 loading = state.saving,
+                enabled = state.loaded && !state.saving,
                 onClick = viewModel::next,
                 modifier = Modifier.weight(1f)
             )
@@ -225,7 +229,7 @@ private fun BasicStep(
         Column(Modifier.weight(1f)) {
             Text("Ảnh đại diện", style = MaterialTheme.typography.titleSmall)
             Text(
-                "Chọn ảnh từ thiết bị hoặc dùng chân dung minh họa. Trong khám phá, ảnh luôn được làm mờ đến khi đủ điều kiện mở.",
+                if (state.backendProfile) "Backend chỉ lưu kiểu chân dung minh họa; ảnh thiết bị không được tải lên." else "Chọn ảnh từ thiết bị hoặc dùng chân dung minh họa.",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -267,6 +271,10 @@ private fun BasicStep(
         }
     }
     Spacer(Modifier.height(20.dp))
+    if (state.backendProfile) {
+        FwpTextField(value = state.draft.fullName, onValueChange = viewModel::setFullName, label = "Họ tên trên hồ sơ backend")
+        Spacer(Modifier.height(16.dp))
+    }
     FwpTextField(
         value = state.draft.nickname,
         onValueChange = viewModel::setNickname,

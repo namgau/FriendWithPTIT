@@ -35,26 +35,95 @@ Khi `FWP_AI_BASE_URL` trống, app dùng các engine quy tắc cục bộ và hi
 
 ## Chạy demo
 
-- Mở app → Onboarding → **Dùng chế độ demo** (hoặc đăng nhập OTP).
-- Email demo: `demo@ptit.edu.vn`; OTP: `123456`.
+- Đăng ký hoặc đăng nhập bằng email và mật khẩu qua backend. Tài khoản này cũng
+  được dùng cho Campus Feed; không tự đăng nhập qua OTP demo.
+- Trong bản debug có thể chọn **demo trên thiết bị**. Demo local không có phiên
+  backend và không truy cập Campus; hồ sơ và lịch sử Room hiện có được giữ lại.
 - Dữ liệu demo: 20 hồ sơ, 3 cuộc trò chuyện, thông báo và match có sẵn.
 - Chat demo tự trả lời sau vài giây; nút gợi ý mở đầu và phân tích M2/M3 hoạt động offline.
 - Mở **Khám phá → Bản đồ** để xem hồ sơ quanh bạn. Khi có `MAPS_API_KEY`, app dùng
   Google Maps; nếu không có key, app hiển thị bản đồ radar mô phỏng và danh sách
   khoảng cách, không crash.
+- **Campus Feed** là tab riêng, dùng backend NestJS thật: đăng bài ẩn danh, ảnh,
+  like, bookmark, bình luận, báo cáo và Swipe tác giả `DISCOVERABLE`. Cần chạy
+  backend và build với `-PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/`; nếu thiếu
+  cấu hình, tab hiển thị hướng dẫn thay vì dữ liệu giả.
+- Session backend được mã hóa bằng Android Keystore; khi server trả 401, cần đăng
+  nhập lại. Bản release yêu cầu URL backend HTTPS.
+- Backend hiện vẫn cung cấp `/auth/demo` và `/auth/otp/verify` demo có thể cấp
+  token không an toàn. Không triển khai backend này cho production trước khi
+  vô hiệu hóa hoặc thay các endpoint demo bằng xác thực thực sự; Android không
+  gọi chúng trong luồng đăng nhập mới. Backend cũng chưa có thu hồi JWT khi logout.
+- Hồ sơ server hiển thị từ `/auth/me`; bản Room demo không được tự động đồng bộ
+  hay ghi đè. Ảnh hồ sơ từ thiết bị chỉ dành cho demo, backend chưa hỗ trợ upload.
+- Trong phiên backend, **Hôm nay/Khám phá** dùng Discover/Swipe server; **Match**
+  hiển thị kết nối và incoming likes được phép công khai; **Chat** dùng danh sách
+  match server. Hồ sơ, lịch sử, badge và thành tích Room không đại diện tài khoản.
+- Route hồ sơ/chat chọn riêng theo phiên và định dạng ID; Nearby/Double Date vẫn
+  chỉ có trong demo. `authorToken` và `anon:<matchId>` không tra cứu Room hay gửi
+  đến endpoint profile/swipe thông thường. Handle `anon:<matchId>` chỉ dùng block.
+- Campus match được resolve qua `GET /matches/:id` trước khi mở chat thật. Chưa
+  mutual match chỉ thông báo đã gửi lượt thích. Thông báo backend có thể mở chat.
+- Repository ngừng quan sát dữ liệu demo và từ chối thao tác social Room ngoài
+  phiên demo local. Đổi phiên/đăng xuất không xóa Room; trở lại demo dùng lịch sử
+  đã lưu. State Campus và hồ sơ được phân biệt theo tài khoản và thế hệ phiên.
+
+## Social/Match/Chat backend — Phase 3B-III.B
+
+- Dùng backend có migration `1762600000000-SocialChatContracts` của III.A. Mọi
+  request Social được ràng buộc tài khoản/thế hệ phiên qua `BackendSessionManager`;
+  ViewModel cũ không được mượn session mới. Đăng xuất/đổi tài khoản loại state cũ.
+- Match ẩn danh chỉ hiển thị placeholder; consent, eligibility, compatibility và
+  trạng thái match lấy từ server, không dùng engine AI/demo để mở danh tính.
+- Chat gửi TEXT: tạo UUID `clientMessageId` một lần, giữ nguyên request khi retry.
+  409 là conflict, không tự tạo UUID/gửi lại; server ID và UUID được đối soát để
+  loại bubble pending trùng. Các lỗi 4xx không retry được hiển thị là từ chối.
+- Lịch sử giữ nguyên thứ tự trang server, prepend trang cũ, deduplicate server ID;
+  `nextBefore` là chuỗi opaque, Retrofit URL-encode, không chuyển thành Date.
+  Refresh disjoint sẽ thay phần lịch sử đang tải và dùng cursor mới để tránh gap.
+- Refresh thủ công và poll 8 giây khi Chat ở lifecycle STARTED, không WebSocket.
+  Outbox chỉ giữ trong ViewModel: chưa bền qua process death. Tin đã được server
+  nhận vẫn có trong lịch sử; trạng thái gửi chưa chắc chắn không tự resend.
+- Tái sử dụng swipe card, match row, bubble và composer của demo; backend ẩn nút
+  ảnh/trợ lý vì chưa có profile/chat upload contract. Không gửi URI local lên server.
+- Chưa có unread-message/read-receipt API nên không tạo badge chat giả. Thông báo
+  backend có unread riêng, refresh/đánh dấu đọc trong màn Thông báo. Khám phá dạng
+  lưới/map và Double Date backend chưa tích hợp; tab Khám phá dùng deck server.
+- Report endpoint hiện gắn match: báo cáo từ Chat; hồ sơ chưa match hỗ trợ block.
+
+Kiểm thử III.B nằm trong `BackendSocialTest` và `BackendChatStateTest`, gồm DTO,
+Retrofit cursor/retry, mutual match, anonymous/reveal/block/report/unmatch, notification,
+Campus route, logout/đổi tài khoản và reconcile/order/dedup. Các test dùng fake API
+hoặc interceptor trong process; chưa thay thế kiểm thử HTTP Android–NestJS thật,
+Compose navigation, lifecycle/poll và trải nghiệm trên thiết bị.
+
+## Kiểm thử hồi quy Phase 3B-II
+
+```powershell
+.\gradlew.bat :app:compileDebugKotlin :app:testDebugUnitTest :app:assembleDebug --no-daemon --console=plain
+```
+
+- 34 unit test: session/profile (16), cách ly luồng/route/badge/định danh (6),
+  state thống kê/thành tích hồ sơ (3), Campus contract (7), Settings policy (2).
+- Có kiểm tra demo → backend, hai tài khoản backend, logout/login, kết quả request
+  tài khoản cũ và trở lại demo mà lịch sử nguồn vẫn còn nguyên.
+- Đây là test JVM với nguồn dữ liệu/API giả; chưa phải kiểm thử Room SQLite,
+  Compose/back stack, Android Keystore hoặc HTTP end-to-end trên thiết bị thật.
 
 ## Kiến trúc
 
 ```
 app/src/main/java/vn/ptit/fwp/
   core/model        Domain models, filters, catalog trường/khoa
-  core/data         Room entities/DAO, repository, DemoSeed, SettingsStore
+  core/data         Room entities/DAO, repository, DemoSeed, SettingsStore,
+                    CampusRepository (NestJS Campus Feed)
+  core/data/remote  CampusApi/Retrofit + auth/profile sync
   core/ai           RankingEngine (M1), CompatibilityEngine (M2), HealthEngine (M3),
                     ConversationAssistant, RemoteAiClient (FastAPI)
   core/design       Theme PTIT, components, avatar, compatibility orb, celebration
   feature/*         Splash, onboarding, auth, setup, discover, explore, nearby,
                     detail, matches, chats, chat, profile, settings,
-                    notifications, double date
+                    notifications, double date, campus
   navigation        Routes + NavHost
 ```
 

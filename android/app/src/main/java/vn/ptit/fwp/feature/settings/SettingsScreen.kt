@@ -81,6 +81,7 @@ fun SettingsScreen(
     val context = LocalContext.current
     val viewModel = fwpViewModel { SettingsViewModel(container) }
     val settings by viewModel.settings.collectAsState()
+    val demoPrivacyEnabled = canEditDemoPrivacy(settings)
     val message by viewModel.message.collectAsState()
     val loggedOut by viewModel.loggedOut.collectAsState()
     val deleted by viewModel.deleted.collectAsState()
@@ -131,7 +132,7 @@ fun SettingsScreen(
                         Spacer(Modifier.height(6.dp))
                         Surface(shape = RoundedCornerShape(50), color = Color(0xFFE3F2FD)) {
                             Text(
-                                if (settings.email.isNotBlank()) "Đã xác thực trong chế độ demo" else "Chưa xác thực",
+                                if (settings.localDemoSession) "Demo trên thiết bị" else if (settings.authenticated) "Phiên backend" else "Chưa xác thực",
                                 style = MaterialTheme.typography.labelSmall,
                                 color = Color(0xFF1565C0),
                                 modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
@@ -154,6 +155,12 @@ fun SettingsScreen(
                 Spacer(Modifier.height(22.dp))
 
                 SettingsSectionLabel("Quyền riêng tư & an toàn")
+                Text(
+                    "GPA và khoảng cách công khai trên backend được đổi trong Chỉnh sửa hồ sơ. Quyền riêng tư Campus được đổi trong tab Campus.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
                 SettingsToggle(
                     icon = Icons.Rounded.Science,
                     title = "Phân tích hội thoại",
@@ -163,29 +170,32 @@ fun SettingsScreen(
                 )
                 SettingsToggle(
                     icon = Icons.Rounded.Visibility,
-                    title = "Hiển thị hồ sơ",
-                    subtitle = "Cho phép người khác thấy bạn trong gợi ý. Ảnh vẫn luôn được làm mờ.",
+                    title = "Hiển thị hồ sơ (demo local)",
+                    subtitle = "Chỉ là cài đặt demo trên thiết bị; không thay đổi quyền hiển thị hồ sơ backend.",
                     checked = settings.profileVisible,
+                    enabled = demoPrivacyEnabled,
                     onCheckedChange = viewModel::setProfileVisible
                 )
                 SettingsToggle(
                     icon = Icons.Rounded.Security,
-                    title = "Hiển thị GPA",
-                    subtitle = "Tắt để chỉ hiển thị tầng học lực thay vì con số cụ thể.",
+                    title = "Hiển thị GPA (demo local)",
+                    subtitle = "Chỉ lưu trên thiết bị cho demo; không thay đổi GPA công khai trên backend. Sửa quyền này trong hồ sơ backend.",
                     checked = settings.showGpaPublic,
+                    enabled = demoPrivacyEnabled,
                     onCheckedChange = viewModel::setShowGpa
                 )
                 SettingsToggle(
                     icon = Icons.Rounded.LocationOn,
-                    title = "Hiển thị khoảng cách",
-                    subtitle = "Chỉ dùng vị trí ước lượng, không chia sẻ tọa độ chính xác.",
+                    title = "Hiển thị khoảng cách (demo local)",
+                    subtitle = "Chỉ lưu trên thiết bị cho demo; không thay đổi quyền hiển thị trên backend. Sửa quyền này trong hồ sơ backend.",
                     checked = settings.showLocationPublic,
+                    enabled = demoPrivacyEnabled,
                     onCheckedChange = viewModel::setShowLocation
                 )
                 SettingsToggle(
                     icon = Icons.Rounded.LocationOn,
                     title = "Dùng vị trí thiết bị",
-                    subtitle = "Cần quyền vị trí để tính khoảng cách gần đúng giữa các campus.",
+                    subtitle = "Cài đặt quyền trên thiết bị; không thay đổi quyền công khai vị trí trên backend.",
                     checked = settings.locationEnabled,
                     onCheckedChange = { enabled ->
                         if (enabled) {
@@ -225,8 +235,8 @@ fun SettingsScreen(
                 SettingsSectionLabel("Trải nghiệm demo")
                 SettingsToggle(
                     icon = Icons.Rounded.AutoAwesome,
-                    title = "Chế độ demo",
-                    subtitle = "Giữ 20 hồ sơ mẫu và dữ liệu mô phỏng để trải nghiệm đầy đủ tính năng.",
+                    title = "Tùy chọn demo trên thiết bị",
+                    subtitle = "Chỉ lưu tùy chọn local; không chuyển phiên đăng nhập và không thay đổi dữ liệu backend.",
                     checked = settings.demoMode,
                     onCheckedChange = viewModel::setDemoMode
                 )
@@ -293,7 +303,7 @@ fun SettingsScreen(
                 ) {
                     Icon(Icons.Rounded.DeleteOutline, null, tint = PtitRed)
                     Spacer(Modifier.width(11.dp))
-                    Text("Xóa tài khoản và dữ liệu", style = MaterialTheme.typography.titleSmall, color = PtitRed)
+                    Text("Xóa tài khoản (chưa hỗ trợ)", style = MaterialTheme.typography.titleSmall, color = PtitRed)
                 }
                 Spacer(Modifier.height(26.dp))
                 Text(
@@ -316,12 +326,12 @@ fun SettingsScreen(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Xóa toàn bộ dữ liệu?") },
-            text = { Text("Hồ sơ, lượt thích, match, tin nhắn và cài đặt sẽ bị xóa khỏi thiết bị. Hành động này không thể hoàn tác trong demo.") },
+            text = { Text("Tính năng xóa tài khoản backend chưa được hỗ trợ. Dữ liệu hiện có sẽ được giữ lại.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
                     viewModel.deleteAccount()
-                }) { Text("Xóa vĩnh viễn", color = PtitRed) }
+                }) { Text("Đã hiểu", color = PtitRed) }
             },
             dismissButton = {
                 TextButton(onClick = { showDelete = false }) { Text("Giữ lại") }
@@ -347,6 +357,7 @@ private fun SettingsToggle(
     title: String,
     subtitle: String,
     checked: Boolean,
+    enabled: Boolean = true,
     onCheckedChange: (Boolean) -> Unit
 ) {
     Surface(
@@ -373,7 +384,7 @@ private fun SettingsToggle(
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Spacer(Modifier.width(8.dp))
-            Switch(checked = checked, onCheckedChange = onCheckedChange)
+            Switch(checked = checked, onCheckedChange = onCheckedChange, enabled = enabled)
         }
     }
 }

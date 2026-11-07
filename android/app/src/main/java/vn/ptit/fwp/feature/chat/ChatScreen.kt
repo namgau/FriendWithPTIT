@@ -598,7 +598,7 @@ private fun DateDivider(timestamp: Long) {
 }
 
 @Composable
-private fun MessageBubble(message: ChatMessage) {
+internal fun MessageBubble(message: ChatMessage) {
     if (message.type == MessageType.SYSTEM) {
         Box(Modifier.fillMaxWidth().padding(vertical = 6.dp), contentAlignment = Alignment.Center) {
             Surface(
@@ -663,12 +663,14 @@ private fun MessageBubble(message: ChatMessage) {
 }
 
 @Composable
-private fun Composer(
+internal fun Composer(
     value: String,
     onValueChange: (String) -> Unit,
     onSend: () -> Unit,
     onAttach: () -> Unit,
-    onAssistant: () -> Unit
+    onAssistant: () -> Unit,
+    backend: Boolean = false,
+    enabled: Boolean = true
 ) {
     Surface(
         color = MaterialTheme.colorScheme.background,
@@ -679,10 +681,10 @@ private fun Composer(
             Modifier.padding(horizontal = 10.dp, vertical = 8.dp),
             verticalAlignment = Alignment.Bottom
         ) {
-            IconButton(onClick = onAttach) {
+            if (!backend) IconButton(onClick = onAttach) {
                 Icon(Icons.Rounded.AttachFile, contentDescription = "Gửi ảnh", tint = MaterialTheme.colorScheme.onSurfaceVariant)
             }
-            IconButton(onClick = onAssistant) {
+            if (!backend) IconButton(onClick = onAssistant) {
                 Icon(Icons.Rounded.Lightbulb, contentDescription = "Gợi ý mở lời", tint = PtitGold)
             }
             Surface(
@@ -701,6 +703,7 @@ private fun Composer(
                     }
                     BasicTextField(
                         value = value,
+                        enabled = enabled,
                         onValueChange = onValueChange,
                         maxLines = 4,
                         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
@@ -714,7 +717,7 @@ private fun Composer(
                 color = if (value.isBlank()) MaterialTheme.colorScheme.surfaceVariant else PtitRed,
                 modifier = Modifier
                     .size(46.dp)
-                    .clickable(enabled = value.isNotBlank(), onClick = onSend)
+                    .clickable(enabled = enabled && value.isNotBlank(), onClick = onSend)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Icon(

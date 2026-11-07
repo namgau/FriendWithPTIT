@@ -29,7 +29,7 @@ export class ChatController {
       user.userId,
       id,
       before,
-      limit ? Number.parseInt(limit, 10) : 50,
+      limit !== undefined ? Number(limit) : 50,
     );
   }
 

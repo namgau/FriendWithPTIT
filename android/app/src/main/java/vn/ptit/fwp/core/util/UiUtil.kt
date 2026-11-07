@@ -25,8 +25,9 @@ fun appContainer(): AppContainer =
 
 @Composable
 inline fun <reified VM : ViewModel> fwpViewModel(
+    key: String? = null,
     crossinline creator: () -> VM
-): VM = viewModel(factory = SimpleViewModelFactory { creator() })
+): VM = viewModel(key = key, factory = SimpleViewModelFactory { creator() })
 
 fun timeAgo(timestamp: Long): String {
     val diff = System.currentTimeMillis() - timestamp

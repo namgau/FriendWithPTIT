@@ -1,6 +1,8 @@
 package vn.ptit.fwp.feature.main
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
@@ -9,6 +11,7 @@ import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Person
+import androidx.compose.material.icons.rounded.School
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -28,7 +31,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.unit.dp
 import vn.ptit.fwp.AppContainer
+import vn.ptit.fwp.core.data.AppSettings
+import vn.ptit.fwp.core.data.allowsLocalDemo
+import vn.ptit.fwp.core.data.demoCountOrZero
+import vn.ptit.fwp.core.data.presentationIdentity
+import vn.ptit.fwp.feature.social.BackendDiscoverScreen
+import vn.ptit.fwp.feature.social.BackendMatchesScreen
 import vn.ptit.fwp.core.design.PtitRed
+import vn.ptit.fwp.feature.campus.CampusScreen
 import vn.ptit.fwp.feature.chats.ChatsScreen
 import vn.ptit.fwp.feature.discover.DiscoverScreen
 import vn.ptit.fwp.feature.explore.ExploreScreen
@@ -40,6 +50,7 @@ private data class MainTab(val label: String, val icon: ImageVector)
 private val tabs = listOf(
     MainTab("Hôm nay", Icons.Rounded.LocalFireDepartment),
     MainTab("Khám phá", Icons.Rounded.Explore),
+    MainTab("Campus", Icons.Rounded.School),
     MainTab("Match", Icons.Rounded.Favorite),
     MainTab("Chat", Icons.Rounded.Forum),
     MainTab("Tôi", Icons.Rounded.Person)
@@ -60,6 +71,10 @@ fun MainScreen(
     val matches by container.repository.matches.collectAsState(initial = emptyList())
     val profiles by container.repository.profiles.collectAsState(initial = emptyList())
     val swipes by container.repository.swipes.collectAsState(initial = emptyList())
+    val settings by container.settingsStore.settings.collectAsState(initial = AppSettings())
+    val demo = allowsLocalDemo(settings.authenticated, settings.localDemoSession)
+    val generation by container.backendSession.sessionGeneration.collectAsState()
+    val identity = presentationIdentity(settings, generation)
     val unreadMessages = matches.sumOf { it.unreadCount }
     val swipedIds = swipes.map { it.targetId }.toSet()
     val incomingLikes = profiles.count { it.likedYou && it.id !in swipedIds }
@@ -73,8 +88,8 @@ fun MainScreen(
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val badge = when (index) {
-                        2 -> incomingLikes
-                        3 -> unreadMessages
+                        3 -> demoCountOrZero(demo, incomingLikes)
+                        4 -> demoCountOrZero(demo, unreadMessages)
                         else -> 0
                     }
                     NavigationBarItem(
@@ -112,28 +127,41 @@ fun MainScreen(
                 .padding(padding)
         ) {
             when (selected) {
-                0 -> DiscoverScreen(
+                0 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications) else Column {
+                  Text("Khám phá demo trên thiết bị · không đồng bộ tài khoản backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  DiscoverScreen(
                     onOpenChat = onOpenChat,
                     onOpenNotifications = onOpenNotifications
-                )
-                1 -> ExploreScreen(
+                  )
+                }
+                1 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications) else Column {
+                  Text("Hồ sơ gợi ý demo trên thiết bị", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  ExploreScreen(
                     onOpenProfile = onOpenProfile,
-                    onOpenMatches = { selected = 2 },
+                    onOpenMatches = { selected = 3 },
                     onOpenNearby = onOpenNearby
-                )
-                2 -> MatchesScreen(
+                  )
+                }
+                2 -> CampusScreen(onOpenChat = onOpenChat)
+                3 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile) else Column {
+                  Text("Match demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  MatchesScreen(
                     onOpenChat = onOpenChat,
                     onOpenProfile = onOpenProfile,
                     onOpenDoubleDate = onOpenDoubleDate
-                )
-                3 -> ChatsScreen(
+                  )
+                }
+                4 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile, chats = true) else Column {
+                  Text("Chat demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                  ChatsScreen(
                     onOpenChat = onOpenChat,
-                    onOpenMatches = { selected = 2 }
-                )
+                    onOpenMatches = { selected = 3 }
+                  )
+                }
                 else -> ProfileScreen(
                     onEditProfile = onEditProfile,
                     onSettings = onOpenSettings,
-                    onOpenMatches = { selected = 2 }
+                    onOpenMatches = { selected = 3 }
                 )
             }
         }

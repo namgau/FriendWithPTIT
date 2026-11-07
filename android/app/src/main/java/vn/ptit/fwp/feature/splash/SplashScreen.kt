@@ -38,7 +38,7 @@ import vn.ptit.fwp.core.design.PtitRed
 import vn.ptit.fwp.core.design.PtitWhite
 
 @Composable
-fun SplashScreen(darkTheme: Boolean) {
+fun SplashScreen(darkTheme: Boolean, error: String? = null, onRetry: () -> Unit = {}) {
     val transition = rememberInfiniteTransition(label = "splash")
     val orbit by transition.animateFloat(
         initialValue = 0f,
@@ -104,18 +104,19 @@ fun SplashScreen(darkTheme: Boolean) {
             )
             Spacer(Modifier.height(42.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                CircularProgressIndicator(
+                if (error == null) CircularProgressIndicator(
                     color = PtitGold,
                     strokeWidth = 2.4.dp,
                     modifier = Modifier.size(20.dp)
                 )
                 Spacer(Modifier.size(12.dp))
                 Text(
-                    "Đang chuẩn bị không gian của bạn…",
+                    error ?: "Đang chuẩn bị không gian của bạn…",
                     style = MaterialTheme.typography.labelLarge,
                     color = PtitWhite.copy(alpha = 0.78f)
                 )
             }
+            if (error != null) androidx.compose.material3.TextButton(onClick = onRetry) { Text("Thử lại", color = PtitWhite) }
         }
         Text(
             "Dành cho sinh viên · Bản demo cục bộ",
