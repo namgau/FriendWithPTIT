@@ -105,6 +105,8 @@ import vn.ptit.fwp.core.model.PickedCampusImage
 import vn.ptit.fwp.core.data.remote.UpdateCampusSettingsRequest
 import vn.ptit.fwp.core.data.AppSettings
 import vn.ptit.fwp.core.data.presentationIdentity
+import vn.ptit.fwp.feature.social.socialError
+import kotlinx.coroutines.CancellationException
 import vn.ptit.fwp.core.util.appContainer
 import vn.ptit.fwp.core.util.fwpViewModel
 import java.text.SimpleDateFormat
@@ -113,7 +115,7 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CampusScreen() {
+fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
     val container = appContainer()
     val sessionSettings by container.settingsStore.settings.collectAsState(initial = AppSettings())
     val sessionGeneration by container.backendSession.sessionGeneration.collectAsState()
@@ -125,6 +127,8 @@ fun CampusScreen() {
     var composerOpen by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
     var editingPost by remember { mutableStateOf<CampusPost?>(null) }
+    var resolvingMatch by remember(identity) { mutableStateOf(false) }
+    var matchError by remember(identity) { mutableStateOf<String?>(null) }
 
     LaunchedEffect(state.message) {
         val message = state.message ?: return@LaunchedEffect
@@ -339,14 +343,24 @@ fun CampusScreen() {
             title = { Text("Đã match ẩn danh") },
             text = {
                 Text(
-                    "Backend đã tạo match với ${notice.alias} (${notice.matchId}). " +
-                        "Mục Match/Chat trên app hiện vẫn dùng dữ liệu demo local nên chưa hiển thị match này; " +
-                        "danh tính thật vẫn không được trả về qua Campus API."
+                    matchError ?: "Backend đã ghi nhận kết nối với ${notice.alias}. Danh tính tiếp tục được che theo trạng thái reveal của server."
                 )
             },
             confirmButton = {
-                TextButton(onClick = viewModel::dismissMatchNotice) { Text("Tiếp tục") }
-            }
+                TextButton(enabled = !resolvingMatch, onClick = {
+                    resolvingMatch = true; matchError = null
+                    scope.launch {
+                        try {
+                            val match = container.backendSocial.forIdentity(identity).match(notice.matchId)
+                            viewModel.dismissMatchNotice()
+                            onOpenChat(match.id)
+                        } catch (e: CancellationException) { throw e }
+                        catch (e: Exception) { matchError = socialError(e) }
+                        finally { resolvingMatch = false }
+                    }
+                }) { Text(if (resolvingMatch) "Đang mở…" else "Mở trò chuyện") }
+            },
+            dismissButton = { TextButton(onClick = viewModel::dismissMatchNotice) { Text("Để sau") } }
         )
     }
 }

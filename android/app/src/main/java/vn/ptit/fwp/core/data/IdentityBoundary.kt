@@ -26,6 +26,9 @@ internal fun isDemoProfileId(id: String?): Boolean = id != null && id.matches(Re
 internal fun isDemoMatchId(id: String?): Boolean = id != null &&
     (id.startsWith("match-") || id.startsWith("double-")) && id.matches(Regex("[A-Za-z0-9_-]{1,120}"))
 
+internal fun allowsBackendRoute(identity: PresentationIdentity?, id: String): Boolean =
+    identity?.authenticated == true && !identity.demo && backendUuid.matches(id)
+
 internal fun demoCountOrZero(demo: Boolean, count: Int): Int = if (demo) count else 0
 
 /** Unsubscribe from Room outside an explicit demo session; never replay a local row as backend data. */

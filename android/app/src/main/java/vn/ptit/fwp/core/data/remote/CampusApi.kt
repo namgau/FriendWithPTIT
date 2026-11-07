@@ -202,6 +202,40 @@ data class CampusAuthorProfileDto(
 )
 
 interface CampusApi {
+    @GET("notifications")
+    suspend fun notifications(@Header("Authorization") auth: String): SocialNotificationsDto
+    @POST("notifications/read")
+    suspend fun readNotifications(@Header("Authorization") auth: String, @Body request: SocialReadRequest): SocialReadDto
+    @GET("profiles/discover")
+    suspend fun discover(@Header("Authorization") auth: String, @Query("offset") offset: Int, @Query("limit") limit: Int = 30,
+        @Query("modes") modes: String? = null, @Query("gpaTiers") tiers: String? = null,
+        @Query("minAge") minAge: Int = 18, @Query("maxAge") maxAge: Int = 30,
+        @Query("maxDistanceKm") distance: Int? = null, @Query("onlyVerified") verified: Boolean = false,
+        @Query("school") school: String? = null): SocialProfilesDto
+    @GET("profiles/incoming-likes")
+    suspend fun incomingLikes(@Header("Authorization") auth: String): SocialProfilesDto
+    @GET("profiles/{id}")
+    suspend fun socialProfile(@Header("Authorization") auth: String, @Path("id") id: String): SocialProfileDto
+    @POST("swipes")
+    suspend fun swipe(@Header("Authorization") auth: String, @Body request: SocialSwipeRequest): SocialSwipeDto
+    @GET("matches")
+    suspend fun matches(@Header("Authorization") auth: String): SocialMatchesDto
+    @GET("matches/{id}")
+    suspend fun match(@Header("Authorization") auth: String, @Path("id") id: String): SocialMatchDto
+    @POST("matches/{id}/reveal")
+    suspend fun reveal(@Header("Authorization") auth: String, @Path("id") id: String, @Body request: SocialRevealRequest): SocialMatchDto
+    @POST("matches/{id}/unmatch")
+    suspend fun unmatch(@Header("Authorization") auth: String, @Path("id") id: String): SocialActionDto
+    @POST("matches/{id}/report")
+    suspend fun reportMatch(@Header("Authorization") auth: String, @Path("id") id: String, @Body request: SocialReportRequest): SocialActionDto
+    @POST("users/{id}/block")
+    suspend fun blockUser(@Header("Authorization") auth: String, @Path("id") id: String): SocialActionDto
+    @GET("matches/{id}/messages")
+    suspend fun messages(@Header("Authorization") auth: String, @Path("id") id: String,
+        @Query("before") before: String? = null, @Query("limit") limit: Int = 50): SocialMessagesDto
+    @POST("matches/{id}/messages")
+    suspend fun sendMessage(@Header("Authorization") auth: String, @Path("id") id: String, @Body request: SocialSendRequest): SocialMessageDto
+
     @POST("auth/login")
     suspend fun login(@Body request: CredentialsRequest): AuthSessionDto
 

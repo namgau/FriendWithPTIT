@@ -6,6 +6,9 @@ import {
   CampusPost,
   CampusPostComment,
   Profile,
+  Message,
+  Match,
+  Notification,
 } from '../src/database/entities';
 import { CampusService } from '../src/campus/campus.service';
 import { ChatService } from '../src/chat/chat.service';
@@ -975,6 +978,14 @@ function chatFixtures(anonymous: boolean) {
       },
       count: async () => stored.length,
       find: async () => stored.slice().reverse(),
+      createQueryBuilder: () => {
+        const query: any = {
+          where: () => query, addSelect: () => query, orderBy: () => query,
+          addOrderBy: () => query, take: () => query,
+          getRawAndEntities: async () => ({ entities: stored.slice().reverse(), raw: [] }),
+        };
+        return query;
+      },
     } as any,
     { findOne: async () => match, save: async (m: any) => m } as any,
     {
@@ -991,6 +1002,13 @@ function chatFixtures(anonymous: boolean) {
       },
     } as any,
   );
+  // Keep the privacy fixture in-memory; transaction/concurrency semantics are
+  // covered separately against PostgreSQL in social-chat.test.ts.
+  const repositories = [Message, Match, Profile, Notification];
+  const values = [(chat as any).messages, (chat as any).matches, (chat as any).profiles, (chat as any).notifications];
+  (chat as any).messages.manager = {
+    transaction: async (work: any) => work({ getRepository: (entity: any) => values[repositories.indexOf(entity)] }),
+  };
   return { chat, notifications };
 }
 

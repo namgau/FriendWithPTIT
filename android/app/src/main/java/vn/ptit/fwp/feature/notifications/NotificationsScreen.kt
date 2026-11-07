@@ -86,7 +86,7 @@ fun NotificationsScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun NotificationRow(item: FwpNotification) {
+internal fun NotificationRow(item: FwpNotification) {
     val tint = when (item.type) {
         NotificationType.MATCH -> PtitRed
         NotificationType.MESSAGE -> Color(0xFF1565C0)

@@ -158,6 +158,10 @@ export class ProfilesService {
     const viewer = await this.ensureProfile(userId);
     const mine = await this.swipes.find({ where: { fromUserId: userId } });
     const alreadySwiped = new Set(mine.map((item) => item.targetUserId));
+    const blockedPairs = await this.blocks.find({
+      where: [{ blockerId: userId }, { blockedId: userId }],
+    });
+    const blocked = new Set(blockedPairs.map((item) => item.blockerId === userId ? item.blockedId : item.blockerId));
     const incoming = (
       await this.swipes.find({ where: { targetUserId: userId } })
     ).filter(
@@ -166,13 +170,14 @@ export class ProfilesService {
         // Likes sent through anonymous Campus discovery must not reveal the
         // sender here; they only surface as an anonymous match.
         !item.anonymous &&
+        !blocked.has(item.fromUserId) &&
         !alreadySwiped.has(item.fromUserId),
     );
     if (!incoming.length) return { total: 0, items: [] };
     const profiles = await this.profiles.find();
     const byUser = new Map(profiles.map((profile) => [profile.userId, profile]));
     return {
-      total: incoming.length,
+      total: incoming.filter((swipe) => byUser.has(swipe.fromUserId)).length,
       items: incoming.flatMap((swipe) => {
         const profile = byUser.get(swipe.fromUserId);
         if (!profile) return [];

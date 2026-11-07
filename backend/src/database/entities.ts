@@ -210,9 +210,14 @@ export class Match {
 
 @Entity('messages')
 @Index(['matchId', 'createdAt'])
+@Index('IDX_messages_history', ['matchId', 'createdAt', 'id'])
+@Index('IDX_messages_client_send', ['matchId', 'senderId', 'clientMessageId'], { unique: true })
 export class Message {
   @PrimaryGeneratedColumn('uuid')
   id: string;
+
+  @Column({ name: 'client_message_id', type: 'uuid', nullable: true })
+  clientMessageId: string | null;
 
   @Index()
   @Column({ name: 'match_id' })

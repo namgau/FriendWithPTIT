@@ -1,10 +1,12 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { LessThan, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
+import { isDeepStrictEqual } from 'node:util';
 import {
   Match,
   Message,
@@ -13,6 +15,7 @@ import {
 } from '../database/entities';
 import { isIdentityRevealed, maskedIdentityId } from '../common/anonymity';
 import { SendMessageDto } from './chat.dto';
+import { decodeChatCursor, encodeChatCursor } from './chat.cursor';
 
 @Injectable()
 export class ChatService {
@@ -25,41 +28,69 @@ export class ChatService {
   ) {}
 
   async list(userId: string, matchId: string, before?: string, limit = 50) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new BadRequestException('Message limit must be between 1 and 100');
+    const cursor = before !== undefined ? decodeChatCursor(before, matchId) : null;
     const match = await this.loadMatch(userId, matchId);
     const masked = await this.isMasked(match);
-    const capped = Math.min(Math.max(limit, 1), 100);
-    const beforeDate = before ? new Date(before) : null;
-    const where = beforeDate
-      ? { matchId: match.id, createdAt: LessThan(beforeDate) }
-      : { matchId: match.id };
-    const descending = await this.messages.find({
-      where,
-      order: { createdAt: 'DESC' },
-      take: capped + 1,
-    });
-    const hasMore = descending.length > capped;
-    const page = descending.slice(0, capped).reverse();
+    const query = this.messages.createQueryBuilder('message')
+      .where('message.matchId = :matchId', { matchId: match.id })
+      // Preserve PostgreSQL microseconds: JS Date alone loses cursor precision.
+      .addSelect(`to_char(message.createdAt, 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`, 'cursor_time')
+      .orderBy('message.createdAt', 'DESC').addOrderBy('message.id', 'DESC').take(limit + 1);
+    if (cursor) {
+      query.andWhere(cursor.id
+        ? '(message.createdAt, message.id) < (CAST(:time AS timestamp), CAST(:id AS uuid))'
+        : 'message.createdAt < CAST(:time AS timestamp)', { time: cursor.time, id: cursor.id });
+    }
+    const { entities: descending, raw } = await query.getRawAndEntities();
+    const hasMore = descending.length > limit;
+    const page = descending.slice(0, limit).reverse();
+    const nextBefore = hasMore && page.length
+      ? encodeChatCursor(match.id, raw[limit - 1].cursor_time, page[0].id) : null;
     return {
       total: await this.messages.count({ where: { matchId: match.id } }),
       hasMore,
-      nextBefore: hasMore && page.length ? page[0].createdAt : null,
+      nextBefore,
       items: page.map((message) => this.view(message, userId, masked)),
     };
   }
 
   async send(userId: string, matchId: string, dto: SendMessageDto) {
-    const match = await this.loadMatch(userId, matchId);
+    // Serialize sends in a conversation and commit message + notification together.
+    // The unique index is also enforced independently by PostgreSQL.
+    return this.messages.manager.transaction(async (manager) => {
+      const scoped = new ChatService(manager.getRepository(Message), manager.getRepository(Match),
+        manager.getRepository(Profile), manager.getRepository(Notification));
+      return scoped.sendInTransaction(userId, matchId, dto);
+    });
+  }
+
+  private async sendInTransaction(userId: string, matchId: string, dto: SendMessageDto) {
+    const match = await this.loadMatch(userId, matchId, true);
     const text = dto.text.trim();
     if (!text) {
       throw new BadRequestException('Message text is required');
+    }
+    const type = dto.type ?? 'TEXT';
+    const meta = dto.meta ?? null;
+    const clientMessageId = dto.clientMessageId?.toLowerCase() ?? null;
+    if (clientMessageId) {
+      const existing = await this.messages.findOne({ where: { matchId, senderId: userId, clientMessageId } });
+      if (existing) {
+        if (existing.text !== text || existing.type !== type || !isDeepStrictEqual(existing.meta, meta)) {
+          throw new ConflictException('Message identifier already used with a different payload');
+        }
+        return this.view(existing, userId, await this.isMasked(match));
+      }
     }
     const message = await this.messages.save(
       this.messages.create({
         matchId: match.id,
         senderId: userId,
+        clientMessageId,
         text,
-        type: dto.type ?? 'TEXT',
-        meta: dto.meta ?? null,
+        type,
+        meta,
       }),
     );
     match.lastMessageAt = message.createdAt;
@@ -96,8 +127,8 @@ export class ChatService {
     return !isIdentityRevealed(match, count);
   }
 
-  private async loadMatch(userId: string, matchId: string): Promise<Match> {
-    const match = await this.matches.findOne({ where: { id: matchId } });
+  private async loadMatch(userId: string, matchId: string, lock = false): Promise<Match> {
+    const match = await this.matches.findOne({ where: { id: matchId }, ...(lock ? { lock: { mode: 'pessimistic_write' as const } } : {}) });
     if (!match) throw new NotFoundException('Match not found');
     if (match.userAId !== userId && match.userBId !== userId) {
       throw new NotFoundException('Match not found');
@@ -119,6 +150,7 @@ export class ChatService {
       meta: message.meta,
       createdAt: message.createdAt,
       isMine: message.senderId === viewerId,
+      ...(message.senderId === viewerId && message.clientMessageId ? { clientMessageId: message.clientMessageId } : {}),
     };
   }
 }

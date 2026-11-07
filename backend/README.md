@@ -69,6 +69,65 @@ npm run start:dev
 Mọi endpoint (trừ auth, health và `/campus/media/:file`) dùng header
 `Authorization: Bearer <token>`.
 
+## Hợp đồng Social/Chat — Phase 3B-III.A
+
+### Gửi tin nhắn và retry
+
+`POST /matches/:id/messages` nhận:
+
+```json
+{
+  "clientMessageId": "930d2775-6bde-4c54-8174-6bab04994b9f",
+  "text": "Xin chào",
+  "type": "TEXT",
+  "meta": null
+}
+```
+
+- Client tạo UUID **một lần cho mỗi lần gửi logic**, giữ nguyên UUID/payload khi
+  timeout hoặc retry. Unique key là `(matchId, senderId, clientMessageId)`.
+- Retry cùng nội dung trả `201` với message ID/thời gian gốc; không thêm message,
+  notification hoặc cập nhật lại thời gian tin cuối. Text được trim; mặc định
+  `type=TEXT`, `meta=null`; thứ tự key object trong meta không ảnh hưởng so sánh.
+- Tái dùng UUID với text/type/meta khác trả `409`. Gửi lại sau unmatch/block hoặc
+  từ tài khoản không thuộc match vẫn bị từ chối, không bỏ qua authorization.
+- Message/notification/thời gian tin cuối commit trong cùng transaction. Gửi đồng
+  thời trong một conversation được tuần tự hóa bằng row lock và unique index DB.
+- `clientMessageId` trong response/history chỉ trả cho chính người gửi; đối phương
+  không nhận UUID này. Quy tắc che sender trong match ẩn danh được giữ nguyên.
+- Client cũ có thể bỏ `clientMessageId` (hoặc dùng null); vẫn gửi được nhưng **không
+  được bảo đảm chống gửi trùng khi retry**. Android mới phải luôn cấp UUID.
+
+### Phân trang lịch sử
+
+`GET /matches/:id/messages?limit=50&before=<cursor>`:
+
+- `limit` là số nguyên 1..100, mặc định 50; sai định dạng trả `400`.
+- Trang lấy các tin mới nhất trước cursor và trả `items` theo thứ tự tăng dần
+  `(createdAt, id)`, phù hợp hiển thị chronological. Khi ghép lịch sử, prepend cả
+  trang cũ; không đảo lại hoặc chỉ sắp xếp theo timestamp phía client.
+- Response giữ `{ total, hasMore, nextBefore, items }`. `nextBefore` nay là chuỗi
+  opaque `v1.…` hoặc null, chứa match ID + timestamp đầy đủ microsecond + message
+  UUID. Client phải lưu/truyền lại nguyên chuỗi (URL encode), không parse thành Date.
+- Cursor sai định dạng/khác conversation trả `400`. Cursor không phải token cấp
+  quyền: server vẫn kiểm tra thành viên và match đang hoạt động.
+- ISO timestamp `before` kiểu cũ vẫn được chấp nhận, nhưng không có secondary ID
+  nên không bảo đảm đầy đủ ở ranh giới cùng timestamp. Chỉ cursor mới có bảo đảm đó.
+- Tin mới ở đầu lịch sử được lấy bằng refresh không cursor. Việc tải trang cũ
+  không phải snapshot toàn bộ cuộc trò chuyện tại một thời điểm.
+
+### Incoming likes và migration
+
+- `GET /profiles/incoming-likes` loại block theo cả hai chiều phía server; tiếp tục
+  ẩn lượt thích Campus anonymous, PASS và người viewer đã swipe. `total` khớp items.
+- Migration mới: `1762600000000-SocialChatContracts.ts`, thêm nullable UUID và hai
+  index; không sửa/xóa message cũ. Chạy migration lên DB đích trước khi dùng code
+  mới nếu `DB_SYNCHRONIZE=false`; không chạy trên DB dev chỉ để thử nghiệm.
+- Test hữu hạn: `npm run test:social-chat`. Đặt `CAMPUS_TEST_ADMIN_URL` tới PostgreSQL
+  localhost riêng có quyền tạo DB và PostGIS; test tạo/xóa DB `social_chat_it_*`,
+  mở HTTP trên cổng loopback ngẫu nhiên và tự đóng sau khi chạy. Không đặt biến này
+  thì các test DB/HTTP sẽ skip; cần có DB cô lập để xác minh đầy đủ.
+
 ## Ghi chú kỹ thuật
 
 - TypeORM `synchronize=true` cho demo; production nên dùng migration.

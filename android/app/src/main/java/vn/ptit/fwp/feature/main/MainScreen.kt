@@ -34,6 +34,9 @@ import vn.ptit.fwp.AppContainer
 import vn.ptit.fwp.core.data.AppSettings
 import vn.ptit.fwp.core.data.allowsLocalDemo
 import vn.ptit.fwp.core.data.demoCountOrZero
+import vn.ptit.fwp.core.data.presentationIdentity
+import vn.ptit.fwp.feature.social.BackendDiscoverScreen
+import vn.ptit.fwp.feature.social.BackendMatchesScreen
 import vn.ptit.fwp.core.design.PtitRed
 import vn.ptit.fwp.feature.campus.CampusScreen
 import vn.ptit.fwp.feature.chats.ChatsScreen
@@ -70,6 +73,8 @@ fun MainScreen(
     val swipes by container.repository.swipes.collectAsState(initial = emptyList())
     val settings by container.settingsStore.settings.collectAsState(initial = AppSettings())
     val demo = allowsLocalDemo(settings.authenticated, settings.localDemoSession)
+    val generation by container.backendSession.sessionGeneration.collectAsState()
+    val identity = presentationIdentity(settings, generation)
     val unreadMessages = matches.sumOf { it.unreadCount }
     val swipedIds = swipes.map { it.targetId }.toSet()
     val incomingLikes = profiles.count { it.likedYou && it.id !in swipedIds }
@@ -122,14 +127,14 @@ fun MainScreen(
                 .padding(padding)
         ) {
             when (selected) {
-                0 -> if (!demo) LocalDemoUnavailable() else Column {
+                0 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications) else Column {
                   Text("Khám phá demo trên thiết bị · không đồng bộ tài khoản backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
                   DiscoverScreen(
                     onOpenChat = onOpenChat,
                     onOpenNotifications = onOpenNotifications
                   )
                 }
-                1 -> if (!demo) LocalDemoUnavailable() else Column {
+                1 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications) else Column {
                   Text("Hồ sơ gợi ý demo trên thiết bị", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
                   ExploreScreen(
                     onOpenProfile = onOpenProfile,
@@ -137,8 +142,8 @@ fun MainScreen(
                     onOpenNearby = onOpenNearby
                   )
                 }
-                2 -> CampusScreen()
-                3 -> if (!demo) LocalDemoUnavailable() else Column {
+                2 -> CampusScreen(onOpenChat = onOpenChat)
+                3 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile) else Column {
                   Text("Match demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
                   MatchesScreen(
                     onOpenChat = onOpenChat,
@@ -146,7 +151,7 @@ fun MainScreen(
                     onOpenDoubleDate = onOpenDoubleDate
                   )
                 }
-                4 -> if (!demo) LocalDemoUnavailable() else Column {
+                4 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile, chats = true) else Column {
                   Text("Chat demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
                   ChatsScreen(
                     onOpenChat = onOpenChat,
@@ -160,12 +165,5 @@ fun MainScreen(
                 )
             }
         }
-    }
-}
-
-@Composable
-private fun LocalDemoUnavailable() {
-    Box(Modifier.fillMaxSize(), contentAlignment = androidx.compose.ui.Alignment.Center) {
-        Text("Khám phá, Match và Chat backend chưa tích hợp. Dữ liệu demo trên thiết bị được giữ riêng và không hiển thị trong tài khoản này.", modifier = Modifier.padding(24.dp))
     }
 }

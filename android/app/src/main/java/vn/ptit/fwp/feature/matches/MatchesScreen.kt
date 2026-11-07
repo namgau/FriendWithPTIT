@@ -149,7 +149,7 @@ fun MatchesScreen(
 }
 
 @Composable
-private fun IncomingLikeCard(like: IncomingLikeData, onClick: () -> Unit) {
+internal fun IncomingLikeCard(like: IncomingLikeData, onClick: () -> Unit) {
     val profile = like.profile
     Box(
         Modifier
@@ -211,7 +211,7 @@ private fun IncomingLikeCard(like: IncomingLikeData, onClick: () -> Unit) {
 }
 
 @Composable
-private fun MatchRow(card: MatchCardData, onClick: () -> Unit) {
+internal fun MatchRow(card: MatchCardData, onClick: () -> Unit) {
     val profile = card.profile
     Surface(
         modifier = Modifier
@@ -264,7 +264,7 @@ private fun MatchRow(card: MatchCardData, onClick: () -> Unit) {
                         modifier = Modifier.weight(1f, fill = false)
                     )
                     Spacer(Modifier.width(5.dp))
-                    if (profile != null && !card.match.isGroup) {
+                    if (profile != null && !card.match.isGroup && (profile.isDemo || profile.showGpa)) {
                         GpaBadge(profile.gpaTier, compact = true)
                     }
                 }

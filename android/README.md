@@ -56,15 +56,46 @@ Khi `FWP_AI_BASE_URL` trống, app dùng các engine quy tắc cục bộ và hi
   gọi chúng trong luồng đăng nhập mới. Backend cũng chưa có thu hồi JWT khi logout.
 - Hồ sơ server hiển thị từ `/auth/me`; bản Room demo không được tự động đồng bộ
   hay ghi đè. Ảnh hồ sơ từ thiết bị chỉ dành cho demo, backend chưa hỗ trợ upload.
-- Match tạo từ Campus đã được backend ghi nhận thật. Trong phiên backend, các tab
-  **Hôm nay/Khám phá/Match/Chat** thông báo chưa tích hợp; không hiển thị hồ sơ,
-  lịch sử, số lượt thích/tin nhắn hoặc thành tích Room như dữ liệu của tài khoản.
-- Các route con hồ sơ demo, chat demo, Nearby, Double Date và thông báo đều kiểm
-  tra phiên trước khi dựng màn hình. `authorToken` và `anon:<matchId>` không được
-  dùng để tra cứu hồ sơ/chat Room. Thông báo match Campus chưa mở chat backend.
+- Trong phiên backend, **Hôm nay/Khám phá** dùng Discover/Swipe server; **Match**
+  hiển thị kết nối và incoming likes được phép công khai; **Chat** dùng danh sách
+  match server. Hồ sơ, lịch sử, badge và thành tích Room không đại diện tài khoản.
+- Route hồ sơ/chat chọn riêng theo phiên và định dạng ID; Nearby/Double Date vẫn
+  chỉ có trong demo. `authorToken` và `anon:<matchId>` không tra cứu Room hay gửi
+  đến endpoint profile/swipe thông thường. Handle `anon:<matchId>` chỉ dùng block.
+- Campus match được resolve qua `GET /matches/:id` trước khi mở chat thật. Chưa
+  mutual match chỉ thông báo đã gửi lượt thích. Thông báo backend có thể mở chat.
 - Repository ngừng quan sát dữ liệu demo và từ chối thao tác social Room ngoài
   phiên demo local. Đổi phiên/đăng xuất không xóa Room; trở lại demo dùng lịch sử
   đã lưu. State Campus và hồ sơ được phân biệt theo tài khoản và thế hệ phiên.
+
+## Social/Match/Chat backend — Phase 3B-III.B
+
+- Dùng backend có migration `1762600000000-SocialChatContracts` của III.A. Mọi
+  request Social được ràng buộc tài khoản/thế hệ phiên qua `BackendSessionManager`;
+  ViewModel cũ không được mượn session mới. Đăng xuất/đổi tài khoản loại state cũ.
+- Match ẩn danh chỉ hiển thị placeholder; consent, eligibility, compatibility và
+  trạng thái match lấy từ server, không dùng engine AI/demo để mở danh tính.
+- Chat gửi TEXT: tạo UUID `clientMessageId` một lần, giữ nguyên request khi retry.
+  409 là conflict, không tự tạo UUID/gửi lại; server ID và UUID được đối soát để
+  loại bubble pending trùng. Các lỗi 4xx không retry được hiển thị là từ chối.
+- Lịch sử giữ nguyên thứ tự trang server, prepend trang cũ, deduplicate server ID;
+  `nextBefore` là chuỗi opaque, Retrofit URL-encode, không chuyển thành Date.
+  Refresh disjoint sẽ thay phần lịch sử đang tải và dùng cursor mới để tránh gap.
+- Refresh thủ công và poll 8 giây khi Chat ở lifecycle STARTED, không WebSocket.
+  Outbox chỉ giữ trong ViewModel: chưa bền qua process death. Tin đã được server
+  nhận vẫn có trong lịch sử; trạng thái gửi chưa chắc chắn không tự resend.
+- Tái sử dụng swipe card, match row, bubble và composer của demo; backend ẩn nút
+  ảnh/trợ lý vì chưa có profile/chat upload contract. Không gửi URI local lên server.
+- Chưa có unread-message/read-receipt API nên không tạo badge chat giả. Thông báo
+  backend có unread riêng, refresh/đánh dấu đọc trong màn Thông báo. Khám phá dạng
+  lưới/map và Double Date backend chưa tích hợp; tab Khám phá dùng deck server.
+- Report endpoint hiện gắn match: báo cáo từ Chat; hồ sơ chưa match hỗ trợ block.
+
+Kiểm thử III.B nằm trong `BackendSocialTest` và `BackendChatStateTest`, gồm DTO,
+Retrofit cursor/retry, mutual match, anonymous/reveal/block/report/unmatch, notification,
+Campus route, logout/đổi tài khoản và reconcile/order/dedup. Các test dùng fake API
+hoặc interceptor trong process; chưa thay thế kiểm thử HTTP Android–NestJS thật,
+Compose navigation, lifecycle/poll và trải nghiệm trên thiết bị.
 
 ## Kiểm thử hồi quy Phase 3B-II
 

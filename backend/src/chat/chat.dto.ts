@@ -3,10 +3,16 @@ import {
   IsObject,
   IsOptional,
   IsString,
+  IsUUID,
   MaxLength,
 } from 'class-validator';
 
 export class SendMessageDto {
+  /** Reuse the same UUID for every retry of one logical send. */
+  @IsOptional()
+  @IsUUID()
+  clientMessageId?: string;
+
   @IsString()
   @MaxLength(2000)
   text: string;

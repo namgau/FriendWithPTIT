@@ -24,6 +24,10 @@ import androidx.navigation.navArgument
 import vn.ptit.fwp.AppContainer
 import vn.ptit.fwp.core.data.allowsDemoRoute
 import vn.ptit.fwp.core.data.presentationIdentity
+import vn.ptit.fwp.core.data.allowsBackendRoute
+import vn.ptit.fwp.feature.social.BackendChatScreen
+import vn.ptit.fwp.feature.social.BackendProfileDetailScreen
+import vn.ptit.fwp.feature.social.BackendNotificationsScreen
 import vn.ptit.fwp.feature.auth.AuthScreen
 import vn.ptit.fwp.feature.chat.ChatScreen
 import vn.ptit.fwp.feature.detail.ProfileDetailScreen
@@ -153,7 +157,9 @@ fun FwpNavHost(container: AppContainer, darkTheme: Boolean) {
             arguments = listOf(navArgument("matchId") { type = NavType.StringType })
         ) { entry ->
             val matchId = entry.arguments?.getString("matchId") ?: return@composable
-            if (allowsDemoRoute(sessionSettings?.authenticated == true, sessionSettings?.localDemoSession == true, Routes.CHAT, matchId))
+            if (allowsBackendRoute(identity, matchId))
+                key(identity, matchId) { BackendChatScreen(identity!!, matchId, onBack = { navController.popBackStack() }) }
+            else if (allowsDemoRoute(sessionSettings?.authenticated == true, sessionSettings?.localDemoSession == true, Routes.CHAT, matchId))
                 ChatScreen(matchId = matchId, onBack = { navController.popBackStack() })
             else DemoRouteUnavailable()
         }
@@ -162,7 +168,9 @@ fun FwpNavHost(container: AppContainer, darkTheme: Boolean) {
             arguments = listOf(navArgument("profileId") { type = NavType.StringType })
         ) { entry ->
             val profileId = entry.arguments?.getString("profileId") ?: return@composable
-            if (allowsDemoRoute(sessionSettings?.authenticated == true, sessionSettings?.localDemoSession == true, Routes.PROFILE, profileId)) ProfileDetailScreen(
+            if (allowsBackendRoute(identity, profileId))
+                key(identity, profileId) { BackendProfileDetailScreen(identity!!, profileId, onBack = { navController.popBackStack() }, onOpenChat = { navController.navigate(Routes.chat(it)) }) }
+            else if (allowsDemoRoute(sessionSettings?.authenticated == true, sessionSettings?.localDemoSession == true, Routes.PROFILE, profileId)) ProfileDetailScreen(
                 profileId = profileId,
                 onBack = { navController.popBackStack() },
                 onOpenChat = { navController.navigate(Routes.chat(it)) }
@@ -180,7 +188,9 @@ fun FwpNavHost(container: AppContainer, darkTheme: Boolean) {
             )
         }
         composable(Routes.NOTIFICATIONS) {
-            if (allowsDemoRoute(sessionSettings?.authenticated == true, sessionSettings?.localDemoSession == true, Routes.NOTIFICATIONS))
+            if (identity?.authenticated == true && !identity.demo)
+                key(identity) { BackendNotificationsScreen(identity, onBack = { navController.popBackStack() }, onOpenChat = { navController.navigate(Routes.chat(it)) }) }
+            else if (allowsDemoRoute(sessionSettings?.authenticated == true, sessionSettings?.localDemoSession == true, Routes.NOTIFICATIONS))
                 NotificationsScreen(onBack = { navController.popBackStack() }) else DemoRouteUnavailable()
         }
         composable(Routes.DOUBLE_DATE) {
