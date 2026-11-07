@@ -4,7 +4,8 @@ Chạy:  python -m src.m3_health.run_ablation_a
 
 Cùng hội thoại, cùng fold forward chaining K=5 với run_head_a (chỉ train ; test khóa tới 20/11).
 Mô hình cố định: LightGBM + none (tốt nhất ở A5) để chỉ đặc trưng thay đổi.
-- X1 (một phần): T1 → T1+T2 tích lũy, và bỏ-từng-nhóm. T3–T5 thêm khi B5 / C1 / B8 xong.
+- X1 (một phần): T1 → T1+T2 tích lũy, và bỏ-từng-nhóm. **+T4** tự thêm khi có cache embedding B8
+  (`embedding_cache.has_cache`) ; PCA đóng băng của C1. T3 thêm khi B5 xong.
 - X4: mô hình học trên toàn bộ train của nguồn, đánh giá trên đúng các fold validation của đích ;
   so với in-domain (học trên outer-train của đích). Brier thô cho thấy lệch prevalence, Brier sau
   prior shift (biết prevalence đích, không cần nhãn đích) cho thấy phần sửa được.
@@ -22,6 +23,7 @@ from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_s
 from src.eval.imbalance import prior_shift
 from src.eval.report import append_ledger, data_hash, mean_sd
 from src.eval.splits import assert_no_group_leak, assert_time_order, forward_chaining
+from src.m3_health.embedding_cache import cache_paths, has_cache, load_cache, t4_for_samples
 from src.m3_health.labels import PROC, ROOT, load_config
 from src.m3_health.run_head_a import MODELS, load
 
@@ -43,6 +45,21 @@ def _fit(X: pd.DataFrame, y: np.ndarray, cols: list[str], seed: int) -> LGBMClas
     return MODELS["lgbm"](seed).fit(X[cols], y)
 
 
+def sets_for(X: pd.DataFrame) -> dict[str, list[str]]:
+    t4 = [c for c in X.columns if c.startswith("t4_")]
+    return {**SETS, "T1+T2+T4": ALL + t4} if t4 else SETS
+
+
+def add_t4(d: str, lab: pd.DataFrame, X: pd.DataFrame) -> pd.DataFrame:
+    from src.m3_health.fit_pca import load_frozen
+    emb, index = load_cache(d)
+    msgs = pd.read_parquet(PROC / d / "messages.parquet",
+                           columns=["conversation_id", "turn_idx", "sender_id", "text"])
+    msgs = msgs[msgs["conversation_id"].isin(lab["conversation_id"].unique())]
+    t4 = t4_for_samples(msgs, lab[["conversation_id", "turn_idx"]], emb, index, pca=load_frozen()[0])
+    return pd.concat([X, t4.set_axis(X.index)], axis=1)
+
+
 def ablation(d: str, data: tuple, cfg: dict) -> pd.DataFrame:
     lab, X = data
     y, groups, start = lab["y"].to_numpy(int), lab["group_id"].to_numpy(), lab["conv_start_s"].to_numpy()
@@ -50,7 +67,7 @@ def ablation(d: str, data: tuple, cfg: dict) -> pd.DataFrame:
     for fold, (tr, va) in enumerate(forward_chaining(groups, start, cfg["cv"]["outer_k"])):
         assert_no_group_leak(groups, tr, va)
         assert_time_order(groups, start, tr, va)
-        for name, cols in SETS.items():
+        for name, cols in sets_for(X).items():
             p = _fit(X.iloc[tr], y[tr], cols, cfg["test_seed"]).predict_proba(X.iloc[va][cols])[:, 1]
             rows.append({"dataset": d, "fold": fold, "set": name, "n_feat": len(cols),
                          "pr_auc": average_precision_score(y[va], p), "roc_auc": roc_auc_score(y[va], p)})
@@ -88,12 +105,16 @@ def write_report(abl: pd.DataFrame, xd: pd.DataFrame, cfg: dict) -> None:
              "| Tập đặc trưng | Số đặc trưng | " + " | ".join(f"{d} PR-AUC | {d} Δ so với đủ" for d in abl.dataset.unique())
              + " |", "|---|---|" + "---|---|" * abl.dataset.nunique()]
     full = abl[abl.set == "T1+T2 (đủ)"].set_index(["dataset", "fold"]).pr_auc
-    for name in SETS:
+    for name in abl.set.unique():
         cells = []
         for d in abl.dataset.unique():
             g = abl[(abl.set == name) & (abl.dataset == d)].set_index(["dataset", "fold"]).pr_auc
+            if g.empty:
+                cells += ["chưa có cache B8", "—"]
+                continue
             cells += [mean_sd(g), "—" if name == "T1+T2 (đủ)" else mean_sd(g - full.loc[g.index])]
-        lines.append(f"| {name} | {len(SETS[name])} | " + " | ".join(cells) + " |")
+        n_feat = abl.loc[abl.set == name, "n_feat"].iloc[0]
+        lines.append(f"| {name} | {n_feat} | " + " | ".join(cells) + " |")
     lines += ["", "Δ so với đủ tính theo cặp cùng fold (âm = bỏ nhóm làm giảm PR-AUC).", "",
               "## X4 — cross-domain E1 ↔ E2", "",
               "Mô hình nguồn học trên **toàn bộ** train của nguồn (60k hội thoại), đánh giá trên các fold validation "
@@ -110,11 +131,15 @@ def write_report(abl: pd.DataFrame, xd: pd.DataFrame, cfg: dict) -> None:
 def main(datasets: list[str]) -> None:
     cfg = load_config()
     data = {d: load(d, cfg) for d in datasets}
+    for d in datasets:
+        if has_cache(d):
+            data[d] = (data[d][0], add_t4(d, *data[d]))
     abl = pd.concat([ablation(d, data[d], cfg) for d in datasets], ignore_index=True)
     xd = pd.concat([cross_domain(s, t, data, cfg) for s, t in (("E1", "E2"), ("E2", "E1"))], ignore_index=True)
     write_report(abl, xd, cfg)
     for d in datasets:
-        dh = data_hash(PROC / d / "labels_headA_train.parquet", PROC / d / "messages.parquet")
+        dh = data_hash(PROC / d / "labels_headA_train.parquet", PROC / d / "messages.parquet",
+                       *([cache_paths(d)[1]] if has_cache(d) else []))
         for name, g in abl[abl.dataset == d].groupby("set", sort=False):
             append_ledger("m3_headA", "A", cfg, dh, [cfg["test_seed"]], f"{d}:ablation:{name}", "pr_auc", g.pr_auc,
                           notes="X1 lgbm none, forward_chaining K=5")
