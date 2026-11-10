@@ -99,9 +99,11 @@ export class ProfilesService {
       if (query.school && candidate.school !== query.school) return false;
       if (query.campus && candidate.campus !== query.campus) return false;
       if (query.faculty && candidate.faculty !== query.faculty) return false;
-      if (query.minAge && candidate.age < query.minAge) return false;
-      if (query.maxAge && candidate.age > query.maxAge) return false;
-      if (query.onlyVerified && !candidate.verified) return false;
+      if (candidate.age < (query.minAge ?? 18)) return false;
+      if (candidate.age > (query.maxAge ?? 30)) return false;
+      if ((query.onlyVerified ?? true) && !candidate.verified) return false;
+      if (query.graduation === 'ALUMNI' && !candidate.alumni) return false;
+      if (query.graduation === 'STUDYING' && candidate.alumni) return false;
       if (q) {
         const haystack = [
           candidate.nickname,
@@ -121,12 +123,17 @@ export class ProfilesService {
     });
 
     let scored = candidates.map((candidate) => {
-      const compatibility = compatibilityScore(viewer, candidate);
+      const norm = (s: string) => s.trim().toLowerCase().replace(/ß/g, 'ss').replace(/ς/g, 'σ').replace(/\s+/g, ' ');
+      const own = new Set((viewer.interests ?? []).map(norm).filter(Boolean));
+      const shared = new Set((candidate.interests ?? []).map(norm).filter((s) => s && own.has(s))).size;
+      const compatibility = Math.min(100, Math.round(100 * shared / Math.max(1, own.size)));
       const distance = distanceKm(viewer.lat, viewer.lng, candidate.lat, candidate.lng);
       return { candidate, compatibility, distance };
     });
-    if (query.maxDistanceKm !== undefined) {
-      scored = scored.filter((item) => item.distance <= query.maxDistanceKm!);
+    const hasViewerLocation = !!viewer.lat && !!viewer.lng;
+    const hasLocation = (p: typeof viewer) => p.showLocationPublic && !!p.lat && !!p.lng;
+    if (query.maxDistanceKm !== undefined && query.maxDistanceKm < 50) {
+      scored = scored.filter((item) => hasViewerLocation && hasLocation(item.candidate) && item.distance <= query.maxDistanceKm!);
     }
 
     const sort = query.sort ?? 'compatibility';
@@ -135,7 +142,19 @@ export class ProfilesService {
       if (sort === 'newest') {
         return b.candidate.createdAt.getTime() - a.candidate.createdAt.getTime();
       }
-      return b.compatibility - a.compatibility;
+      const normal = (s: string) => s.trim().toLowerCase().replace(/ß/g, 'ss').replace(/ς/g, 'σ').replace(/\s+/g, ' ');
+      const own = new Set((viewer.interests ?? []).map(normal).filter(Boolean));
+      const shared = (p: typeof viewer) => new Set((p.interests ?? []).map(normal).filter((s) => s && own.has(s))).size;
+      const tiers = ['EXCELLENT', 'GOOD', 'FAIR', 'AVERAGE'];
+      const rank = (p: typeof viewer) => [shared(p), Number(p.mode === viewer.mode),
+        viewer.campus && p.campus.toLowerCase() === viewer.campus.toLowerCase() ? 2 : viewer.school && p.school.toLowerCase() === viewer.school.toLowerCase() ? 1 : 0,
+        Number(!!viewer.faculty && p.faculty.toLowerCase() === viewer.faculty.toLowerCase()),
+        -Math.abs(tiers.indexOf(p.gpaTier) - tiers.indexOf(viewer.gpaTier)),
+        hasViewerLocation && hasLocation(p) ? -distanceKm(viewer.lat, viewer.lng, p.lat, p.lng) : -Infinity,
+        -Math.abs(viewer.age - p.age)];
+      const ar = rank(a.candidate), br = rank(b.candidate);
+      for (let i = 0; i < ar.length; i++) if (ar[i] !== br[i]) return br[i] - ar[i];
+      return a.candidate.id < b.candidate.id ? -1 : a.candidate.id > b.candidate.id ? 1 : 0;
     });
 
     return {

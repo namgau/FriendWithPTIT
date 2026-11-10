@@ -43,7 +43,7 @@ abstract class BackendScopedViewModel(container: AppContainer, val identity: Pre
 
 data class BackendDiscoverState(
     val loading: Boolean = true, val busy: Boolean = false, val error: String? = null,
-    val profiles: List<SocialProfileDto> = emptyList(), val filters: DiscoveryFilters = DiscoveryFilters(onlyVerified = false),
+    val profiles: List<SocialProfileDto> = emptyList(), val filters: DiscoveryFilters = DiscoveryFilters(),
     val total: Int = 0, val offset: Int = 0, val match: SocialMatchDto? = null, val notice: String? = null
 )
 class BackendDiscoverViewModel(container: AppContainer, identity: PresentationIdentity) : BackendScopedViewModel(container, identity) {

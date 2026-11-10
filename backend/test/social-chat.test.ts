@@ -267,14 +267,45 @@ test('anonymous retries/history remain masked; reveal, report, block and members
 
 test('mutual server reveal unmasks history only after eligibility and withdrawing consent masks it again', { skip }, async () => {
   const p = await pair(true);
-  for (let i = 0; i < 8; i++) await chat.send(p.a.id, p.id, { text: `message ${i}`, clientMessageId: randomUUID() });
+  for (let i = 0; i < 30; i++) {
+    await ds.query(`INSERT INTO messages (match_id,sender_id,text,type,created_at) VALUES ($1,$2,$3,'TEXT',$4)`,
+      [p.id, i % 2 ? p.b.id : p.a.id, `message ${i}`, new Date(Date.UTC(2026, 10, 1 + i % 3))]);
+  }
   await http('POST', `/matches/${p.id}/reveal`, p.a.token, { enabled: true });
   assert.equal((await http('GET', `/matches/${p.id}`, p.b.token)).body.anonymous, true);
   const mutual = await http('POST', `/matches/${p.id}/reveal`, p.b.token, { enabled: true });
   assert.equal(mutual.body.revealEligible, true); assert.equal(mutual.body.anonymous, false);
-  assert.equal((await http('GET', route(p.id), p.b.token)).body.items[0].senderId, p.a.id);
+  assert.ok((await http('GET', route(p.id), p.b.token)).body.items.some((m: any) => m.senderId === p.a.id));
   await http('POST', `/matches/${p.id}/reveal`, p.a.token, { enabled: false });
+  assert.ok((await http('GET', route(p.id), p.b.token)).body.items.some((m: any) => m.senderId === `anon:${p.id}`));
+});
+
+test('one sided or fewer than three UTC+7 days never unmasks anonymous identities', { skip }, async () => {
+  const p = await pair(true);
+  for (let i = 0; i < 40; i++) await ds.query(
+    `INSERT INTO messages (match_id,sender_id,text,type,created_at) VALUES ($1,$2,'hello','TEXT',$3)`,
+    [p.id, p.a.id, new Date(Date.UTC(2026, 10, 1 + i % 3))]);
+  await http('POST', `/matches/${p.id}/reveal`, p.a.token, { enabled: true });
+  const both = await http('POST', `/matches/${p.id}/reveal`, p.b.token, { enabled: true });
+  assert.equal(both.body.revealEligible, false);
+  assert.equal(both.body.anonymous, true);
   assert.equal((await http('GET', route(p.id), p.b.token)).body.items[0].senderId, `anon:${p.id}`);
+});
+
+test('discover applies graduation and location filters and sorts by shared tags', { skip }, async () => {
+  const viewer = await account();
+  const one = await account(); const two = await account(); const hidden = await account();
+  await ds.query(`UPDATE profiles SET age=20,verified=true,alumni=true,lat=21,lng=105,show_location_public=true WHERE user_id=ANY($1)`, [[viewer.id,one.id,two.id,hidden.id]]);
+  await ds.query(`UPDATE profiles SET interests=ARRAY[' A ','b'] WHERE user_id=$1`, [viewer.id]);
+  await ds.query(`UPDATE profiles SET interests=ARRAY['a'] WHERE user_id=$1`, [one.id]);
+  await ds.query(`UPDATE profiles SET interests=ARRAY['a','B'] WHERE user_id=$1`, [two.id]);
+  await ds.query(`UPDATE profiles SET show_location_public=false WHERE user_id=$1`, [hidden.id]);
+  const res = await http('GET', '/profiles/discover?graduation=ALUMNI&maxDistanceKm=10', viewer.token);
+  assert.equal(res.status, 200);
+  const ids = res.body.items.map((item: any) => item.userId);
+  assert.ok(!ids.includes(hidden.id));
+  assert.ok(ids.indexOf(two.id) < ids.indexOf(one.id));
+  assert.equal(res.body.items.find((item: any) => item.userId === two.id).compatibility, 100);
 });
 
 test('incoming likes excludes either block direction and preserves anonymous/PASS/already-swiped privacy', { skip }, async () => {

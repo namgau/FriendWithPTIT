@@ -12,6 +12,7 @@ import vn.ptit.fwp.core.model.HealthReport
 import vn.ptit.fwp.core.model.Profile
 import vn.ptit.fwp.core.model.RankedProfile
 import vn.ptit.fwp.core.model.FwpMatch
+import vn.ptit.fwp.core.model.DiscoveryFilters
 import java.util.concurrent.TimeUnit
 
 class RemoteAiClient(
@@ -34,13 +35,16 @@ class RemoteAiClient(
 
     val isConfigured: Boolean get() = api != null
 
-    suspend fun rank(me: Profile, candidates: List<Profile>): List<RankedProfile>? {
+    suspend fun rank(me: Profile, candidates: List<Profile>, filters: DiscoveryFilters): List<RankedProfile>? {
         val api = api ?: return null
         return runCatching {
             val response = api.rank(
                 RankRequest(
                     viewer = me.toDto(),
-                    candidates = candidates.map { it.toDto() }
+                    candidates = candidates.map { it.toDto() },
+                    filters = RankFiltersDto(filters.modes.map { it.name }, filters.ageRange.first, filters.ageRange.last,
+                        filters.gpaTiers.map { it.name }, filters.sameSchoolOnly, filters.maxDistanceKm,
+                        filters.onlyVerified, filters.graduation.name)
                 )
             )
             val byId = candidates.associateBy { it.id }
@@ -124,12 +128,15 @@ class RemoteAiClient(
         gpaTier = gpaTier.name,
         interests = interests,
         mode = mode.name,
-        distanceKm = distanceKm,
-        alumni = alumni
+        distanceKm = distanceKm.takeIf { showLocation && it >= 0 },
+        alumni = alumni,
+        verified = verified,
+        showLocation = showLocation,
+        blocked = blocked
     )
 
     private fun ChatMessage.toDto() = AiMessageDto(
-        sender = if (isMine) "viewer" else "partner",
+        sender = if (type == vn.ptit.fwp.core.model.MessageType.SYSTEM) "system" else if (isMine) "viewer" else "partner",
         text = text,
         createdAt = createdAt
     )

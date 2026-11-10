@@ -89,14 +89,16 @@ test('both Campus-first and ordinary-first swipes create masked matches', { skip
 test('revealed anonymous history survives unmatch but cannot be reused without a new boundary', { skip: !adminUrl }, async () => {
   const a = await account(), b = await account(), ids = [a.id, b.id].sort();
   const [match] = await ds.query(`INSERT INTO matches (user_a_id,user_b_id,anonymous,compatibility_score,reveal_opt_in_a,reveal_opt_in_b) VALUES ($1,$2,true,90,true,true) RETURNING id`, ids);
-  for (let i = 0; i < 8; i++) assert.equal((await http('POST', `/matches/${match.id}/messages`, a.token, { text: `history ${i}`, clientMessageId: randomUUID() })).status, 201);
+  for (let i = 0; i < 30; i++) await ds.query(
+    `INSERT INTO messages (match_id,sender_id,text,type,created_at) VALUES ($1,$2,$3,'TEXT',$4)`,
+    [match.id, i % 2 ? b.id : a.id, `history ${i}`, new Date(Date.UTC(2026, 10, 1 + i % 3))]);
   const revealed = await http('GET', `/matches/${match.id}`, a.token);
   assert.equal(revealed.status, 200); assert.equal(revealed.body.anonymous, false);
   assert.equal((await http('POST', `/matches/${match.id}/unmatch`, a.token)).status, 200);
   const post = await campusAuthor(b), feed = await http('GET', '/campus/posts', a.token);
   const token = feed.body.items.find((p: any) => p.id === post.id).author.authorToken;
   assert.equal((await http('POST', `/campus/authors/${token}/swipes`, a.token, { action: 'LIKE' })).status, 409);
-  assert.equal(Number((await ds.query(`SELECT count(*) n FROM messages WHERE match_id=$1`, [match.id]))[0].n), 8);
+  assert.equal(Number((await ds.query(`SELECT count(*) n FROM messages WHERE match_id=$1`, [match.id]))[0].n), 30);
   assert.ok((await ds.query(`SELECT unmatched_at FROM matches WHERE id=$1`, [match.id]))[0].unmatched_at);
 });
 

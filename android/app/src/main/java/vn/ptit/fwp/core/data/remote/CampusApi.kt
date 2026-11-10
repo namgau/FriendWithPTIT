@@ -211,7 +211,7 @@ interface CampusApi {
         @Query("modes") modes: String? = null, @Query("gpaTiers") tiers: String? = null,
         @Query("minAge") minAge: Int = 18, @Query("maxAge") maxAge: Int = 30,
         @Query("maxDistanceKm") distance: Int? = null, @Query("onlyVerified") verified: Boolean = false,
-        @Query("school") school: String? = null): SocialProfilesDto
+        @Query("school") school: String? = null, @Query("graduation") graduation: String = "ALL"): SocialProfilesDto
     @GET("profiles/incoming-likes")
     suspend fun incomingLikes(@Header("Authorization") auth: String): SocialProfilesDto
     @GET("profiles/{id}")

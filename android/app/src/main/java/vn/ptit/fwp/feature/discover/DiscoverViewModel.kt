@@ -75,7 +75,7 @@ class DiscoverViewModel(private val container: AppContainer) : ViewModel() {
         val localRanks = RankingEngine.rank(base.me, base.candidates, base.filters)
         val merged = localRanks.map { local ->
             remote[local.profile.id] ?: local
-        }.sortedByDescending { it.score }
+        }
         DiscoverUiState(
             loading = false,
             me = base.me,
@@ -148,7 +148,7 @@ class DiscoverViewModel(private val container: AppContainer) : ViewModel() {
         }
         _refreshing.value = true
         viewModelScope.launch {
-            val remote = container.remoteAi.rank(me, state.deck.map { it.profile })
+            val remote = container.remoteAi.rank(me, state.deck.map { it.profile }, state.filters)
             if (remote.isNullOrEmpty()) {
                 _message.value = "Không kết nối được AI Service. Giữ nguyên thứ hạng từ Quy tắc FwP (fallback)."
             } else {

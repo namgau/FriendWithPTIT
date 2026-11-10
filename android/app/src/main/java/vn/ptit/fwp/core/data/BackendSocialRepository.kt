@@ -41,7 +41,7 @@ class BackendSocialSession internal constructor(
         api.discover(auth, offset, modes = filters.modes.joinToString(",") { it.name },
             tiers = filters.gpaTiers.takeIf { it.size != GpaTier.entries.size }?.joinToString(",") { it.name },
             minAge = filters.ageRange.first, maxAge = filters.ageRange.last,
-            distance = filters.maxDistanceKm, verified = filters.onlyVerified, school = school)
+            distance = filters.maxDistanceKm, verified = filters.onlyVerified, school = school, graduation = filters.graduation.name)
     }
     suspend fun incoming() = call { api, auth -> api.incomingLikes(auth) }
     suspend fun notifications() = call { api, auth -> api.notifications(auth) }

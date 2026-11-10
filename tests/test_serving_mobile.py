@@ -73,7 +73,7 @@ def test_rank_orders_shared_interests_first() -> None:
         distance_km=40.0,
     )
 
-    response = client.post("/m1/rank", json={"viewer": viewer, "candidates": [far, close]})
+    response = client.post("/m1/rank", json={"viewer": viewer, "candidates": [far, close], "filters": {"max_age": 40}})
     assert response.status_code == 200
     body = response.json()
     assert body["model_source"] == "fallback_rules"
@@ -102,7 +102,7 @@ def test_compatibility_reveal_requires_opt_in_and_messages() -> None:
     payload = {
         "viewer_interests": ["Cà phê", "Âm nhạc", "Du lịch", "Lập trình"],
         "partner_interests": ["cà phê", "âm nhạc", "du lịch", "lập trình"],
-        "messages": messages(10),
+        "messages": [{**m, "created_at": 1_700_000_000_000 + (i % 3) * 86_400_000} for i, m in enumerate(messages(30))],
         "viewer_opted_in": True,
         "partner_opted_in": True,
     }
@@ -112,7 +112,7 @@ def test_compatibility_reveal_requires_opt_in_and_messages() -> None:
     assert body["reveal_eligible"] is True
     assert body["blur_level"] == 0.0
     assert body["score"] >= 72
-    assert body["message_count"] == 10
+    assert body["message_count"] == 30
     assert 0 <= body["interest"] <= 100
 
     blocked = client.post("/compat/update", json={**payload, "partner_opted_in": False})

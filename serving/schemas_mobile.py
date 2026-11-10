@@ -26,22 +26,38 @@ class AiProfile(_Contract):
     gpa_tier: str = "GOOD"
     interests: list[str] = Field(default_factory=list)
     mode: str = "FRIENDS"
-    distance_km: float = Field(default=0.0, ge=0.0)
+    distance_km: float | None = Field(default=None, ge=0.0)
     alumni: bool = False
+    verified: bool = True
+    show_location: bool = True
+    blocked: bool = False
+    swiped: bool = False
 
 
 class AiMessage(_Contract):
     sender: Literal["viewer", "partner", "system"] = "viewer"
     text: str = Field(default="", max_length=4000)
-    created_at: int = Field(
+    created_at: int | None = Field(
         default=0,
         description="Unix epoch in milliseconds, matching System.currentTimeMillis().",
     )
 
 
+class RankFilters(_Contract):
+    modes: list[str] = Field(default_factory=lambda: ["DATING", "FRIENDS", "STUDY"])
+    min_age: int = 18
+    max_age: int = 30
+    gpa_tiers: list[str] = Field(default_factory=lambda: ["EXCELLENT", "GOOD", "FAIR", "AVERAGE"])
+    same_school_only: bool = False
+    max_distance_km: float = Field(default=50, ge=0)
+    only_verified: bool = True
+    graduation: Literal["ALL", "STUDYING", "ALUMNI"] = "ALL"
+
+
 class RankRequest(_Contract):
     viewer: AiProfile
     candidates: list[AiProfile] = Field(default_factory=list)
+    filters: RankFilters = Field(default_factory=RankFilters)
     top_k: int | None = Field(default=None, ge=1, le=500)
 
 

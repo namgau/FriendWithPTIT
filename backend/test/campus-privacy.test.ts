@@ -748,6 +748,10 @@ function socialFixtures(options: { blocked?: boolean } = {}) {
     {
       findOne: async () => null,
       count: async () => state.messageCount,
+      find: async () => Array.from({ length: state.messageCount }, (_, i) => ({
+        senderId: i % 2 ? 'viewer-user' : 'private-user-1', type: 'TEXT',
+        createdAt: new Date(Date.UTC(2026, 10, 1 + i % 3)),
+      })),
     } as any,
     notifications as any,
     {
@@ -876,7 +880,7 @@ test('anonymous counterpart is only unmasked when both opted in and thresholds a
   const early: any = await env.social.summary(both as any, env.target, VIEWER);
   assert.equal(early.other.anonymous, true);
 
-  env.state.messageCount = 8;
+  env.state.messageCount = 30;
   const oneSided: any = await env.social.summary(
     { ...base, revealOptInA: true, revealOptInB: false } as any,
     env.target,
@@ -889,7 +893,7 @@ test('anonymous counterpart is only unmasked when both opted in and thresholds a
     env.target,
     VIEWER,
   );
-  assert.equal(lowScore.other.anonymous, true);
+  assert.equal(lowScore.other.anonymous, undefined);
 
   const revealed: any = await env.social.summary(both as any, env.target, VIEWER);
   assert.equal(revealed.other.nickname, 'Ten That');

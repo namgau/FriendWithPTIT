@@ -127,6 +127,9 @@ export class UpdateProfileDto {
 
 export class DiscoverQueryDto {
   @IsOptional()
+  @IsIn(['ALL', 'STUDYING', 'ALUMNI'])
+  graduation?: 'ALL' | 'STUDYING' | 'ALUMNI';
+  @IsOptional()
   @IsString()
   q?: string;
 
