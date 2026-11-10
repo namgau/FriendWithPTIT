@@ -18,6 +18,7 @@ import {
 import {
   MASKED_ID_PREFIX,
   isIdentityRevealed,
+  revealProgress,
   isUuid,
   maskedIdentityId,
 } from '../common/anonymity';
@@ -351,11 +352,11 @@ export class SocialService {
     });
     const revealOptInMe = isA ? match.revealOptInA : match.revealOptInB;
     const revealOptInThem = isA ? match.revealOptInB : match.revealOptInA;
-    // Same thresholds as before; for anonymous matches this is also the exact
-    // condition under which the counterpart's identity is unmasked.
+    const revealMessages = await this.messages.find({ where: { matchId: match.id }, select: ['senderId', 'createdAt', 'type'] });
+    // Anonymous identity and the reveal UI must use the same server-side rule.
     const revealEligible = isIdentityRevealed(
       { ...match, anonymous: true },
-      messageCount,
+      revealProgress(match, revealMessages),
     );
     const masked = match.anonymous === true && !revealEligible;
     return {

@@ -14,8 +14,11 @@ data class AiProfileDto(
     @SerializedName("gpa_tier") val gpaTier: String,
     @SerializedName("interests") val interests: List<String>,
     @SerializedName("mode") val mode: String,
-    @SerializedName("distance_km") val distanceKm: Double,
-    @SerializedName("alumni") val alumni: Boolean
+    @SerializedName("distance_km") val distanceKm: Double?,
+    @SerializedName("alumni") val alumni: Boolean,
+    @SerializedName("verified") val verified: Boolean,
+    @SerializedName("show_location") val showLocation: Boolean,
+    @SerializedName("blocked") val blocked: Boolean
 )
 
 data class AiMessageDto(
@@ -24,9 +27,21 @@ data class AiMessageDto(
     @SerializedName("created_at") val createdAt: Long
 )
 
+data class RankFiltersDto(
+    @SerializedName("modes") val modes: List<String>,
+    @SerializedName("min_age") val minAge: Int,
+    @SerializedName("max_age") val maxAge: Int,
+    @SerializedName("gpa_tiers") val gpaTiers: List<String>,
+    @SerializedName("same_school_only") val sameSchoolOnly: Boolean,
+    @SerializedName("max_distance_km") val maxDistanceKm: Int,
+    @SerializedName("only_verified") val onlyVerified: Boolean,
+    @SerializedName("graduation") val graduation: String
+)
+
 data class RankRequest(
     @SerializedName("viewer") val viewer: AiProfileDto,
-    @SerializedName("candidates") val candidates: List<AiProfileDto>
+    @SerializedName("candidates") val candidates: List<AiProfileDto>,
+    @SerializedName("filters") val filters: RankFiltersDto
 )
 
 data class RankItemDto(

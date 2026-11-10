@@ -545,7 +545,7 @@ private fun CompatibilityCard(
                 )
                 Spacer(Modifier.height(3.dp))
                 Text(
-                    "${compatibility.messageCount}/${CompatibilityEngine.MIN_MESSAGES_TO_REVEAL} tin nhắn · cần từ ${CompatibilityEngine.REVEAL_SCORE} điểm",
+                    "${compatibility.messageCount} tin nhắn · mở khi đủ 30 tin hiệu dụng và 3 ngày chat",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -782,7 +782,7 @@ private fun RevealSheet(state: ChatUiState, onToggle: (Boolean) -> Unit) {
                     Column(Modifier.weight(1f)) {
                         Text("Tôi đồng ý chia sẻ ảnh", style = MaterialTheme.typography.titleSmall)
                         Text(
-                            "Chỉ mở khi cả hai đồng ý, đủ ${CompatibilityEngine.MIN_MESSAGES_TO_REVEAL} tin nhắn và đạt ${CompatibilityEngine.REVEAL_SCORE} điểm.",
+                            "Chỉ mở khi cả hai đồng ý, đủ 30 tin hiệu dụng và 3 ngày chat.",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -799,7 +799,7 @@ private fun RevealSheet(state: ChatUiState, onToggle: (Boolean) -> Unit) {
                 }
                 Spacer(Modifier.height(12.dp))
                 Text(
-                    "Tiến độ: ${compatibility?.messageCount ?: 0}/${CompatibilityEngine.MIN_MESSAGES_TO_REVEAL} tin nhắn · ${compatibility?.score ?: 0}/${CompatibilityEngine.REVEAL_SCORE} điểm tương thích",
+                    "Tổng số tin: ${compatibility?.messageCount ?: 0}. Mốc mở ảnh tính theo tin hiệu dụng của cả hai bên và 3 ngày chat.",
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

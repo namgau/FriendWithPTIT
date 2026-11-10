@@ -69,8 +69,6 @@ NEGATIVE_WORDS = {
 
 DRY_REPLIES = {"chán", "mệt", "buồn", "ừ", "ừm", "ok", "không có gì"}
 
-MIN_MESSAGES_TO_REVEAL = 8
-REVEAL_SCORE = 72
 MIN_HEALTH_MESSAGES = 4
 
 
@@ -107,31 +105,13 @@ def _gpa_rank(value: str) -> int:
 def _rank_score(viewer: AiProfile, candidate: AiProfile) -> tuple[int, list[str]]:
     shared = _shared_interests(viewer.interests, candidate.interests)
     viewer_keys = {_normalise_interest(item) for item in viewer.interests if item.strip()}
-    candidate_keys = {_normalise_interest(item) for item in candidate.interests if item.strip()}
-    union = viewer_keys | candidate_keys
-    jaccard = len(shared) / len(union) if union else 0.0
-
     tier_diff = abs(_gpa_rank(viewer.gpa_tier) - _gpa_rank(candidate.gpa_tier))
-    gpa_score = {0: 1.0, 1: 0.72, 2: 0.44}.get(tier_diff, 0.2)
-    age_diff = abs(viewer.age - candidate.age)
-    age_score = _clamp(1.0 - age_diff / 6.0, 0.0, 1.0)
-    distance_score = _clamp(1.0 - candidate.distance_km / 50.0, 0.0, 1.0)
     same_school = viewer.school.casefold() == candidate.school.casefold() and bool(viewer.school)
     same_campus = viewer.campus.casefold() == candidate.campus.casefold() and bool(viewer.campus)
     same_faculty = viewer.faculty.casefold() == candidate.faculty.casefold() and bool(viewer.faculty)
     same_mode = viewer.mode.casefold() == candidate.mode.casefold()
 
-    raw = (
-        jaccard * 32.0
-        + gpa_score * 20.0
-        + (9.0 if same_school else 0.0)
-        + (4.0 if same_campus else 0.0)
-        + (5.0 if same_faculty else 0.0)
-        + age_score * 10.0
-        + distance_score * 10.0
-        + (10.0 if same_mode else 3.5)
-    )
-    score = _round_half_up(_clamp(raw + 5.0, 12.0, 99.0))
+    score = _round_half_up(_clamp(100 * len(shared) / max(1, len(viewer_keys)), 0, 100))
 
     reasons: list[str] = []
     if shared:
@@ -146,7 +126,7 @@ def _rank_score(viewer: AiProfile, candidate: AiProfile) -> tuple[int, list[str]
         reasons.append("Gần tầng GPA")
     if same_faculty:
         reasons.append("Cùng khoa")
-    if candidate.distance_km <= 3.0:
+    if candidate.show_location and candidate.distance_km is not None and candidate.distance_km <= 3.0:
         reasons.append(f"Cách bạn {candidate.distance_km:.1f} km")
     if not same_mode:
         reasons.append("Khác chế độ kết nối")
@@ -156,6 +136,27 @@ def _rank_score(viewer: AiProfile, candidate: AiProfile) -> tuple[int, list[str]
 
 
 def rank(request: RankRequest) -> RankResponse:
+    filters = request.filters
+    def keep(c: AiProfile) -> bool:
+        known = c.show_location and c.distance_km is not None
+        return (c.id != request.viewer.id and not c.blocked and not c.swiped
+                and c.mode in filters.modes and filters.min_age <= c.age <= filters.max_age
+                and c.gpa_tier in filters.gpa_tiers
+                and (not filters.same_school_only or bool(request.viewer.school) and c.school.casefold() == request.viewer.school.casefold())
+                and (filters.max_distance_km >= 50 or known and c.distance_km <= filters.max_distance_km)
+                and (not filters.only_verified or c.verified)
+                and (filters.graduation == "ALL" or c.alumni == (filters.graduation == "ALUMNI")))
+    def order(c: AiProfile):
+        same_school = bool(request.viewer.school) and request.viewer.school.casefold() == c.school.casefold()
+        same_campus = bool(request.viewer.campus) and request.viewer.campus.casefold() == c.campus.casefold()
+        same_faculty = bool(request.viewer.faculty) and request.viewer.faculty.casefold() == c.faculty.casefold()
+        distance = c.distance_km if c.show_location and c.distance_km is not None else float("inf")
+        return (-len(_shared_interests(request.viewer.interests, c.interests)),
+                -(request.viewer.mode.casefold() == c.mode.casefold()),
+                -(2 if same_campus else 1 if same_school else 0), -same_faculty,
+                abs(_gpa_rank(request.viewer.gpa_tier) - _gpa_rank(c.gpa_tier)),
+                distance, abs(request.viewer.age - c.age), c.id)
+    candidates = sorted((c for c in request.candidates if keep(c)), key=order)
     items = [
         RankItem(
             profile_id=candidate.id,
@@ -163,10 +164,9 @@ def rank(request: RankRequest) -> RankResponse:
             reasons=reasons,
             model_source=FALLBACK_SOURCE,
         )
-        for candidate in request.candidates
+        for candidate in candidates
         for score, reasons in [_rank_score(request.viewer, candidate)]
     ]
-    items.sort(key=lambda item: item.score, reverse=True)
     if request.top_k is not None:
         items = items[: request.top_k]
     return RankResponse(items=items, model_source=FALLBACK_SOURCE)
@@ -222,14 +222,11 @@ def compatibility(request: CompatRequest) -> CompatResponse:
         penalty = 0.0
     score = _round_half_up(_clamp(raw - penalty, 8.0, 99.0))
 
-    both_opted_in = request.viewer_opted_in and request.partner_opted_in
-    reveal_eligible = both_opted_in and count >= request.min_messages and score >= REVEAL_SCORE
-    if reveal_eligible:
-        blur = 0.0
-    elif both_opted_in:
-        blur = _clamp(1.0 - (score - 20) / 82.0, 0.12, 0.92)
-    else:
-        blur = _clamp(1.0 - score / 135.0, 0.55, 0.96)
+    effective = 2 * min(viewer_count, partner_count)
+    days = len({(m.created_at + 7 * 3_600_000) // 86_400_000
+                for m in chat if m.created_at is not None and m.created_at > 0})
+    reveal_eligible = request.viewer_opted_in and request.partner_opted_in and effective >= 30 and days >= 3
+    blur = 0.0 if reveal_eligible else 0.95 - 0.4 * min(effective / 30, 1) - 0.4 * min(days / 3, 1)
 
     return CompatResponse(
         score=score,
@@ -312,7 +309,7 @@ def health(request: HealthRequest) -> HealthResponse:
     short_ratio = sum(1 for message in window if len(message.text.strip()) <= 4) / len(window)
     last = chat[-1]
     now = request.now if request.now is not None else int(time.time() * 1000)
-    gap_hours = max((now - last.created_at) / 3_600_000.0, 0.0)
+    gap_hours = max((now - (last.created_at or 0)) / 3_600_000.0, 0.0)
     negative = (
         sum(
             1

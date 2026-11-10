@@ -622,6 +622,22 @@ internal fun FilterSheet(
             }
         }
         Spacer(Modifier.height(20.dp))
+        Text("Tình trạng học tập", style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            vn.ptit.fwp.core.model.GraduationFilter.entries.forEach { graduation ->
+                FwpChip(
+                    text = when (graduation) {
+                        vn.ptit.fwp.core.model.GraduationFilter.ALL -> "Tất cả"
+                        vn.ptit.fwp.core.model.GraduationFilter.STUDYING -> "Đang học"
+                        vn.ptit.fwp.core.model.GraduationFilter.ALUMNI -> "Đã tốt nghiệp"
+                    },
+                    selected = filters.graduation == graduation,
+                    onClick = { filters = filters.copy(graduation = graduation) }
+                )
+            }
+        }
+        Spacer(Modifier.height(20.dp))
         Row {
             Text("Khoảng cách tối đa", style = MaterialTheme.typography.titleSmall)
             Spacer(Modifier.weight(1f))
@@ -645,11 +661,6 @@ internal fun FilterSheet(
             title = "Chỉ hồ sơ đã xác thực email",
             checked = filters.onlyVerified,
             onCheckedChange = { filters = filters.copy(onlyVerified = it) }
-        )
-        FilterToggle(
-            title = "Dùng khoảng cách ước lượng",
-            checked = filters.useApproximateLocation,
-            onCheckedChange = { filters = filters.copy(useApproximateLocation = it) }
         )
         Spacer(Modifier.height(22.dp))
         Surface(

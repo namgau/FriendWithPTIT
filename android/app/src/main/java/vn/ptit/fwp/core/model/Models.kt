@@ -117,6 +117,8 @@ data class Profile(
         get() = if (showGpa) String.format(java.util.Locale.US, "%.2f", gpa) else "Tầng ${gpaTier.label}"
 }
 
+enum class GraduationFilter { ALL, STUDYING, ALUMNI }
+
 data class DiscoveryFilters(
     val modes: Set<ConnectionMode> = ConnectionMode.entries.toSet(),
     val ageRange: IntRange = 18..30,
@@ -124,7 +126,8 @@ data class DiscoveryFilters(
     val sameSchoolOnly: Boolean = false,
     val maxDistanceKm: Int = 50,
     val onlyVerified: Boolean = true,
-    val useApproximateLocation: Boolean = true
+    val useApproximateLocation: Boolean = true,
+    val graduation: GraduationFilter = GraduationFilter.ALL
 ) {
     val activeCount: Int
         get() = listOf(
@@ -133,7 +136,8 @@ data class DiscoveryFilters(
             gpaTiers.size < GpaTier.entries.size,
             sameSchoolOnly,
             maxDistanceKm < 50,
-            !onlyVerified
+            !onlyVerified,
+            graduation != GraduationFilter.ALL
         ).count { it }
 }
 

@@ -54,12 +54,12 @@ object CompatibilityEngine {
             else -> 0f
         }
         val score = (raw - dataPenalty).coerceIn(8f, 99f).roundToInt()
-        val bothOptIn = match.revealOptInMe && match.revealOptInThem
-        val revealEligible = bothOptIn && count >= MIN_MESSAGES_TO_REVEAL && score >= REVEAL_SCORE
+        val effective = 2 * minOf(myCount, theirCount)
+        val days = chat.filter { it.createdAt > 0 }.map { (it.createdAt + 7 * 3_600_000L) / 86_400_000L }.toSet().size
+        val revealEligible = match.revealOptInMe && match.revealOptInThem && effective >= 30 && days >= 3
         val blur = when {
             revealEligible -> 0f
-            bothOptIn -> (1f - (score - 20) / 82f).coerceIn(0.12f, 0.92f)
-            else -> (1f - score / 135f).coerceIn(0.55f, 0.96f)
+            else -> ((0.95f - 0.40f * (effective / 30f).coerceAtMost(1f) - 0.40f * (days / 3f).coerceAtMost(1f)) * 10000f).roundToInt() / 10000f
         }
         return CompatibilityReport(
             score = score,
@@ -88,6 +88,5 @@ object CompatibilityEngine {
         return ((overlap * 46f) + gpa * 30f + sameCampus * 16f + 8f).coerceIn(18f, 96f).roundToInt()
     }
 
-    const val MIN_MESSAGES_TO_REVEAL = 8
-    const val REVEAL_SCORE = 72
+    const val MIN_MESSAGES_TO_REVEAL = 30
 }

@@ -114,21 +114,24 @@ class ChatViewModel(
         val localCompatibility = if (settings.aiAnalysisEnabled) {
             CompatibilityEngine.analyze(snapshot.me, profile, match, chatMessages)
         } else {
+            val privacy = CompatibilityEngine.analyze(snapshot.me, profile, match, chatMessages)
             CompatibilityReport(
                 score = CompatibilityEngine.previewScore(snapshot.me, profile),
-                blurLevel = 0.92f,
+                blurLevel = privacy.blurLevel,
                 personality = 0,
                 emotion = 0,
                 interest = CompatibilityEngine.previewScore(snapshot.me, profile),
                 messageCount = chatMessages.count { it.type != MessageType.SYSTEM },
-                revealEligible = false,
-                revealed = false,
+                revealEligible = privacy.revealEligible,
+                revealed = privacy.revealed,
                 source = "Chưa bật phân tích hội thoại"
             )
         }
         val compatibility = remoteCompatibility
-            ?.takeIf { it.first == localCompatibility.messageCount }
-            ?.second ?: localCompatibility
+            ?.takeIf { settings.aiAnalysisEnabled && it.first == localCompatibility.messageCount }
+            ?.second?.copy(blurLevel = localCompatibility.blurLevel,
+                revealEligible = localCompatibility.revealEligible, revealed = localCompatibility.revealed)
+            ?: localCompatibility
         val health = if (settings.aiAnalysisEnabled) {
             remoteHealth
                 ?.takeIf { it.first == localCompatibility.messageCount }
@@ -203,17 +206,11 @@ class ChatViewModel(
     }
 
     fun setRevealOptIn(enabled: Boolean) {
-        val state = uiState.value
         viewModelScope.launch {
             repository.setRevealOptIn(matchId, enabled)
-            val compatibility = state.compatibility
             _message.value = when {
                 !enabled -> "Đã tắt chia sẻ ảnh. Ảnh sẽ tiếp tục được làm mờ."
-                compatibility == null -> "Đã bật chia sẻ ảnh."
-                compatibility.revealEligible -> "Cả hai đã đồng ý. Ảnh đã được mở!"
-                compatibility.messageCount < CompatibilityEngine.MIN_MESSAGES_TO_REVEAL ->
-                    "Đã bật. Cần thêm ${CompatibilityEngine.MIN_MESSAGES_TO_REVEAL - compatibility.messageCount} tin nhắn và điểm tương thích từ ${CompatibilityEngine.REVEAL_SCORE}."
-                else -> "Đã bật. Cần điểm tương thích từ ${CompatibilityEngine.REVEAL_SCORE}; hiện tại là ${compatibility.score}."
+                else -> "Đã bật chia sẻ ảnh. Cần cả hai đồng ý, 30 tin hiệu dụng và 3 ngày chat."
             }
         }
     }

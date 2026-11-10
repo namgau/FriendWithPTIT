@@ -66,7 +66,7 @@ fun BackendDiscoverScreen(identity: PresentationIdentity, onOpenChat: (String) -
         }
     }
     if (filters) ModalBottomSheet(onDismissRequest = { filters = false }) {
-        FilterSheet(state.filters, onApply = { filters = false; vm.refresh(it) }, onReset = { filters = false; vm.refresh(DiscoveryFilters(onlyVerified = false)) })
+        FilterSheet(state.filters, onApply = { filters = false; vm.refresh(it) }, onReset = { filters = false; vm.refresh(DiscoveryFilters()) })
     }
     state.notice?.let { notice -> AlertDialog(onDismissRequest = vm::dismissNotice,
         title = { Text(if (state.match != null) "Đã match" else "Đã gửi") }, text = { Text(notice) },

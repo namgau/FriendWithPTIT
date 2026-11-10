@@ -1,7 +1,17 @@
-import { Match } from '../database/entities';
+import { Match, Message } from '../database/entities';
 
-export const MATCH_MIN_MESSAGES = 8;
-export const MATCH_MIN_SCORE = 72;
+export const MATCH_MIN_MESSAGES = 30;
+export const MATCH_MIN_DAYS = 3;
+
+export function revealProgress(match: Pick<Match, 'userAId' | 'userBId'>,
+  messages: Pick<Message, 'senderId' | 'createdAt' | 'type'>[]) {
+  const chat = messages.filter((m) => m.type !== 'SYSTEM' && (m.senderId === match.userAId || m.senderId === match.userBId));
+  const a = chat.filter((m) => m.senderId === match.userAId).length;
+  const b = chat.filter((m) => m.senderId === match.userBId).length;
+  const days = new Set(chat.map((m) => m.createdAt?.getTime()).filter((t): t is number => Number.isFinite(t) && t! > 0)
+    .map((t) => Math.floor((t + 7 * 3_600_000) / 86_400_000))).size;
+  return { effectiveMessages: 2 * Math.min(a, b), days };
+}
 
 /**
  * Matches that originate from anonymous Campus Feed discovery keep the
@@ -11,16 +21,16 @@ export const MATCH_MIN_SCORE = 72;
 export function isIdentityRevealed(
   match: Pick<
     Match,
-    'anonymous' | 'revealOptInA' | 'revealOptInB' | 'compatibilityScore'
+    'anonymous' | 'revealOptInA' | 'revealOptInB'
   >,
-  messageCount: number,
+  progress: { effectiveMessages: number; days: number },
 ): boolean {
   if (!match.anonymous) return true;
   return (
     match.revealOptInA === true &&
     match.revealOptInB === true &&
-    messageCount >= MATCH_MIN_MESSAGES &&
-    match.compatibilityScore >= MATCH_MIN_SCORE
+    progress.effectiveMessages >= MATCH_MIN_MESSAGES &&
+    progress.days >= MATCH_MIN_DAYS
   );
 }
 

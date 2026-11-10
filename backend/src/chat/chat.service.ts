@@ -13,7 +13,7 @@ import {
   Notification,
   Profile,
 } from '../database/entities';
-import { isIdentityRevealed, maskedIdentityId } from '../common/anonymity';
+import { isIdentityRevealed, maskedIdentityId, revealProgress } from '../common/anonymity';
 import { SendMessageDto } from './chat.dto';
 import { decodeChatCursor, encodeChatCursor } from './chat.cursor';
 
@@ -123,8 +123,8 @@ export class ChatService {
   /** Anonymous Campus matches stay masked until the reveal conditions are met. */
   private async isMasked(match: Match): Promise<boolean> {
     if (!match.anonymous) return false;
-    const count = await this.messages.count({ where: { matchId: match.id } });
-    return !isIdentityRevealed(match, count);
+    const messages = await this.messages.find({ where: { matchId: match.id }, select: ['senderId', 'createdAt', 'type'] });
+    return !isIdentityRevealed(match, revealProgress(match, messages));
   }
 
   private async loadMatch(userId: string, matchId: string, lock = false): Promise<Match> {

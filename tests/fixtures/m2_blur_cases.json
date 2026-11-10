@@ -1,0 +1,8 @@
+[
+  {"name":"no_messages","viewer":0,"partner":0,"days":0,"opt_in":false,"blur":0.95},
+  {"name":"one_sided","viewer":40,"partner":0,"days":1,"opt_in":false,"blur":0.8167},
+  {"name":"one_day","viewer":10,"partner":10,"days":1,"opt_in":false,"blur":0.55},
+  {"name":"two_days","viewer":15,"partner":15,"days":2,"opt_in":false,"blur":0.2833},
+  {"name":"no_consent","viewer":15,"partner":15,"days":3,"opt_in":false,"blur":0.15},
+  {"name":"consent","viewer":15,"partner":15,"days":3,"opt_in":true,"blur":0.0}
+]
