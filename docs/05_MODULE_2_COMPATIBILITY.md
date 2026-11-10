@@ -6,6 +6,45 @@
 > Đọc kèm `01_CHUAN_BAO_CAO_AUDITABLE.md`, `03_MODULE_0_DATA_EVAL_SERVING.md`.
 > Module này gồm **4 bài toán con**, mỗi bài có dataset/nhãn/metric riêng, và mỗi bài phải có đủ 5 mục báo cáo (dạng rút gọn cho 2B, 2C).
 
+## 0. Luật app M2 (blur ảnh + quả cầu) — CHỐT 10/11/2026 (A) — bản B-app1 làm theo đúng mục này
+
+> Python (`serving/engines.py`) là bản chuẩn ; Kotlin phải ra cùng kết quả trên bộ ca kiểm thử chung `tests/fixtures/m2_blur_cases.json`.
+
+### 0.1. Đầu vào
+
+- Chỉ tính tin `sender ∈ {viewer, partner}` (bỏ `system`).
+- **Số tin hiệu dụng** `n = 2 × min(số tin viewer, số tin partner)` — một bên nhắn dồn không làm ảnh rõ nhanh hơn.
+- **Số ngày chat** `d` = số **ngày lịch khác nhau** (giờ Việt Nam, UTC+7) có ít nhất 1 tin, chỉ tính tin có `created_at > 0`. Tính từ chính các tin, **không** tính theo thời gian trôi tới hiện tại → bỏ mặc hội thoại thì ảnh không tự rõ.
+- Tin thiếu `created_at` (0 / null) vẫn tính vào `n`, không tính vào `d`.
+
+### 0.2. Công thức
+
+```
+N_FULL = 30 tin hiệu dụng ; D_FULL = 3 ngày
+blur = 0.95 − 0.40 × min(n / N_FULL, 1) − 0.40 × min(d / D_FULL, 1)      # từ 0.95 xuống tối thiểu 0.15
+reveal_eligible = viewer_opted_in AND partner_opted_in AND n ≥ N_FULL AND d ≥ D_FULL
+nếu reveal_eligible: blur = 0.0
+```
+
+| Tình huống | n | d | blur |
+|---|---|---|---|
+| chưa có tin / mọi tin thiếu `created_at` mà n = 0 | 0 | 0 | 0.95 |
+| 10 tin mỗi bên trong 1 ngày | 20 | 1 | 0.95 − 0.267 − 0.133 = **0.55** |
+| 15 tin mỗi bên trong 2 ngày | 30 | 2 | 0.95 − 0.40 − 0.267 = **0.283** |
+| đủ 30 / 3 ngày, chưa cả hai opt-in | 30 | 3 | **0.15** |
+| đủ 30 / 3 ngày, cả hai opt-in | 30 | 3 | **0.0** (hiện rõ) |
+
+- **Vẫn bắt buộc cả hai cùng opt-in** mới hiện rõ (đồng thuận, an toàn). Rút opt-in → quay lại công thức (tối thiểu 0.15).
+- Làm tròn `blur_level` 4 chữ số như hiện tại. Bỏ `min_messages` khỏi điều kiện reveal (thay bằng N_FULL) ; giữ trường trong schema cho tương thích nhưng không dùng.
+
+### 0.3. Quả cầu độ hợp
+
+`score`, `personality`, `emotion`, `interest` giữ cách tính hiện tại, **chỉ để hiển thị**. **Không** còn ảnh hưởng tới blur hay reveal (bỏ điều kiện `score ≥ REVEAL_SCORE`) — tránh việc một luật từ khóa tự đặt quyết định quyền riêng tư.
+
+### 0.4. Ca kiểm thử chung
+
+Tối thiểu: 5 dòng của bảng trên ; ca một bên nhắn 40 tin, bên kia 0 (n = 0) ; ca tin quanh nửa đêm UTC+7 (23:59 và 00:01 là 2 ngày) ; ca có tin `system` ; ca opt-in rồi rút.
+
 ## Mức ưu tiên: **điểm cộng (bonus)**, làm sau M1 và M3
 - **Bắt buộc:** 2B (emotion tiếng Việt, PhoBERT vs TF-IDF) + 2D phiên bản tối giản (aggregation + blur đơn điệu, đánh giá trên S2).
 - **Làm nếu còn thời gian:** 2A (personality), 2C (topic), P1, khảo sát UX, UMAP.

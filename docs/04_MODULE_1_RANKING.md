@@ -5,6 +5,45 @@
 
 > Đọc kèm `01_CHUAN_BAO_CAO_AUDITABLE.md` và `03_MODULE_0_DATA_EVAL_SERVING.md`.
 
+## 0. Luật app M1 — CHỐT 10/11/2026 (A) — bản B-app1 làm theo đúng mục này
+
+> Khớp với bộ lọc đã có trong app (`DiscoveryFilters` ở `android/.../core/model/Models.kt`) để không phải làm lại giao diện.
+> Python (`serving/engines.py`) là bản chuẩn ; Kotlin phải ra **cùng kết quả** trên bộ ca kiểm thử chung (mục 0.3).
+
+### 0.1. Lọc cứng (loại hẳn, chạy trước khi xếp hạng)
+
+| # | Điều kiện giữ ứng viên | Mặc định | Ghi chú |
+|---|---|---|---|
+| 1 | không phải chính mình ; không bị chặn **hai chiều** ; chưa quẹt (LIKE / PASS / SUPER_LIKE) | — | |
+| 2 | `mode` của ứng viên ∈ `filters.modes` (danh sách người xem chọn) | tất cả 3 mode | khác mode với người xem vẫn hiện nếu người xem chọn, nhưng xếp sau (0.2) |
+| 3 | `age` ∈ `filters.ageRange` (gồm 2 đầu) | 18–30 | |
+| 4 | `gpaTier` ∈ `filters.gpaTiers` | cả 4 tầng | dùng tầng, kể cả khi ứng viên ẩn điểm GPA |
+| 5 | nếu `filters.sameSchoolOnly` thì cùng `school` | tắt (hiện mọi trường) | khoa **không** lọc, chỉ dùng khi xếp hạng |
+| 6 | nếu `filters.maxDistanceKm < 50` thì `distance_km ≤ maxDistanceKm` ; ứng viên **không có vị trí** (ẩn vị trí / không có tọa độ) **bị loại** khi bộ lọc này bật | 50 = không giới hạn → ai cũng giữ, kể cả không có vị trí | người dùng đã hỏi "trong X km" thì không đưa người không xác minh được |
+| 7 | nếu `filters.onlyVerified` thì `verified` | bật | |
+| 8 | **mới:** `filters.graduation` ∈ {`ALL`, `STUDYING`, `ALUMNI`} ; `STUDYING` giữ `alumni = false`, `ALUMNI` giữ `alumni = true` | `ALL` | thêm 1 nhóm chip "Đang học / Đã tốt nghiệp / Tất cả" vào màn lọc ; thêm trường này vào `RankRequest` (mặc định `ALL` để client cũ không vỡ) |
+
+### 0.2. Thứ tự xếp hạng — phương án A (sắp theo số tag chung)
+
+Sắp giảm dần theo **số sở thích chung** (so khớp sau khi chuẩn hóa: bỏ dấu cách thừa, không phân biệt hoa thường, dùng `_normalise_interest` hiện có). Bằng nhau thì xét lần lượt:
+
+1. cùng `mode` với người xem trước ;
+2. cùng campus → cùng trường → khác trường ;
+3. cùng khoa trước ;
+4. chênh tầng GPA nhỏ hơn trước ;
+5. gần hơn trước (không có vị trí xếp sau cùng ở tiêu chí này) ;
+6. chênh tuổi nhỏ hơn trước ;
+7. `profile_id` tăng dần (để kết quả cố định, test được).
+
+**`score`** (0–100, hiện "% hợp sở thích" trên thẻ) = `round(100 × số tag chung / max(1, số tag của người xem))`, kẹp 0–100. Chỉ để hiển thị, **không** dùng để sắp.
+**`reasons`** giữ cách sinh hiện tại (số sở thích chung, cùng campus/trường, tầng GPA, cùng khoa, khoảng cách ≤ 3 km, khác chế độ kết nối).
+
+Lý do chọn A: đúng mô tả đã nộp cho môn Mobile, người dùng hiểu được vì sao ai đứng trước ("3 sở thích chung"), và kiểm thử đơn giản. Bản điểm gộp có trọng số tự đặt thì không có căn cứ để bảo vệ trọng số.
+
+### 0.3. Ca kiểm thử chung Python ↔ Kotlin (B tạo file `tests/fixtures/m1_rank_cases.json`, cả hai bên đọc)
+
+Tối thiểu: mỗi điều kiện lọc 0.1 có 1 ca giữ và 1 ca loại ; ca hòa số tag phân định bằng từng tiêu chí 1–7 ; ca người xem không có tag (score = 0, vẫn sắp được) ; ca `maxDistanceKm = 50` với ứng viên không có vị trí (được giữ).
+
 ## 1. Objective and data
 
 **Deployment target (1 câu):** Với mỗi viewer, trong danh sách ứng viên đã qua bộ lọc cứng (trường, khoa, tầng GPA, bán kính, tuổi, trạng thái tốt nghiệp), xếp thứ tự giảm dần theo xác suất **hai bên cùng thích** (mutual like → match), dùng *chỉ thông tin có trước khi swipe* (ảnh đang mờ nên **không dùng điểm hấp dẫn ngoại hình**).
