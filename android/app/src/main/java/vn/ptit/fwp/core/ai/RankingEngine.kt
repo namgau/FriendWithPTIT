@@ -23,7 +23,7 @@ object RankingEngine {
             val modeOk = filters.modes.isEmpty() || candidate.mode in filters.modes
             val ageOk = candidate.age in filters.ageRange
             val gpaOk = filters.gpaTiers.isEmpty() || candidate.gpaTier in filters.gpaTiers
-            val schoolOk = !filters.sameSchoolOnly || (me != null && me.school.isNotBlank() && candidate.school == me.school)
+            val schoolOk = !filters.sameSchoolOnly || (me != null && me.school.isNotBlank() && candidate.school.equals(me.school, ignoreCase = true))
             val distanceOk = filters.maxDistanceKm >= 50 || (knownDistance(candidate) && candidate.distanceKm <= filters.maxDistanceKm)
             val verifyOk = !filters.onlyVerified || candidate.verified
             val graduationOk = when (filters.graduation) {

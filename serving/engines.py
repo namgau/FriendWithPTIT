@@ -142,7 +142,7 @@ def rank(request: RankRequest) -> RankResponse:
         return (c.id != request.viewer.id and not c.blocked and not c.swiped
                 and c.mode in filters.modes and filters.min_age <= c.age <= filters.max_age
                 and c.gpa_tier in filters.gpa_tiers
-                and (not filters.same_school_only or bool(request.viewer.school) and c.school == request.viewer.school)
+                and (not filters.same_school_only or bool(request.viewer.school) and c.school.casefold() == request.viewer.school.casefold())
                 and (filters.max_distance_km >= 50 or known and c.distance_km <= filters.max_distance_km)
                 and (not filters.only_verified or c.verified)
                 and (filters.graduation == "ALL" or c.alumni == (filters.graduation == "ALUMNI")))
