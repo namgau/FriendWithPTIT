@@ -155,3 +155,15 @@ tồn tại sau job và có thể tính phí lưu trữ; không xóa nếu chưa
 được cache trong Volume dưới `/model-cache`. Nếu container bị preempt hoặc mất
 đột ngột, background commit không đảm bảo checkpoint transaction; `--resume`
 kiểm tra hash, nếu lỗi thì giữ nguyên file để điều tra thay vì ghi đè.
+
+## Lấy cache đã tính (không cần chạy lại GPU)
+
+Bản cache (zip 6,2 GB chia 7 phần Git LFS) **không nằm ở main** để clone không phải tải 6,2 GB ; nó chỉ có trong commit `37bb135` (thư mục `b8-cache-lfs/`):
+
+```bash
+git lfs fetch origin 37bb135
+git show 37bb135:b8-cache-lfs/README.md      # script ghép + kiểm hash theo manifest
+git show 37bb135:b8-cache-lfs/manifest.json
+```
+
+Mỗi phần nằm ở `.git/lfs/objects/<sha[:2]>/<sha[2:4]>/<sha>` (sha theo manifest). Ghép xong giải nén vào `data/processed/<ID>/` rồi kiểm bằng `embedding_cache.load_cache(<ID>)`. Có thể xóa object LFS sau đó bằng `git lfs prune`.
