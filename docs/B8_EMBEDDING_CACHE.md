@@ -163,7 +163,7 @@ https://drive.google.com/drive/folders/1NDXmot80FDL3Ik39u_bUGfdCVpZWzXp3 — **k
 Tải cả thư mục về, ví dụ `D:/b8_cache_drive/`, rồi tại gốc repo chạy:
 
 ```python
-import hashlib, json, zipfile
+import hashlib, json, shutil, zipfile
 from pathlib import Path
 
 folder = Path("D:/b8_cache_drive")                      # thư mục đã tải từ Drive
@@ -183,7 +183,8 @@ with zipfile.ZipFile(zip_path) as z:
         p = Path(n)
         d = next((x for x in p.parts if x in {"E1", "E2", "G1", "H1", "H2"}), None)
         if d and p.name.startswith("emb_bge-m3"):
-            (Path("data/processed") / d / p.name).write_bytes(z.read(n))
+            with z.open(n) as src, (Path("data/processed") / d / p.name).open("wb") as dst:
+                shutil.copyfileobj(src, dst, 8 << 20)   # chép từng khối, không nạp 4,8 GB vào RAM
 ```
 
 Kiểm bằng `embedding_cache.load_cache(<ID>)` (số dòng khớp ledger `m3_b8`). Ghép xong có thể xóa zip và các phần.
