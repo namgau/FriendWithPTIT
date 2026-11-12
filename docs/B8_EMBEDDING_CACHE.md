@@ -158,12 +158,33 @@ kiểm tra hash, nếu lỗi thì giữ nguyên file để điều tra thay vì 
 
 ## Lấy cache đã tính (không cần chạy lại GPU)
 
-Bản cache (zip 6,2 GB chia 7 phần Git LFS) **không nằm ở main** để clone không phải tải 6,2 GB ; nó chỉ có trong commit `37bb135` (thư mục `b8-cache-lfs/`):
+Cache (zip 6,2 GB chia 7 phần + `manifest.json`) nằm trên Drive nhóm:
+https://drive.google.com/drive/folders/1NDXmot80FDL3Ik39u_bUGfdCVpZWzXp3 — **không** để trong repo.
+Tải cả thư mục về, ví dụ `D:/b8_cache_drive/`, rồi tại gốc repo chạy:
 
-```bash
-git lfs fetch origin 37bb135
-git show 37bb135:b8-cache-lfs/README.md      # script ghép + kiểm hash theo manifest
-git show 37bb135:b8-cache-lfs/manifest.json
+```python
+import hashlib, json, zipfile
+from pathlib import Path
+
+folder = Path("D:/b8_cache_drive")                      # thư mục đã tải từ Drive
+m = json.loads((folder / "manifest.json").read_text(encoding="utf-8"))
+zip_path = folder / m["file"]
+whole = hashlib.sha256()
+with zip_path.open("xb") as dst:                          # không ghi đè zip có sẵn
+    for part in m["parts"]:
+        h = hashlib.sha256()
+        with (folder / part["name"]).open("rb") as src:
+            while b := src.read(8 << 20):
+                h.update(b); whole.update(b); dst.write(b)
+        assert h.hexdigest() == part["sha256"], part["name"]
+assert whole.hexdigest() == m["sha256"], "zip không khớp manifest"
+with zipfile.ZipFile(zip_path) as z:
+    for n in z.namelist():
+        p = Path(n)
+        d = next((x for x in p.parts if x in {"E1", "E2", "G1", "H1", "H2"}), None)
+        if d and p.name.startswith("emb_bge-m3"):
+            (Path("data/processed") / d / p.name).write_bytes(z.read(n))
 ```
 
-Mỗi phần nằm ở `.git/lfs/objects/<sha[:2]>/<sha[2:4]>/<sha>` (sha theo manifest). Ghép xong giải nén vào `data/processed/<ID>/` rồi kiểm bằng `embedding_cache.load_cache(<ID>)`. Có thể xóa object LFS sau đó bằng `git lfs prune`.
+Kiểm bằng `embedding_cache.load_cache(<ID>)` (số dòng khớp ledger `m3_b8`). Ghép xong có thể xóa zip và các phần.
+Bản LFS cũ ở commit `37bb135` vẫn còn trong lịch sử nhưng **đừng** `git lfs fetch` nó nữa (tốn quota băng thông LFS của repo).
