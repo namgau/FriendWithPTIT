@@ -1,11 +1,10 @@
-"""A7 (phần T1/T2) + X4 — Head A: ablation nhóm đặc trưng và cross-domain E1 ↔ E2.
+"""A7 (T1/T2/T3 và T4 nếu có cache) + X4 — Head A: ablation và cross-domain.
 
 Chạy:  python -m src.m3_health.run_ablation_a
 
 Cùng hội thoại, cùng fold forward chaining K=5 với run_head_a (chỉ train ; test khóa tới 20/11).
 Mô hình cố định: LightGBM + none (tốt nhất ở A5) để chỉ đặc trưng thay đổi.
-- X1 (một phần): T1 → T1+T2 tích lũy, và bỏ-từng-nhóm. **+T4** tự thêm khi có cache embedding B8
-  (`embedding_cache.has_cache`) ; PCA đóng băng của C1. T3 thêm khi B5 xong.
+- X1: T1 → T1+T2 → T1+T2+T3; **+T4** tự thêm khi có cache B8 và PCA đóng băng.
 - X4: mô hình học trên toàn bộ train của nguồn, đánh giá trên đúng các fold validation của đích ;
   so với in-domain (học trên outer-train của đích). Brier thô cho thấy lệch prevalence, Brier sau
   prior shift (biết prevalence đích, không cần nhãn đích) cho thấy phần sửa được.
@@ -24,6 +23,7 @@ from src.eval.imbalance import prior_shift
 from src.eval.report import append_ledger, data_hash, mean_sd
 from src.eval.splits import assert_no_group_leak, assert_time_order, forward_chaining
 from src.m3_health.embedding_cache import cache_paths, has_cache, load_cache, t4_for_samples
+from src.m3_health.features_t3 import T3_COLUMNS, extract_t3_features
 from src.m3_health.labels import PROC, ROOT, load_config
 from src.m3_health.run_head_a import MODELS, load
 
@@ -46,8 +46,25 @@ def _fit(X: pd.DataFrame, y: np.ndarray, cols: list[str], seed: int) -> LGBMClas
 
 
 def sets_for(X: pd.DataFrame) -> dict[str, list[str]]:
+    t3 = [c for c in T3_COLUMNS if c in X.columns]
+    if t3 and len(t3) != len(T3_COLUMNS):
+        raise ValueError("incomplete T3 feature set")
     t4 = [c for c in X.columns if c.startswith("t4_")]
-    return {**SETS, "T1+T2+T4": ALL + t4} if t4 else SETS
+    sets = dict(SETS)
+    if t3:
+        sets["T1+T2+T3"] = ALL + t3
+    if t4:
+        sets["T1+T2+T3+T4" if t3 else "T1+T2+T4"] = ALL + t3 + t4
+    return sets
+
+
+def add_t3(d: str, lab: pd.DataFrame, X: pd.DataFrame) -> pd.DataFrame:
+    msgs = pd.read_parquet(PROC / d / "messages.parquet",
+                           columns=["conversation_id", "turn_idx", "sender_id", "text"])
+    t3 = extract_t3_features(msgs, lab[["conversation_id", "turn_idx"]], language="en")
+    if not t3.index.equals(X.index):
+        raise ValueError("T1/T2 and T3 sample indices do not match")
+    return pd.concat([X, t3], axis=1)
 
 
 def add_t4(d: str, lab: pd.DataFrame, X: pd.DataFrame) -> pd.DataFrame:
@@ -96,10 +113,10 @@ def cross_domain(src: str, dst: str, data: dict, cfg: dict) -> pd.DataFrame:
 
 
 def write_report(abl: pd.DataFrame, xd: pd.DataFrame, cfg: dict) -> None:
-    lines = ["# Head A — ablation đặc trưng (A7, X1 phần T1/T2) và cross-domain (X4)", "",
+    lines = ["# Head A — ablation đặc trưng (A7, X1) và cross-domain (X4)", "",
              "> Sinh bởi `python -m src.m3_health.run_ablation_a`. Chỉ tập train ; cùng hội thoại và fold forward "
              f"chaining K = {cfg['cv']['outer_k']} với `HEAD_A_CV.md` ; LightGBM + none cố định, Δ = 48h. "
-             "Mean ± SD qua 5 fold. T3 (B5), T4–T5 (C1, B8) sẽ thêm dòng khi có.", "",
+             "Mean ± SD qua các fold. T3 theo B5; T4 nếu có cache B8; T5 chưa có.", "",
              "## X1 — ablation nhóm đặc trưng (PR-AUC)", "",
              "Nhóm: " + " ; ".join(f"**{g}** = {', '.join(c)}" for g, c in GROUPS.items()) + ".", "",
              "| Tập đặc trưng | Số đặc trưng | " + " | ".join(f"{d} PR-AUC | {d} Δ so với đủ" for d in abl.dataset.unique())
@@ -110,7 +127,7 @@ def write_report(abl: pd.DataFrame, xd: pd.DataFrame, cfg: dict) -> None:
         for d in abl.dataset.unique():
             g = abl[(abl.set == name) & (abl.dataset == d)].set_index(["dataset", "fold"]).pr_auc
             if g.empty:
-                cells += ["chưa có cache B8", "—"]
+                cells += ["chưa có kết quả", "—"]
                 continue
             cells += [mean_sd(g), "—" if name == "T1+T2 (đủ)" else mean_sd(g - full.loc[g.index])]
         n_feat = abl.loc[abl.set == name, "n_feat"].iloc[0]
@@ -132,6 +149,7 @@ def main(datasets: list[str]) -> None:
     cfg = load_config()
     data = {d: load(d, cfg) for d in datasets}
     for d in datasets:
+        data[d] = (data[d][0], add_t3(d, *data[d]))
         if has_cache(d):
             data[d] = (data[d][0], add_t4(d, *data[d]))
     abl = pd.concat([ablation(d, data[d], cfg) for d in datasets], ignore_index=True)
