@@ -124,6 +124,14 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
 - Mô hình thắng mọi baseline với khoảng cách lớn hơn nhiều lần SD. `[TEST 20/11]` paired bootstrap trên test để chốt "ngoài CI".
 - G1: bỏ đặc trưng độ dài gần như không đổi PR-AUC (0.631 → 0.626). Như vậy mô hình học nội dung, không chỉ học "tiền tố hỏng dài hơn 0.5 lượt".
 
+![Head A: baseline và mô hình học](figures/headA_models.png)
+
+![Head B: baseline và TF-IDF + LR](figures/headB_models.png)
+
+![Head B: đường hiệu chỉnh OOF](figures/headB_reliability.png)
+
+Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 10 bin phân vị 0.008–0.025), nên ngưỡng τ_B và mức "nhắc nhẹ" trong app có thể đọc như xác suất thật.
+
 ### R2 — Ablation (X1, LightGBM + none ; `HEAD_A_ABLATION.md`)
 
 | Tập đặc trưng | E1 PR-AUC | E2 PR-AUC |
@@ -138,6 +146,8 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
 | + T4 (BGE-M3 đóng băng: độ liên quan trả lời, topic drift / novelty, PCA 32 chiều) | 0.336 ± 0.009 (Δ +0.015 ± 0.004) | 0.585 ± 0.027 (Δ +0.054 ± 0.005) |
 | + T5 | `[CHỜ C4]` | |
 
+![Head A: ablation thêm dần nhóm đặc trưng](figures/headA_ablation.png)
+
 **RQ1 (tạm):** nhịp trả lời quyết định nhiều nhất, sau đó là bất đối xứng hai bên và bề mặt văn bản ; giờ trong ngày không giúp gì. Ngữ nghĩa T4 giúp rõ trên E2 (+0.054, gấp khoảng 10 lần SD của hiệu số) nhưng ít trên E1 (+0.015) — hội thoại CSKH "tắt" theo nội dung (đã giải quyết xong), còn IRC tắt chủ yếu theo nhịp.
 
 ### R3 — Mất cân bằng (X2)
@@ -148,6 +158,8 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
   - Sau calibration và τ_B (FPR 5%), mọi phương án hội tụ về recall khoảng 0.30, trừ undersample còn 0.21.
   - Lặp lại với **embedding BGE-M3 đóng băng + LR** (SMOTE trên vector câu): cùng kết luận ; undersample vẫn kém nhất. Embedding đóng băng **kém hơn TF-IDF** ở H1 (PR-AUC 0.664 ± 0.011 so với 0.707 ± 0.015) và không hơn ở H2 (0.327 ± 0.041 so với 0.339 ± 0.045): độc hại phụ thuộc mạnh vào từ ngữ cụ thể, vector câu tổng quát làm mờ tín hiệu này → cần fine-tune (PhoBERT/XLM-R, `[CHỜ C2/B10]`).
   - **Kết luận:** lợi ích "thấy được" của resampling chủ yếu là dịch ngưỡng. Chọn ngưỡng đúng cách cho kết quả tương đương. `[CHỜ B10]` weighted loss / oversampling cho PhoBERT trên H2.
+
+![Head B: 5 phương án mất cân bằng, TF-IDF và BGE-M3](figures/imbalanceB.png)
 
 ### R4 — Test (chạm 1 lần) `[TEST 20/11]`
 
@@ -303,6 +315,8 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR, baseline tin cuối | `[CHỜ C4]` |
 
 ## Tái lập
+
+- Hình: `python -m src.eval.figures` → `docs/figures/` (đọc `experiments/ledger.csv` ; hình hiệu chỉnh cần `reports/headB_oof_*.csv`).
 
 - Mọi bảng sinh bằng `python -m src.m3_health.<script>` từ `configs/default.yaml`, seed 42.
 - Mỗi lần chạy ghi 1 dòng vào `experiments/ledger.csv`: commit, hash dữ liệu, metric mean / SD.
