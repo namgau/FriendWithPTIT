@@ -61,4 +61,5 @@ def t4_for_samples(msgs: pd.DataFrame, samples: pd.DataFrame, emb: np.ndarray, i
         vectors = np.empty((len(order), emb.shape[1]), np.float32)
         vectors[sort] = emb[order[sort]]
         parts.append(extract_t4_features(m, s, vectors, pca=pca))
+        print(f"T4 {min(start + chunk_conversations, len(convs)):,}/{len(convs):,} hội thoại", flush=True)
     return pd.concat(parts).loc[samples.index]

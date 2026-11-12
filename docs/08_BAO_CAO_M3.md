@@ -135,9 +135,10 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
 | bỏ T1_clock | 0.322 ± 0.005 (Δ +0.001) | 0.529 ± 0.029 (Δ −0.001) |
 | bỏ T1_asym | 0.280 ± 0.005 (Δ −0.041) | 0.490 ± 0.028 (Δ −0.040) |
 | + T3 | `[CHỜ B5]` | |
-| + T4, + T5 | `[CHỜ C1/B8]` | |
+| + T4 (BGE-M3 đóng băng: độ liên quan trả lời, topic drift / novelty, PCA 32 chiều) | 0.336 ± 0.009 (Δ +0.015 ± 0.004) | 0.585 ± 0.027 (Δ +0.054 ± 0.005) |
+| + T5 | `[CHỜ C4]` | |
 
-**RQ1 (tạm):** nhịp trả lời quyết định nhiều nhất, sau đó là bất đối xứng hai bên và bề mặt văn bản. Giờ trong ngày không giúp gì.
+**RQ1 (tạm):** nhịp trả lời quyết định nhiều nhất, sau đó là bất đối xứng hai bên và bề mặt văn bản ; giờ trong ngày không giúp gì. Ngữ nghĩa T4 giúp rõ trên E2 (+0.054, gấp khoảng 10 lần SD của hiệu số) nhưng ít trên E1 (+0.015) — hội thoại CSKH "tắt" theo nội dung (đã giải quyết xong), còn IRC tắt chủ yếu theo nhịp.
 
 ### R3 — Mất cân bằng (X2)
 
@@ -145,6 +146,7 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
 - **Head B** (`IMBALANCE_B.md`, H2 prevalence 0.11):
   - Ở ngưỡng mặc định 0.5, "none" cho recall 0.009, tức gần như không bao giờ báo. class_weight / oversample / SMOTE nâng recall lên khoảng 0.40 nhưng FPR thành 8–10%.
   - Sau calibration và τ_B (FPR 5%), mọi phương án hội tụ về recall khoảng 0.30, trừ undersample còn 0.21.
+  - Lặp lại với **embedding BGE-M3 đóng băng + LR** (SMOTE trên vector câu): cùng kết luận ; undersample vẫn kém nhất. Embedding đóng băng **kém hơn TF-IDF** ở H1 (PR-AUC 0.664 ± 0.011 so với 0.707 ± 0.015) và không hơn ở H2 (0.327 ± 0.041 so với 0.339 ± 0.045): độc hại phụ thuộc mạnh vào từ ngữ cụ thể, vector câu tổng quát làm mờ tín hiệu này → cần fine-tune (PhoBERT/XLM-R, `[CHỜ C2/B10]`).
   - **Kết luận:** lợi ích "thấy được" của resampling chủ yếu là dịch ngưỡng. Chọn ngưỡng đúng cách cho kết quả tương đương. `[CHỜ B10]` weighted loss / oversampling cho PhoBERT trên H2.
 
 ### R4 — Test (chạm 1 lần) `[TEST 20/11]`
