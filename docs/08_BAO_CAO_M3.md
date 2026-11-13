@@ -87,7 +87,7 @@ messages → mẫu (c, t) + nhãn + cờ censor → đặc trưng T1+T2 (≤ t)
   - T1_asym (2): tỉ lệ người gửi tin cuối, double-text.
   - T2_surface (7): độ dài, tin cụt, câu hỏi.
   - T3 (B5): LSM trên từ chức năng, lexical mirroring, độ dài lượt / tỉ lệ đổi lượt, trong cửa sổ 10 tin kết thúc tại t ; giá trị thiếu là NaN + cờ thiếu. `[CHỜ C1/B8]` T4–T5: embedding BGE-M3 (chốt 06/11).
-- **Candidate Head A:** đa số ; rule của tài liệu gốc ; chỉ `gap_last` ; LR ; LightGBM (300 cây, lr 0.05, 31 lá). Mỗi mô hình × 5 phương án mất cân bằng (none, class_weight, undersample, oversample, SMOTE). Survival: Cox PH, Random Survival Forest. `[CHỜ B9]` TabPFN v2.
+- **Candidate Head A:** đa số ; rule của tài liệu gốc ; chỉ `gap_last` ; LR ; LightGBM (300 cây, lr 0.05, 31 lá). Mỗi mô hình × 5 phương án mất cân bằng (none, class_weight, undersample, oversample, SMOTE). Survival: Cox PH, Random Survival Forest. TabPFN v2 (X7, B9): so với LightGBM trên cùng tập con 100/300/1.000 group của từng outer-train (TabPFN v2 giới hạn 10.000 dòng).
 - **Candidate Head B:** đa số ; từ điển từ xúc phạm ; LR chỉ độ dài ; TF-IDF + LR (có và không có đặc trưng độ dài). `[CHỜ C2/C4]` PhoBERT/XLM-R, CRAFT-like.
 - **Calibration:** Platt và isotonic, chọn theo Brier trên calibration. Prior shift đưa xác suất về prevalence thật trước khi hiệu chỉnh, vì resampling làm lệch xác suất.
 - **Ngưỡng:**
@@ -312,7 +312,7 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | Confident learning (Northcutt 2021) | đọc tay 100 FP | báo nhiễu cao hơn đọc tay khoảng 4 lần ; lọc làm giảm PR-AUC → kết quả âm, vẫn báo |
 | SHAP (LightGBM `pred_contrib`) | feature importance | phát hiện artifact `n_msgs` |
 | Embedding đa ngữ BGE-M3, chọn theo VN-MTEB | MiniLM | `[CHỜ C1]` lý do chọn + `[CHỜ B8]` ablation |
-| TabPFN v2 | LightGBM theo kích thước train | `[CHỜ B9]` |
+| TabPFN v2 (Hollmann 2025 ; B9, `B9_TABPFN_CV.md`) | LightGBM trên cùng tập con group | ≤ 1.000 group: TabPFN hơn +0.03–0.05 PR-AUC (paired cluster bootstrap CI không chứa 0, cả E1 lẫn E2). Nhưng LightGBM học trên đủ 60k hội thoại vẫn cao hơn TabPFN ở mức lớn nhất nó chạy được (E1 0.320 so với 0.283 ; E2 0.530 so với 0.497, cùng T1+T2), và TabPFN suy luận chậm hơn khoảng 1.000 lần → giữ LightGBM ; TabPFN hợp cho giai đoạn ít dữ liệu (cold start) |
 | CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR, baseline tin cuối | `[CHỜ C4]` |
 
 ## Tái lập
