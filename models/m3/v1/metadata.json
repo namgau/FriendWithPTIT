@@ -1,0 +1,29 @@
+{
+  "module": "m3",
+  "version": "v1",
+  "status": "active",
+  "name": "FriendWithPTIT M3 Serving V1",
+  "description": "Trained artifacts for Head A (Disengagement) and Head B (Safety & Derailment)",
+  "tau1": 0.3,
+  "tau2": 0.6,
+  "tau_nudge": 0.5,
+  "thresholds": {
+    "tau1": 0.3,
+    "tau2": 0.6,
+    "tau_nudge": 0.5
+  },
+  "head_a": {
+    "model_file": "head_a.pkl",
+    "model_type": "LogisticRegression",
+    "features": "T1_T2",
+    "n_features": 21,
+    "tau1": 0.3,
+    "tau2": 0.6
+  },
+  "head_b": {
+    "model_file": "head_b.pkl",
+    "model_type": "TF-IDF + LogisticRegression",
+    "dataset": "H1_ViHSD",
+    "tau_nudge": 0.5
+  }
+}

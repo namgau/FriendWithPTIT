@@ -30,6 +30,8 @@ from serving import engines
 from serving.model_registry import ModelRegistry
 from serving.predictors import (
     SUGGESTIONS,
+    TAU1,
+    TAU2,
     TAU_NUDGE,
     get_health_predictor,
     get_safety_predictor,
@@ -131,7 +133,9 @@ def healthz() -> dict:
 def health_score(req: HealthScoreRequest) -> HealthScoreResponse:
     predictor = get_health_predictor()
     p, factors = predictor.score(req.messages, req.now_ms, req.viewer_id)
-    level = level_from_p(p)
+    tau1 = getattr(predictor, "tau1", TAU1)
+    tau2 = getattr(predictor, "tau2", TAU2)
+    level = level_from_p(p, tau1=tau1, tau2=tau2)
     suggestions = (
         []
         if level == HealthLevel.healthy
@@ -150,10 +154,11 @@ def health_score(req: HealthScoreRequest) -> HealthScoreResponse:
 def safety_score(req: SafetyScoreRequest) -> SafetyScoreResponse:
     predictor = get_safety_predictor()
     tox, derail = predictor.score(req.context, req.draft)
+    tau_nudge = getattr(predictor, "tau_nudge", TAU_NUDGE)
     return SafetyScoreResponse(
         toxicity=round(tox, 4),
         derail_risk=round(derail, 4),
-        should_nudge=max(tox, derail) >= TAU_NUDGE,
+        should_nudge=max(tox, derail) >= tau_nudge,
         model_version=predictor.version,
     )
 
