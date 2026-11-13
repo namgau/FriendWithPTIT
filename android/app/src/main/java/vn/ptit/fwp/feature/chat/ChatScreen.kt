@@ -106,6 +106,7 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
     val message by viewModel.message.collectAsState()
     val finished by viewModel.finished.collectAsState()
+    val pendingDraft by viewModel.pendingDraft.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -497,6 +498,38 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
                 TextButton(onClick = { showUnmatch = false; viewModel.unmatch() }) { Text("Hủy match", color = PtitRed) }
             },
             dismissButton = { TextButton(onClick = { showUnmatch = false }) { Text("Giữ lại") } }
+        )
+    }
+
+    if (pendingDraft != null) {
+        AlertDialog(
+            onDismissRequest = {
+                input = pendingDraft ?: input
+                viewModel.cancelSend()
+            },
+            title = { Text("Cảnh báo an toàn", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("Bạn có chắc muốn gửi tin nhắn này? Nội dung có thể gây hiểu lầm hoặc thiếu tích cực")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.confirmSend()
+                    }
+                ) {
+                    Text("Vẫn gửi", color = PtitRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        input = pendingDraft ?: input
+                        viewModel.cancelSend()
+                    }
+                ) {
+                    Text("Sửa lại")
+                }
+            }
         )
     }
 }

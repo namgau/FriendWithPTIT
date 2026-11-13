@@ -6,6 +6,7 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import vn.ptit.fwp.BuildConfig
 import vn.ptit.fwp.core.model.ChatMessage
+import vn.ptit.fwp.core.model.MessageType
 import vn.ptit.fwp.core.model.CompatibilityReport
 import vn.ptit.fwp.core.model.HealthLevel
 import vn.ptit.fwp.core.model.HealthReport
@@ -17,9 +18,10 @@ import java.util.concurrent.TimeUnit
 
 class RemoteAiClient(
     baseUrl: String = BuildConfig.AI_BASE_URL,
-    private val enabled: Boolean = BuildConfig.AI_BASE_URL.isNotBlank()
+    private val enabled: Boolean = BuildConfig.AI_BASE_URL.isNotBlank(),
+    customApi: FwpAiApi? = null
 ) {
-    private val api: FwpAiApi? = if (enabled) {
+    private val api: FwpAiApi? = customApi ?: if (enabled) {
         val client = OkHttpClient.Builder()
             .connectTimeout(2, TimeUnit.SECONDS)
             .readTimeout(3, TimeUnit.SECONDS)
@@ -116,6 +118,36 @@ class RemoteAiClient(
                 source = if (response.modelSource == "trained_model") "AI Service (M3)" else "AI Service · fallback"
             )
         }.getOrDefault(fallback)
+    }
+
+    suspend fun safetyScore(
+        conversationId: String,
+        context: List<ChatMessage>,
+        draftText: String
+    ): SafetyScoreResponse? {
+        val api = api ?: return null
+        return runCatching {
+            val now = System.currentTimeMillis()
+            val contextDtos = context.map { msg ->
+                SafetyMessageDto(
+                    senderId = if (msg.type == MessageType.SYSTEM) "system" else if (msg.isMine) "viewer" else "partner",
+                    timestampMs = msg.createdAt,
+                    text = msg.text
+                )
+            }
+            val draftDto = SafetyMessageDto(
+                senderId = "viewer",
+                timestampMs = now,
+                text = draftText
+            )
+            api.safetyScore(
+                SafetyScoreRequest(
+                    conversationId = conversationId,
+                    context = contextDtos,
+                    draft = draftDto
+                )
+            )
+        }.getOrNull()
     }
 
     private fun Profile.toDto() = AiProfileDto(

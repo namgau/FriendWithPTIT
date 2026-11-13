@@ -17,6 +17,10 @@ import vn.ptit.fwp.AppContainer
 import vn.ptit.fwp.core.ai.CompatibilityEngine
 import vn.ptit.fwp.core.ai.ConversationAssistant
 import vn.ptit.fwp.core.ai.HealthEngine
+import vn.ptit.fwp.core.ai.RemoteAiClient
+import vn.ptit.fwp.core.ai.SafetyEngine
+import vn.ptit.fwp.core.data.AppSettings
+import vn.ptit.fwp.core.data.FwpChatRepository
 import vn.ptit.fwp.core.model.ChatMessage
 import vn.ptit.fwp.core.model.CompatibilityReport
 import vn.ptit.fwp.core.model.FwpMatch
@@ -44,20 +48,30 @@ data class ChatUiState(
 }
 
 @OptIn(ExperimentalCoroutinesApi::class)
-class ChatViewModel(
-    private val container: AppContainer,
-    private val matchId: String
+class ChatViewModel internal constructor(
+    private val matchId: String,
+    private val repository: FwpChatRepository,
+    private val settingsFlow: kotlinx.coroutines.flow.Flow<AppSettings>,
+    private val remoteAi: RemoteAiClient
 ) : ViewModel() {
-    private val repository = container.repository
+    constructor(container: AppContainer, matchId: String) : this(
+        matchId = matchId,
+        repository = container.repository,
+        settingsFlow = container.settingsStore.settings,
+        remoteAi = container.remoteAi
+    )
+
     private val _typing = MutableStateFlow(false)
     private val _message = MutableStateFlow<String?>(null)
     private val _finished = MutableStateFlow(false)
     private val _analyzing = MutableStateFlow(false)
     private val _remoteCompatibility = MutableStateFlow<Pair<Int, CompatibilityReport>?>(null)
     private val _remoteHealth = MutableStateFlow<Pair<Int, HealthReport>?>(null)
+    private val _pendingDraft = MutableStateFlow<String?>(null)
 
     val message: StateFlow<String?> = _message.asStateFlow()
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
+    val pendingDraft: StateFlow<String?> = _pendingDraft.asStateFlow()
 
     private data class Snapshot(
         val match: FwpMatch?,
@@ -89,7 +103,7 @@ class ChatViewModel(
 
     private val baseChat = combine(
         conversation,
-        container.settingsStore.settings,
+        settingsFlow,
         _typing,
         _analyzing
     ) { snapshot, settings, typing, analyzing ->
@@ -150,7 +164,7 @@ class ChatViewModel(
             typing = typing,
             openingMoves = if (chatMessages.none { it.isMine }) ConversationAssistant.openingMoves(snapshot.me, profile) else emptyList(),
             suggestions = health?.suggestions ?: listOf("Hỏi một câu mở về tuần của họ", "Chia sẻ một chuyện nhỏ trong ngày"),
-            aiConfigured = container.remoteAi.isConfigured,
+            aiConfigured = remoteAi.isConfigured,
             analyzing = analyzing
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
@@ -175,9 +189,40 @@ class ChatViewModel(
         val state = uiState.value
         if (state.match == null || state.profile == null) return
         viewModelScope.launch {
-            repository.sendMessage(matchId, "me", trimmed)
-            scheduleReply()
+            val needsNudge = checkSafetyRisk(trimmed, state.messages)
+            if (needsNudge) {
+                _pendingDraft.value = trimmed
+            } else {
+                doSend(trimmed)
+            }
         }
+    }
+
+    private suspend fun checkSafetyRisk(text: String, context: List<ChatMessage>): Boolean {
+        val remote = remoteAi.safetyScore(matchId, context, text)
+        if (remote != null) {
+            return remote.shouldNudge || remote.toxicity >= 0.5f || remote.derailRisk >= 0.5f
+        }
+        return SafetyEngine.isToxicOffline(text)
+    }
+
+    fun confirmSend() {
+        val draft = _pendingDraft.value ?: return
+        _pendingDraft.value = null
+        val state = uiState.value
+        if (state.match == null || state.profile == null) return
+        viewModelScope.launch {
+            doSend(draft)
+        }
+    }
+
+    fun cancelSend() {
+        _pendingDraft.value = null
+    }
+
+    private suspend fun doSend(trimmed: String) {
+        repository.sendMessage(matchId, "me", trimmed)
+        scheduleReply()
     }
 
     fun sendImage(uri: String) {
@@ -221,7 +266,7 @@ class ChatViewModel(
         val profile = state.profile
         val match = state.match
         if (me == null || profile == null || match == null) return
-        if (!container.remoteAi.isConfigured) {
+        if (!remoteAi.isConfigured) {
             _message.value = "AI Service chưa được cấu hình. Đang dùng Quy tắc FwP (fallback) ngay trên thiết bị."
             return
         }
@@ -229,8 +274,8 @@ class ChatViewModel(
         viewModelScope.launch {
             val localCompatibility = CompatibilityEngine.analyze(me, profile, match, state.messages)
             val localHealth = HealthEngine.analyze(state.messages, me, profile)
-            val compatibility = container.remoteAi.compatibility(me, profile, match, state.messages, localCompatibility)
-            val health = container.remoteAi.health(me, profile, state.messages, localHealth)
+            val compatibility = remoteAi.compatibility(me, profile, match, state.messages, localCompatibility)
+            val health = remoteAi.health(me, profile, state.messages, localHealth)
             _remoteCompatibility.value = localCompatibility.messageCount to compatibility
             _remoteHealth.value = localCompatibility.messageCount to health
             _message.value = "Đã phân tích lại. Nguồn: ${compatibility.source}."
