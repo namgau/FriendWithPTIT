@@ -86,7 +86,7 @@ messages → mẫu (c, t) + nhãn + cờ censor → đặc trưng T1+T2 (≤ t)
   - T1_clock (3): giờ trong ngày, cuối tuần, ban đêm.
   - T1_asym (2): tỉ lệ người gửi tin cuối, double-text.
   - T2_surface (7): độ dài, tin cụt, câu hỏi.
-  - `[CHỜ B5]` T3: LSM, mirroring, turn-taking. `[CHỜ C1/B8]` T4–T5: embedding BGE-M3 (chốt 06/11).
+  - T3 (B5): LSM trên từ chức năng, lexical mirroring, độ dài lượt / tỉ lệ đổi lượt, trong cửa sổ 10 tin kết thúc tại t ; giá trị thiếu là NaN + cờ thiếu. `[CHỜ C1/B8]` T4–T5: embedding BGE-M3 (chốt 06/11).
 - **Candidate Head A:** đa số ; rule của tài liệu gốc ; chỉ `gap_last` ; LR ; LightGBM (300 cây, lr 0.05, 31 lá). Mỗi mô hình × 5 phương án mất cân bằng (none, class_weight, undersample, oversample, SMOTE). Survival: Cox PH, Random Survival Forest. `[CHỜ B9]` TabPFN v2.
 - **Candidate Head B:** đa số ; từ điển từ xúc phạm ; LR chỉ độ dài ; TF-IDF + LR (có và không có đặc trưng độ dài). `[CHỜ C2/C4]` PhoBERT/XLM-R, CRAFT-like.
 - **Calibration:** Platt và isotonic, chọn theo Brier trên calibration. Prior shift đưa xác suất về prevalence thật trước khi hiệu chỉnh, vì resampling làm lệch xác suất.
@@ -142,13 +142,14 @@ Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 
 | bỏ T1_rhythm | 0.181 ± 0.016 (Δ −0.140) | 0.476 ± 0.030 (Δ −0.054) |
 | bỏ T1_clock | 0.322 ± 0.005 (Δ +0.001) | 0.529 ± 0.029 (Δ −0.001) |
 | bỏ T1_asym | 0.280 ± 0.005 (Δ −0.041) | 0.490 ± 0.028 (Δ −0.040) |
-| + T3 | `[CHỜ B5]` | |
-| + T4 (BGE-M3 đóng băng: độ liên quan trả lời, topic drift / novelty, PCA 32 chiều) | 0.336 ± 0.009 (Δ +0.015 ± 0.004) | 0.585 ± 0.027 (Δ +0.054 ± 0.005) |
+| + T3 (phong cách: LSM, mirroring, turn-taking ; B5) | 0.327 ± 0.006 (Δ +0.007 ± 0.003) | 0.566 ± 0.030 (Δ +0.035 ± 0.004) |
+| + T4 không T3 (BGE-M3 đóng băng: độ liên quan trả lời, topic drift / novelty, PCA 32 chiều) | 0.336 ± 0.009 (Δ +0.015 ± 0.004) | 0.585 ± 0.027 (Δ +0.054 ± 0.005) |
+| + T3 + T4 | **0.337 ± 0.010** (Δ +0.017 ± 0.005) | **0.606 ± 0.026** (Δ +0.076 ± 0.004) |
 | + T5 | `[CHỜ C4]` | |
 
 ![Head A: ablation thêm dần nhóm đặc trưng](figures/headA_ablation.png)
 
-**RQ1 (tạm):** nhịp trả lời quyết định nhiều nhất, sau đó là bất đối xứng hai bên và bề mặt văn bản ; giờ trong ngày không giúp gì. Ngữ nghĩa T4 giúp rõ trên E2 (+0.054, gấp khoảng 10 lần SD của hiệu số) nhưng ít trên E1 (+0.015) — hội thoại CSKH "tắt" theo nội dung (đã giải quyết xong), còn IRC tắt chủ yếu theo nhịp.
+**RQ1 (tạm):** nhịp trả lời quyết định nhiều nhất, sau đó là bất đối xứng hai bên và bề mặt văn bản ; giờ trong ngày không giúp gì. Phong cách T3 thêm +0.035 trên E2 nhưng chỉ +0.007 trên E1 ; ngữ nghĩa T4 giúp rõ trên E2 (+0.054 khi thêm riêng, gấp khoảng 10 lần SD của hiệu số) nhưng ít trên E1 (+0.015). Hai nhóm bổ sung cho nhau: T3 + T4 cho E2 0.606 (+0.076), E1 0.337 (+0.017) — hội thoại CSKH "tắt" theo nội dung (đã giải quyết xong), còn IRC tắt chủ yếu theo nhịp.
 
 ### R3 — Mất cân bằng (X2)
 

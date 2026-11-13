@@ -94,24 +94,8 @@ b8-modal-h1-080a108a5c92,2026-11-10,m3_b8,B,5e4761d80453,080a108a5c923ec17672458
 b8-modal-g1-6a6e27d5770d,2026-11-10,m3_b8,B,5e4761d80453,6a6e27d5770d8a4ced130163f9cc9afbab1f44c11fe05b8f071dff647d60d134,3ecf61e,42,G1:BAAI/bge-m3,messages,26188,,"GPU=Tesla T4; active_seconds=105.743; batch=32; chunk=2048; revision=5617a9f61b028005a4858fdac845db406aefb181; volume=b8-friendwithptit-20261110; code=3ecf61e (A kiểm 10/11: sha256 của cache_embeddings_b8.py 4b899e28d538, modal_b8_runner.py 73d76a8b3a7d khớp file đã chạy ; embeddings.py không đổi so với main); seed=config_only"
 b8-modal-e2-d1527174b8d2,2026-11-10,m3_b8,B,5e4761d80453,d1527174b8d29268fc7c1b2cceb2308219d33b431f31aa80bca797bd107ba57a,3ecf61e,42,E2:BAAI/bge-m3,messages,624065,,"GPU=Tesla T4; active_seconds=923.067; batch=32; chunk=2048; revision=5617a9f61b028005a4858fdac845db406aefb181; volume=b8-friendwithptit-20261110; code=3ecf61e (A kiểm 10/11: sha256 của cache_embeddings_b8.py 4b899e28d538, modal_b8_runner.py 73d76a8b3a7d khớp file đã chạy ; embeddings.py không đổi so với main); seed=config_only"
 b8-modal-e1-eddd4eb946a9,2026-11-10,m3_b8,B,5e4761d80453,eddd4eb946a9576768a3b869fd2f539cdd02e8f49fb0fb7644c62ce4880fdb66,3ecf61e,42,E1:BAAI/bge-m3,messages,2348495,,"GPU=Tesla T4; active_seconds=2298.365; batch=32; chunk=2048; revision=5617a9f61b028005a4858fdac845db406aefb181; volume=b8-friendwithptit-20261110; code=3ecf61e (A kiểm 10/11: sha256 của cache_embeddings_b8.py 4b899e28d538, modal_b8_runner.py 73d76a8b3a7d khớp file đã chạy ; embeddings.py không đổi so với main); seed=config_only"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:T1_rhythm,pr_auc,0.25268,0.00312,"X1 lgbm none, forward_chaining K=5"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:T1,pr_auc,0.29648,0.00093,"X1 lgbm none, forward_chaining K=5"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:T1+T2 (đủ),pr_auc,0.32049,0.00541,"X1 lgbm none, forward_chaining K=5"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:− T1_rhythm,pr_auc,0.18072,0.01623,"X1 lgbm none, forward_chaining K=5"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:− T1_clock,pr_auc,0.32194,0.00471,"X1 lgbm none, forward_chaining K=5"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:− T1_asym,pr_auc,0.2797,0.00504,"X1 lgbm none, forward_chaining K=5"
 20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:ablation:T1+T2+T4,pr_auc,0.33566,0.00926,"X1 lgbm none, forward_chaining K=5"
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:cross:in-domain,pr_auc,0.32049,0.00541,X4 lgbm none
-20261111-130442,2026-11-11,m3_headA,A,e6e3fdc54d84,216803d1f7bf,d13350e,42,E1:cross:E2 → E1,pr_auc,0.13218,0.0034,X4 lgbm none
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:T1_rhythm,pr_auc,0.4356,0.02799,"X1 lgbm none, forward_chaining K=5"
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:T1,pr_auc,0.47417,0.02695,"X1 lgbm none, forward_chaining K=5"
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:T1+T2 (đủ),pr_auc,0.53027,0.02873,"X1 lgbm none, forward_chaining K=5"
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:− T1_rhythm,pr_auc,0.47622,0.03042,"X1 lgbm none, forward_chaining K=5"
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:− T1_clock,pr_auc,0.52927,0.02914,"X1 lgbm none, forward_chaining K=5"
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:− T1_asym,pr_auc,0.48989,0.02815,"X1 lgbm none, forward_chaining K=5"
 20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:ablation:T1+T2+T4,pr_auc,0.58458,0.02743,"X1 lgbm none, forward_chaining K=5"
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:cross:in-domain,pr_auc,0.53027,0.02873,X4 lgbm none
-20261111-130443,2026-11-11,m3_headA,A,e6e3fdc54d84,4592a74fea04,d13350e,42,E2:cross:E1 → E2,pr_auc,0.3307,0.02544,X4 lgbm none
 20261111-130532,2026-11-11,m3_headB,A,e6e3fdc54d84,2be74886b50a,d13350e,42,H2:tfidf_lr:none,pr_auc,0.33868,0.04483,"A5b imbalance, group K-fold"
 20261111-130532,2026-11-11,m3_headB,A,e6e3fdc54d84,2be74886b50a,d13350e,42,H2:tfidf_lr:class_weight,pr_auc,0.34873,0.04364,"A5b imbalance, group K-fold"
 20261111-130532,2026-11-11,m3_headB,A,e6e3fdc54d84,2be74886b50a,d13350e,42,H2:tfidf_lr:undersample,pr_auc,0.28723,0.05592,"A5b imbalance, group K-fold"
@@ -132,3 +116,23 @@ b8-modal-e1-eddd4eb946a9,2026-11-10,m3_b8,B,5e4761d80453,eddd4eb946a9576768a3b86
 20261111-132529,2026-11-11,m3_headB,A,e6e3fdc54d84,aebfa9f7a2fa,d13350e,42,H1:emb_lr:undersample,pr_auc,0.60529,0.01379,"A5b imbalance, group K-fold"
 20261111-132529,2026-11-11,m3_headB,A,e6e3fdc54d84,aebfa9f7a2fa,d13350e,42,H1:emb_lr:oversample,pr_auc,0.64966,0.0095,"A5b imbalance, group K-fold"
 20261111-132529,2026-11-11,m3_headB,A,e6e3fdc54d84,aebfa9f7a2fa,d13350e,42,H1:emb_lr:smote,pr_auc,0.65247,0.01067,"A5b imbalance, group K-fold"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:T1_rhythm,pr_auc,0.25268,0.00312,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:T1,pr_auc,0.29648,0.00093,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:T1+T2 (đủ),pr_auc,0.32049,0.00541,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:− T1_rhythm,pr_auc,0.18072,0.01623,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:− T1_clock,pr_auc,0.32194,0.00471,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:− T1_asym,pr_auc,0.2797,0.00504,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:T1+T2+T3,pr_auc,0.3273,0.00578,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:ablation:T1+T2+T3+T4,pr_auc,0.33735,0.00964,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:cross:in-domain,pr_auc,0.32049,0.00541,X4 lgbm none
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,216803d1f7bf,084698b,42,E1:cross:E2 → E1,pr_auc,0.13218,0.0034,X4 lgbm none
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:T1_rhythm,pr_auc,0.4356,0.02799,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:T1,pr_auc,0.47417,0.02695,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:T1+T2 (đủ),pr_auc,0.53027,0.02873,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:− T1_rhythm,pr_auc,0.47622,0.03042,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:− T1_clock,pr_auc,0.52927,0.02914,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:− T1_asym,pr_auc,0.48989,0.02815,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:T1+T2+T3,pr_auc,0.56573,0.02972,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:ablation:T1+T2+T3+T4,pr_auc,0.60602,0.02589,"X1 lgbm none, forward_chaining K=5"
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:cross:in-domain,pr_auc,0.53027,0.02873,X4 lgbm none
+20261113-153547,2026-11-13,m3_headA,A,e6e3fdc54d84,4592a74fea04,084698b,42,E2:cross:E1 → E2,pr_auc,0.3307,0.02544,X4 lgbm none

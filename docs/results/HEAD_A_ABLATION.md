@@ -1,6 +1,6 @@
-# Head A — ablation đặc trưng (A7, X1 phần T1/T2) và cross-domain (X4)
+# Head A — ablation đặc trưng (A7, X1) và cross-domain (X4)
 
-> Sinh bởi `python -m src.m3_health.run_ablation_a`. Chỉ tập train ; cùng hội thoại và fold forward chaining K = 5 với `HEAD_A_CV.md` ; LightGBM + none cố định, Δ = 48h. Mean ± SD qua 5 fold. T3 (B5), T4–T5 (C1, B8) sẽ thêm dòng khi có.
+> Sinh bởi `python -m src.m3_health.run_ablation_a`. Chỉ tập train ; cùng hội thoại và fold forward chaining K = 5 với `HEAD_A_CV.md` ; LightGBM + none cố định, Δ = 48h. Mean ± SD qua các fold. T3 theo B5; T4 nếu có cache B8; T5 chưa có.
 
 ## X1 — ablation nhóm đặc trưng (PR-AUC)
 
@@ -14,7 +14,8 @@ Nhóm: **T1_rhythm** = n_msgs, conv_age_log, gap_last, gap_mean, gap_max, gap_st
 | − T1_rhythm | 12 | 0.181 ± 0.016 | -0.140 ± 0.015 | 0.476 ± 0.030 | -0.054 ± 0.003 |
 | − T1_clock | 18 | 0.322 ± 0.005 | 0.001 ± 0.002 | 0.529 ± 0.029 | -0.001 ± 0.003 |
 | − T1_asym | 19 | 0.280 ± 0.005 | -0.041 ± 0.004 | 0.490 ± 0.028 | -0.040 ± 0.003 |
-| T1+T2+T4 | 63 | 0.336 ± 0.009 | 0.015 ± 0.004 | 0.585 ± 0.027 | 0.054 ± 0.005 |
+| T1+T2+T3 | 31 | 0.327 ± 0.006 | 0.007 ± 0.003 | 0.566 ± 0.030 | 0.035 ± 0.004 |
+| T1+T2+T3+T4 | 73 | 0.337 ± 0.010 | 0.017 ± 0.005 | 0.606 ± 0.026 | 0.076 ± 0.004 |
 
 Δ so với đủ tính theo cặp cùng fold (âm = bỏ nhóm làm giảm PR-AUC).
 
