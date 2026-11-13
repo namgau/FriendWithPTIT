@@ -183,7 +183,8 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
                         ProfilePhoto(
                             profile = profile,
                             modifier = Modifier.fillMaxSize(),
-                            blurLevel = 0.9f,
+                            blurLevel = state.compatibility?.blurLevel ?: 0.9f,
+                            revealed = state.compatibility?.revealEligible == true,
                             shape = CircleShape,
                             showAnonymousHint = false,
                             showAnonBadge = false
@@ -514,25 +515,13 @@ private fun CompatibilityCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(74.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(listOf(PtitRed, Color(0xFF8E1B1B)))
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "${compatibility.score}%",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("tương thích", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
-                }
-            }
+            CompatibilityOrb(
+                score = compatibility.score,
+                personality = compatibility.personality,
+                emotion = compatibility.emotion,
+                interest = compatibility.interest,
+                orbSize = 74.dp
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
