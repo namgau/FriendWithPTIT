@@ -1,0 +1,118 @@
+{
+  "dataset": "E1",
+  "checkpoint_sha256": "f65a35685aeef42e31b796d9bfa34e68d6fc780bc98e7bff7763802964cf435f",
+  "tabpfn": "2.0.9",
+  "torch": "2.5.1",
+  "lightgbm": "4.6.0",
+  "device": "cuda",
+  "gpu": "Tesla T4",
+  "seed": 42,
+  "groups": [
+    100,
+    300,
+    1000
+  ],
+  "max_rows": 10000,
+  "predict_batch": 2048,
+  "features": [
+    "n_msgs",
+    "conv_age_log",
+    "gap_last",
+    "gap_mean",
+    "gap_max",
+    "gap_std",
+    "gap_slope",
+    "gap_rel",
+    "burstiness",
+    "hour",
+    "weekend",
+    "night",
+    "share_last_sender",
+    "double_text",
+    "words_last",
+    "words_mean",
+    "words_slope",
+    "short_share",
+    "short_last",
+    "question_share",
+    "question_last"
+  ],
+  "config": {
+    "seeds": [
+      42,
+      43,
+      44,
+      45,
+      46
+    ],
+    "test_seed": 42,
+    "test_fraction": 0.2,
+    "cv": {
+      "outer_k": 5,
+      "repeats": 3,
+      "inner_k": 3
+    },
+    "bootstrap": {
+      "B": 2000,
+      "ci": 0.95,
+      "method": "cluster_percentile"
+    },
+    "imbalance_strategies": [
+      "none",
+      "class_weight",
+      "undersample",
+      "oversample",
+      "smote"
+    ],
+    "calibration": [
+      "platt",
+      "isotonic"
+    ],
+    "head_a": {
+      "delta_s": 172800,
+      "sensitivity_delta_s": [
+        3600,
+        86400,
+        259200
+      ],
+      "start_turn": 5,
+      "every": 2,
+      "cv_max_conversations": 60000,
+      "threshold": {
+        "alert_budget": 0.1,
+        "c_fn": 1,
+        "c_fp": 2,
+        "shallow_recall": 0.8
+      },
+      "survival": {
+        "admin_cap_s": 604800,
+        "cox_penalizer": 0.1,
+        "rsf_trees": 100,
+        "rsf_min_leaf": 50,
+        "rsf_max_fit": 20000
+      }
+    },
+    "head_b": {
+      "calm_drop_last": true,
+      "cv_folds": 5,
+      "calibration_fraction": 0.2,
+      "threshold_fpr": 0.05,
+      "max_features": 30000,
+      "min_df": 2
+    },
+    "test_split": {
+      "E1": "time",
+      "E2": "time",
+      "G1": "official",
+      "H1": "group",
+      "H2": "group"
+    }
+  },
+  "input_sha256": {
+    "messages.parquet": "eddd4eb946a9576768a3b869fd2f539cdd02e8f49fb0fb7644c62ce4880fdb66",
+    "labels_headA_train.parquet": "41f1edfcf81a41bc8bfa79c6409d48f3efa96bf760873193c7bfd51cde072210"
+  },
+  "git_commit": "8a7e024101354c4cfc9371d0aee6c329b52003b9",
+  "git_dirty": null,
+  "runner_sha256": "8e90b0c4fd0f923fc75a87e2bdfedf31dc4095d2ca2d072478193b9ed6b4884c"
+}
