@@ -201,7 +201,7 @@ class ChatViewModel internal constructor(
     private suspend fun checkSafetyRisk(text: String, context: List<ChatMessage>): Boolean {
         val remote = remoteAi.safetyScore(matchId, context, text)
         if (remote != null) {
-            return remote.shouldNudge || remote.toxicity >= 0.5f || remote.derailRisk >= 0.5f
+            return remote.shouldNudge  // ngưỡng τ_B do server quyết định (FPR ≤ 5%), app không tự đặt ngưỡng
         }
         return SafetyEngine.isToxicOffline(text)
     }
