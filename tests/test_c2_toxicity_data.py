@@ -11,8 +11,9 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import torch
-import torch.nn as nn
+
+torch = pytest.importorskip("torch")
+nn = pytest.importorskip("torch.nn")
 from torch.utils.data import DataLoader
 
 from src.m3_health.c2_toxicity_data import (

@@ -260,6 +260,11 @@ def test_export_and_reload_artifacts(synthetic_h1_data, tmp_path):
 # ---------------------------------------------------------------------------
 
 def test_full_pipeline_smoke(tmp_path):
+    h1_file = Path("data/processed/H1/labels_headB_train.parquet")
+    h2_file = Path("data/processed/H2/labels_headB_train.parquet")
+    if not (h1_file.exists() and h2_file.exists()):
+        pytest.skip("Processed H1/H2 cache not available in CI environment.")
+
     res = run_pipeline(
         model_type="embedding_fallback",
         seed=42,

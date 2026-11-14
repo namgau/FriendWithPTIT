@@ -15,9 +15,19 @@ from typing import Any, Sequence
 
 import numpy as np
 import pandas as pd
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
+try:
+    import torch
+    import torch.nn as nn
+    import torch.nn.functional as F
+    _TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    F = None
+    _TORCH_AVAILABLE = False
+
+_DatasetBase = torch.utils.data.Dataset if (_TORCH_AVAILABLE and hasattr(torch, "utils") and hasattr(torch.utils, "data")) else object
+_ModuleBase = nn.Module if _TORCH_AVAILABLE else object
 
 ROOT = Path(__file__).resolve().parents[2]
 PROC = ROOT / "data" / "processed"
@@ -34,7 +44,7 @@ def _assert_not_locked(path: Path | str) -> Path:
     return resolved
 
 
-class ToxicityDataset(torch.utils.data.Dataset):
+class ToxicityDataset(_DatasetBase):
     """PyTorch Dataset cho phân loại độc hại từng câu/tin nhắn.
 
     Nhận DataFrame chứa text và label (0: sạch, 1: độc hại/xúc phạm), tokenizer PhoBERT/XLM-R.
@@ -49,6 +59,8 @@ class ToxicityDataset(torch.utils.data.Dataset):
         text_col: str = "text",
         label_col: str = "label",
     ):
+        if not _TORCH_AVAILABLE:
+            raise ImportError("PyTorch is required for ToxicityDataset. Install torch.")
         if df.empty:
             self.texts: list[str] = []
             self.labels: np.ndarray = np.array([], dtype=np.float32)
@@ -143,7 +155,7 @@ class ToxicityDataset(torch.utils.data.Dataset):
         return float(np.mean(self.labels == 1.0))
 
 
-class WeightedBCEWithLogitsLoss(nn.Module):
+class WeightedBCEWithLogitsLoss(_ModuleBase):
     """Binary Cross Entropy With Logits hỗ trợ pos_weight = N_neg / N_pos.
 
     Được tối ưu để phạt nặng lỗi bỏ sót ở lớp thiểu số (toxic=1).
@@ -151,9 +163,11 @@ class WeightedBCEWithLogitsLoss(nn.Module):
 
     def __init__(
         self,
-        pos_weight: float | torch.Tensor = 1.0,
+        pos_weight: float | Any = 1.0,
         reduction: str = "mean",
     ):
+        if not _TORCH_AVAILABLE:
+            raise ImportError("PyTorch is required for WeightedBCEWithLogitsLoss.")
         super().__init__()
         if not isinstance(pos_weight, torch.Tensor):
             pos_weight_tensor = torch.tensor(float(pos_weight), dtype=torch.float32)
@@ -197,7 +211,7 @@ class WeightedBCEWithLogitsLoss(nn.Module):
         )
 
 
-class FocalLoss(nn.Module):
+class FocalLoss(_ModuleBase):
     """Focal Loss cho phân loại nhị phân (Lin et al., ICCV 2017).
 
     FL(p_t) = -alpha_t * (1 - p_t)^gamma * log(p_t)
@@ -211,6 +225,8 @@ class FocalLoss(nn.Module):
         gamma: float = 2.0,
         reduction: str = "mean",
     ):
+        if not _TORCH_AVAILABLE:
+            raise ImportError("PyTorch is required for FocalLoss.")
         super().__init__()
         self.alpha = float(alpha) if alpha is not None else None
         self.gamma = float(gamma)
