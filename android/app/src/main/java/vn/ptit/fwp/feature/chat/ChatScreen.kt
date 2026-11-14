@@ -106,6 +106,7 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
     val message by viewModel.message.collectAsState()
     val finished by viewModel.finished.collectAsState()
+    val pendingDraft by viewModel.pendingDraft.collectAsState()
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -183,7 +184,8 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
                         ProfilePhoto(
                             profile = profile,
                             modifier = Modifier.fillMaxSize(),
-                            blurLevel = 0.9f,
+                            blurLevel = state.compatibility?.blurLevel ?: 0.9f,
+                            revealed = state.compatibility?.revealEligible == true,
                             shape = CircleShape,
                             showAnonymousHint = false,
                             showAnonBadge = false
@@ -498,6 +500,38 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
             dismissButton = { TextButton(onClick = { showUnmatch = false }) { Text("Giữ lại") } }
         )
     }
+
+    if (pendingDraft != null) {
+        AlertDialog(
+            onDismissRequest = {
+                input = pendingDraft ?: input
+                viewModel.cancelSend()
+            },
+            title = { Text("Cảnh báo an toàn", fontWeight = FontWeight.Bold) },
+            text = {
+                Text("Bạn có chắc muốn gửi tin nhắn này? Nội dung có thể gây hiểu lầm hoặc thiếu tích cực")
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.confirmSend()
+                    }
+                ) {
+                    Text("Vẫn gửi", color = PtitRed, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = {
+                        input = pendingDraft ?: input
+                        viewModel.cancelSend()
+                    }
+                ) {
+                    Text("Sửa lại")
+                }
+            }
+        )
+    }
 }
 
 @Composable
@@ -514,25 +548,13 @@ private fun CompatibilityCard(
         modifier = Modifier.fillMaxWidth()
     ) {
         Row(Modifier.padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
-            Box(
-                Modifier
-                    .size(74.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(
-                        Brush.linearGradient(listOf(PtitRed, Color(0xFF8E1B1B)))
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        "${compatibility.score}%",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text("tương thích", style = MaterialTheme.typography.labelSmall, color = Color.White.copy(alpha = 0.8f))
-                }
-            }
+            CompatibilityOrb(
+                score = compatibility.score,
+                personality = compatibility.personality,
+                emotion = compatibility.emotion,
+                interest = compatibility.interest,
+                orbSize = 74.dp
+            )
             Spacer(Modifier.width(12.dp))
             Column(Modifier.weight(1f)) {
                 Text(
