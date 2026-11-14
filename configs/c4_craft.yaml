@@ -1,0 +1,19 @@
+# C4 CRAFT-like GRU configuration for Head B on G1
+seed: 42
+cv_folds: 5
+calibration_fraction: 0.20
+threshold_fpr: 0.05
+
+gru:
+  hidden_sizes: [32, 64]
+  dropouts: [0.1, 0.3]
+  batch_size: 64
+  epochs: 20
+  patience: 3
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  gradient_clip: 1.0
+
+table:
+  C: 1.0
+  max_iter: 2000
