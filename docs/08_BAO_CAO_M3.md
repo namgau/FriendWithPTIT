@@ -311,7 +311,7 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | Conformal (CQR, Romano 2019) + weighted conformal dưới covariate shift (Tibshirani 2019) | hồi quy phân vị không conformal | đạt coverage đúng trong miền ; chỉ ra giới hạn ESS khi chuyển miền |
 | Confident learning (Northcutt 2021) | đọc tay 100 FP | báo nhiễu cao hơn đọc tay khoảng 4 lần ; lọc làm giảm PR-AUC → kết quả âm, vẫn báo |
 | SHAP (LightGBM `pred_contrib`) | feature importance | phát hiện artifact `n_msgs` |
-| Embedding đa ngữ BGE-M3, chọn theo VN-MTEB | MiniLM | `[CHỜ C1]` lý do chọn + `[CHỜ B8]` ablation |
+| Embedding đa ngữ BGE-M3, chọn theo VN-MTEB | MiniLM | chọn BGE-M3 do chất lượng tiếng Việt vượt trội trên VN-MTEB (64.90 so với 46.05 của MiniLM-L12 ; chi tiết tại [docs/results/C1_EMBEDDING.md](results/C1_EMBEDDING.md)) + `[CHỜ B8]` ablation |
 | TabPFN v2 (Hollmann 2025 ; B9, `B9_TABPFN_CV.md`) | LightGBM trên cùng tập con group | ≤ 1.000 group: TabPFN hơn +0.03–0.05 PR-AUC (paired cluster bootstrap CI không chứa 0, cả E1 lẫn E2). Nhưng LightGBM học trên đủ 60k hội thoại vẫn cao hơn TabPFN ở mức lớn nhất nó chạy được (E1 0.320 so với 0.283 ; E2 0.530 so với 0.497, cùng T1+T2), và TabPFN suy luận chậm hơn khoảng 1.000 lần → giữ LightGBM ; TabPFN hợp cho giai đoạn ít dữ liệu (cold start) |
 | CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR, baseline tin cuối | `[CHỜ C4]` |
 
