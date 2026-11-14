@@ -19,6 +19,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
+torch = pytest.importorskip("torch")
+
 from src.eval.calibration import ece
 from src.m3_health.train_c2_transformer import (
     EmbeddingClassifierFallback,

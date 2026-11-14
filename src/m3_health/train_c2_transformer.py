@@ -344,11 +344,16 @@ def build_classifier(
     epochs: int = 1,
 ) -> tuple[Any, str]:
     """Khởi tạo mô hình dựa trên cấu hình yêu cầu và phần cứng hiện hữu."""
-    import torch
-
-    has_cuda = torch.cuda.is_available()
+    try:
+        import torch
+        has_cuda = torch.cuda.is_available()
+    except ImportError:
+        torch = None
+        has_cuda = False
 
     if model_type == "phobert":
+        if torch is None:
+            raise ImportError("PyTorch is required for PhoBERTClassifier. Please install torch.")
         return PhoBERTClassifier(seed=seed, epochs=epochs), "phobert"
     elif model_type == "sentence-transformer":
         device = "cuda" if has_cuda else "cpu"
