@@ -9,6 +9,21 @@ import kotlin.math.roundToInt
 
 object HealthEngine {
 
+    /**
+     * Ngưỡng 3 mức theo chuẩn Head A (M3):
+     * - HEALTHY: score < TAU_1 (dưới 30 điểm / 0.30)
+     * - FADING: TAU_1 <= score < TAU_2 (30 đến 59 điểm)
+     * - AT_RISK: score >= TAU_2 (từ 60 điểm / 0.60 trở lên)
+     */
+    const val TAU_1 = 30
+    const val TAU_2 = 60
+
+    fun classifyLevel(score: Int): HealthLevel = when {
+        score >= TAU_2 -> HealthLevel.AT_RISK
+        score >= TAU_1 -> HealthLevel.FADING
+        else -> HealthLevel.HEALTHY
+    }
+
     fun analyze(
         messages: List<ChatMessage>,
         me: Profile?,
@@ -48,11 +63,7 @@ object HealthEngine {
         if (negative > 0.4f) risk += 12f
         if (window.size >= 12 && questionRatio > 0.2f && balance > 0.55f) risk -= 10f
         val score = risk.coerceIn(0f, 100f).roundToInt()
-        val level = when {
-            score >= 64 -> HealthLevel.AT_RISK
-            score >= 36 -> HealthLevel.FADING
-            else -> HealthLevel.HEALTHY
-        }
+        val level = classifyLevel(score)
         val reasons = buildList {
             if (gapHours >= 24f) add("Tin nhắn cuối đã ${formatGap(gapHours)}")
             if (shortRatio > 0.45f) add("Nhiều tin nhắn quá ngắn, dễ tạo cảm giác hời hợt")
@@ -66,7 +77,7 @@ object HealthEngine {
             level = level,
             score = score,
             reasons = reasons,
-            suggestions = suggestions(me, other, window, lowActivity = score >= 36, longGap = gapHours >= 24f),
+            suggestions = suggestions(me, other, window, lowActivity = score >= TAU_1, longGap = gapHours >= 24f),
             messageCount = chat.size,
             source = "Quy tắc FwP (fallback)"
         )

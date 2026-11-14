@@ -17,6 +17,7 @@ models/**/*.pkl
 models/**/*.onnx
 models/**/*.pt
 models/**/*.bin
+models/**/*.joblib
 !models/**/metadata.json
 # Thí nghiệm lớn
 reports/*
