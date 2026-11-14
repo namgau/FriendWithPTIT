@@ -14,9 +14,16 @@ from typing import Sequence
 
 import numpy as np
 import pandas as pd
-import torch
-from torch.nn.utils.rnn import pad_sequence
-from torch.utils.data import Dataset
+try:
+    import torch
+    from torch.nn.utils.rnn import pad_sequence
+    from torch.utils.data import Dataset
+    _TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    pad_sequence = None
+    Dataset = object
+    _TORCH_AVAILABLE = False
 
 from src.m3_health.embedding_cache import load_cache
 from src.m3_health.labels import PROC
@@ -43,7 +50,7 @@ class G1SequenceDataset(Dataset):
         index_df: pd.DataFrame | None = None,
         labels_df: pd.DataFrame | None = None,
         conversation_ids: Sequence[str] | None = None,
-        dtype: torch.dtype = torch.float32,
+        dtype: Any = None,
         drop_empty: bool = True,
     ) -> None:
         """Khởi tạo G1SequenceDataset.
@@ -69,6 +76,10 @@ class G1SequenceDataset(Dataset):
         drop_empty : bool
             Nếu True, loại bỏ các hội thoại không có lượt tiền tố hợp lệ nào (length == 0).
         """
+        if not _TORCH_AVAILABLE:
+            raise ImportError("PyTorch is required for G1SequenceDataset. Install torch.")
+        if dtype is None:
+            dtype = torch.float32
         _assert_not_locked(root)
 
         # 1. Nạp cache embedding nếu chưa được truyền trực tiếp

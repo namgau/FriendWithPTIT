@@ -10,8 +10,9 @@ Tests:
 """
 
 import pytest
-import torch
-import torch.nn as nn
+
+torch = pytest.importorskip("torch")
+nn = pytest.importorskip("torch.nn")
 
 from src.m3_health.craft_model import BahdanauAttention, CRAFTModel
 

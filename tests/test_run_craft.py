@@ -4,7 +4,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 
 from src.eval.bootstrap import paired_cluster_bootstrap
 from src.eval.calibration import fit_calibrator

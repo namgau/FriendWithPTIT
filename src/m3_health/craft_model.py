@@ -22,12 +22,22 @@ from __future__ import annotations
 
 from typing import Optional, Tuple, Union
 
-import torch
-import torch.nn as nn
-from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+try:
+    import torch
+    import torch.nn as nn
+    from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+    _TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    nn = None
+    pack_padded_sequence = None
+    pad_packed_sequence = None
+    _TORCH_AVAILABLE = False
+
+_ModuleBase = nn.Module if _TORCH_AVAILABLE else object
 
 
-class BahdanauAttention(nn.Module):
+class BahdanauAttention(_ModuleBase):
     """Additive (Bahdanau) attention pooling over conversation turns.
 
     Computes turn importance scores:
@@ -85,7 +95,7 @@ class BahdanauAttention(nn.Module):
         return context, weights
 
 
-class CRAFTModel(nn.Module):
+class CRAFTModel(_ModuleBase):
     """CRAFT-like hierarchical recurrent model for conversational forecasting.
 
     Processes a sequence of utterance embeddings through a linear projection layer,

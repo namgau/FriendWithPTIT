@@ -11,7 +11,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import pytest
-import torch
+
+torch = pytest.importorskip("torch")
 from torch.utils.data import DataLoader
 
 from src.m3_health.craft_dataset import (
@@ -231,6 +232,8 @@ def test_locked_data_access_is_forbidden():
 
 def test_real_g1_cache_integrity_and_anti_leakage():
     """Kiểm tra toàn diện trên dữ liệu cache thực tế của G1 (B8 cache)."""
+    if not (Path("data/processed/G1/labels_headB_train.parquet").exists() and Path("data/processed/G1/embeddings.npy").exists()):
+        pytest.skip("G1 B8 cache not available in CI environment.")
     dataset = G1SequenceDataset()
     assert len(dataset) == 3348
 
@@ -260,6 +263,8 @@ def test_real_g1_cache_integrity_and_anti_leakage():
 
 def test_real_g1_dataloader_batch_processing():
     """Kiểm tra DataLoader PyTorch với pad_collate_fn trên dữ liệu thực tế."""
+    if not (Path("data/processed/G1/labels_headB_train.parquet").exists() and Path("data/processed/G1/embeddings.npy").exists()):
+        pytest.skip("G1 B8 cache not available in CI environment.")
     dataset = G1SequenceDataset()
     loader = DataLoader(
         dataset,
@@ -288,6 +293,8 @@ def test_real_g1_dataloader_batch_processing():
 
 def test_conversation_ids_subset_filtering():
     """Kiểm tra khả năng lọc theo danh sách conversation_ids (dành cho CV folds)."""
+    if not (Path("data/processed/G1/labels_headB_train.parquet").exists() and Path("data/processed/G1/embeddings.npy").exists()):
+        pytest.skip("G1 B8 cache not available in CI environment.")
     dataset_full = G1SequenceDataset()
     sample_ids = [dataset_full[i][3] for i in range(10)]
 
