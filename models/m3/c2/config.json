@@ -1,0 +1,14 @@
+{
+  "module": "m3",
+  "version": "c2",
+  "model_name": "c2_toxicity_transformer",
+  "model_type": "embedding_fallback",
+  "seed": 42,
+  "cv_folds": 5,
+  "calibration_fraction": 0.2,
+  "calibration_method": "platt",
+  "threshold_fpr": 0.05,
+  "tau_b": 0.44200185804492625,
+  "training_dataset": "H1 (ViHSD)",
+  "evaluation_dataset": "H2 (UIT-ViCTSD)"
+}
