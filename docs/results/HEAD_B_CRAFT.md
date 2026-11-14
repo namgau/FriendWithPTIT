@@ -56,7 +56,7 @@ Kiểm định xem CRAFT-like GRU có vượt trội có ý nghĩa thống kê s
 
 ## 5. Error Analysis & Lead Time Insights (Phân tích lỗi & Nhận định)
 - **Độ trễ và Ngưỡng an toàn (FPR ≤ 5%):** Trong ứng dụng mạng xã hội sinh viên, việc cảnh báo sai (buộc tội oan một người dùng bình thường là kẻ độc hại) mang chi phí tâm lý rất lớn. Khi ép FPR ≤ 5%, CRAFT-GRU duy trì được Precision cao (~68–74%), chấp nhận đánh đổi Recall (~13–18%) nhưng đảm bảo can thiệp chính xác.
-- **Lợi thế mô hình chuỗi so với Bag-of-Words:** CRAFT-GRU nắm bắt được tiến trình leo thang cảm xúc (trajectory of escalation) qua từng lượt nói thay vì chỉ gộp tất cả các từ trong tiền tố như `tfidf_lr`. Khi độ dài tiền tố tăng, sự thay đổi trạng thái ẩn (hidden state dynamics) thể hiện rõ ràng tín hiệu căng thẳng giữa hai người đối thoại.
+- **Mô hình chuỗi chưa cho lợi ích đo được:** CRAFT-GRU hơn `tfidf_lr` +0.022 PR-AUC nhưng CI 95% paired bootstrap chứa 0, và gần như bằng `table_lr` (mean + last PCA32, không mô hình hóa thứ tự; Δ +0.004). Phần lớn lợi ích đến từ biểu diễn embedding, không phải từ việc đọc tiền tố như một chuỗi.
 
 ## 6. Practical Limits (Giới hạn thực tế)
 - **Tài nguyên tính toán:** Pipeline chạy hoàn toàn trên PyTorch CPU (~15–25 giây/fold), tiêu thụ < 1,5 GB RAM, cực kỳ phù hợp triển khai serving nhẹ trong microservice không cần GPU đắt đỏ.
