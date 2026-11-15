@@ -8,7 +8,7 @@
   "calibration_fraction": 0.2,
   "calibration_method": "platt",
   "threshold_fpr": 0.05,
-  "tau_b": 0.4363,
+  "tau_b": 0.5011832111465984,
   "training_dataset": "H1 (ViHSD)",
   "evaluation_dataset": "H2 (UIT-ViCTSD)",
   "word_segmentation": true
