@@ -92,6 +92,25 @@ data class HealthResponse(
     @SerializedName("model_source") val modelSource: String? = null
 )
 
+data class SafetyMessageDto(
+    @SerializedName("sender_id") val senderId: String,
+    @SerializedName("timestamp_ms") val timestampMs: Long,
+    @SerializedName("text") val text: String? = null
+)
+
+data class SafetyScoreRequest(
+    @SerializedName("conversation_id") val conversationId: String,
+    @SerializedName("context") val context: List<SafetyMessageDto> = emptyList(),
+    @SerializedName("draft") val draft: SafetyMessageDto
+)
+
+data class SafetyScoreResponse(
+    @SerializedName("toxicity") val toxicity: Float = 0f,
+    @SerializedName("derail_risk") val derailRisk: Float = 0f,
+    @SerializedName("should_nudge") val shouldNudge: Boolean = false,
+    @SerializedName("model_version") val modelVersion: String = ""
+)
+
 interface FwpAiApi {
     @POST("m1/rank")
     suspend fun rank(@Body request: RankRequest): RankResponse
@@ -101,4 +120,7 @@ interface FwpAiApi {
 
     @POST("m3/health")
     suspend fun health(@Body request: HealthRequest): HealthResponse
+
+    @POST("safety/score")
+    suspend fun safetyScore(@Body request: SafetyScoreRequest): SafetyScoreResponse
 }

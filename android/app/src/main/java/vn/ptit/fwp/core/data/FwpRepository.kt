@@ -26,34 +26,48 @@ import vn.ptit.fwp.core.model.SwipeOutcome
 import vn.ptit.fwp.core.model.UniversityCatalog
 import java.util.UUID
 
+interface FwpChatRepository {
+    val myProfile: Flow<Profile?>
+    fun messages(matchId: String): Flow<List<ChatMessage>>
+    fun match(matchId: String): Flow<FwpMatch?>
+    fun profile(id: String): Flow<Profile?>
+    suspend fun sendMessage(matchId: String, senderId: String, text: String, type: MessageType = MessageType.TEXT)
+    suspend fun markRead(matchId: String)
+    suspend fun updateCompatibility(matchId: String, score: Int)
+    suspend fun setRevealOptIn(matchId: String, enabled: Boolean)
+    suspend fun unmatch(matchId: String)
+    suspend fun blockProfile(profileId: String, reason: String? = null)
+    suspend fun reportProfile(profileId: String, reason: String)
+}
+
 class FwpRepository(
     private val db: FwpDatabase,
     private val settingsStore: SettingsStore
-) {
+) : FwpChatRepository {
     private val profileDao = db.profileDao()
     private val swipeDao = db.swipeDao()
     private val matchDao = db.matchDao()
     private val messageDao = db.messageDao()
     private val notificationDao = db.notificationDao()
 
-    val myProfile: Flow<Profile?> = profileDao.observeMe().map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
+    override val myProfile: Flow<Profile?> = profileDao.observeMe().map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
     val profiles: Flow<List<Profile>> = profileDao.observeProfiles().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
     val swipes: Flow<List<Swipe>> = swipeDao.observeSwipes().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
     val matches: Flow<List<FwpMatch>> = matchDao.observeAll().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
     val notifications: Flow<List<FwpNotification>> = notificationDao.observeAll().map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
     val unreadNotifications: Flow<Int> = notificationDao.observeUnreadCount().demoOnly(settingsStore.settings, 0)
 
-    fun messages(matchId: String): Flow<List<ChatMessage>> =
+    override fun messages(matchId: String): Flow<List<ChatMessage>> =
         if (isDemoMatchId(matchId))
             messageDao.observeByMatch(matchId).map { list -> list.map { it.toDomain() } }.demoOnly(settingsStore.settings, emptyList())
         else flowOf(emptyList())
 
-    fun match(matchId: String): Flow<FwpMatch?> =
+    override fun match(matchId: String): Flow<FwpMatch?> =
         if (isDemoMatchId(matchId))
             matchDao.observeById(matchId).map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
         else flowOf(null)
 
-    fun profile(id: String): Flow<Profile?> =
+    override fun profile(id: String): Flow<Profile?> =
         if (id == "me" || isDemoProfileId(id))
             profileDao.observeById(id).map { it?.toDomain() }.demoOnly(settingsStore.settings, null)
         else flowOf(null)
@@ -179,11 +193,11 @@ class FwpRepository(
         return true
     }
 
-    suspend fun sendMessage(
+    override suspend fun sendMessage(
         matchId: String,
         senderId: String,
         text: String,
-        type: MessageType = MessageType.TEXT
+        type: MessageType
     ) {
         if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val now = System.currentTimeMillis()
@@ -215,19 +229,19 @@ class FwpRepository(
         }
     }
 
-    suspend fun markRead(matchId: String) {
+    override suspend fun markRead(matchId: String) {
         if (!isDemoSession() || !isDemoMatchId(matchId)) return
         messageDao.markIncomingRead(matchId)
         matchDao.clearUnread(matchId)
     }
 
-    suspend fun updateCompatibility(matchId: String, score: Int) {
+    override suspend fun updateCompatibility(matchId: String, score: Int) {
         if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val match = matchDao.getById(matchId) ?: return
         matchDao.upsert(match.copy(compatibility = score))
     }
 
-    suspend fun setRevealOptIn(matchId: String, enabled: Boolean) {
+    override suspend fun setRevealOptIn(matchId: String, enabled: Boolean) {
         if (!isDemoSession() || !isDemoMatchId(matchId)) return
         val match = matchDao.getById(matchId) ?: return
         matchDao.upsert(match.copy(revealOptInMe = enabled))
@@ -239,13 +253,13 @@ class FwpRepository(
         matchDao.upsert(match.copy(revealOptInThem = enabled))
     }
 
-    suspend fun unmatch(matchId: String) {
+    override suspend fun unmatch(matchId: String) {
         if (!isDemoSession() || !isDemoMatchId(matchId)) return
         messageDao.deleteByMatch(matchId)
         matchDao.delete(matchId)
     }
 
-    suspend fun blockProfile(profileId: String, reason: String? = null) {
+    override suspend fun blockProfile(profileId: String, reason: String?) {
         if (!isDemoSession() || !isDemoProfileId(profileId)) return
         profileDao.setBlocked(profileId, true)
         val match = matchDao.getByProfile(profileId)
@@ -260,7 +274,7 @@ class FwpRepository(
         )
     }
 
-    suspend fun reportProfile(profileId: String, reason: String) {
+    override suspend fun reportProfile(profileId: String, reason: String) {
         if (!isDemoSession() || !isDemoProfileId(profileId)) return
         profileDao.setBlocked(profileId, true)
         val match = matchDao.getByProfile(profileId)
