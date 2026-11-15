@@ -51,7 +51,10 @@ def _safe_load_artifact(path: Path):
         if path.suffix == ".pt":
             try:
                 import torch
-                return torch.load(path, map_location="cpu")
+                try:
+                    return torch.load(path, map_location="cpu", weights_only=False)
+                except TypeError:
+                    return torch.load(path, map_location="cpu")
             except Exception:
                 pass
         return None

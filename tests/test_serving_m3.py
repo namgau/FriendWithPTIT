@@ -8,6 +8,7 @@ Covers:
 """
 from __future__ import annotations
 
+import json
 import pytest
 from fastapi.testclient import TestClient
 
@@ -90,17 +91,75 @@ def test_export_serving_v1_bundle_and_reload(tmp_path):
     assert thresh["tau_nudge"] == 0.4363
 
 
-def test_model_registry_load_c2_and_c4():
+class DummyServingModel:
+    """Mock model used to test registry loading of serialized artifacts."""
+    def predict_proba(self, X):
+        return [0.5]
+
+
+def test_model_registry_load_c2_and_c4(tmp_path):
     registry = ModelRegistry()
-    # If c2 directory exists, load_head_b("c2") loads its artifact
+
+    # 1. Graceful fallback check:
+    # In clean checkouts (prior to 20/11 freeze release), model weight files (.pkl, .pt)
+    # are omitted from git tracking. When directory exists with only metadata.json / result.json,
+    # load_head_b must safely return None without crashing or failing assertions.
     c2_model = registry.load_head_b("c2")
-    if (registry.root / "m3" / "c2").is_dir():
+    c2_dir = registry.root / "m3" / "c2"
+    c2_has_weights = c2_dir.is_dir() and any(
+        (c2_dir / f).is_file() or (c2_dir / "fold_0" / f).is_file()
+        for f in ["head_b.pkl", "head_b.joblib", "model_head_b.pkl", "model.pkl", "table.joblib", "craft_gru.pt"]
+    )
+    if not c2_has_weights:
+        assert c2_model is None
+    else:
         assert c2_model is not None
 
-    # If c4 directory exists, load_head_b("c4") loads its artifact
     c4_model = registry.load_head_b("c4")
-    if (registry.root / "m3" / "c4").is_dir():
+    c4_dir = registry.root / "m3" / "c4"
+    c4_has_weights = c4_dir.is_dir() and any(
+        (c4_dir / f).is_file() or (c4_dir / "fold_0" / f).is_file()
+        for f in ["head_b.pkl", "head_b.joblib", "model_head_b.pkl", "model.pkl", "table.joblib", "craft_gru.pt"]
+    )
+    if not c4_has_weights:
+        assert c4_model is None
+    else:
         assert c4_model is not None
+
+    # 2. Mock artifact verification:
+    # Verify that when weight files ARE present, registry.load_head_b("c2") and
+    # registry.load_head_b("c4") successfully load them and attach metadata.
+    import joblib
+    mock_root = tmp_path / "models"
+
+    # Mock c2 artifact
+    mock_c2 = mock_root / "m3" / "c2"
+    mock_c2.mkdir(parents=True, exist_ok=True)
+    (mock_c2 / "metadata.json").write_text(
+        json.dumps({"model_name": "c2-phobert", "head_b": {"model_file": "head_b.joblib"}}),
+        encoding="utf-8",
+    )
+    joblib.dump(DummyServingModel(), mock_c2 / "head_b.joblib")
+
+    # Mock c4 artifact (fold_0/table.joblib and fold_0/craft_gru.pt candidate)
+    mock_c4_fold0 = mock_root / "m3" / "c4" / "fold_0"
+    mock_c4_fold0.mkdir(parents=True, exist_ok=True)
+    (mock_root / "m3" / "c4" / "metadata.json").write_text(
+        json.dumps({"model_name": "G1:CRAFT-GRU"}),
+        encoding="utf-8",
+    )
+    joblib.dump(DummyServingModel(), mock_c4_fold0 / "table.joblib")
+
+    mock_registry = ModelRegistry(root=mock_root)
+    loaded_c2 = mock_registry.load_head_b("c2")
+    loaded_c4 = mock_registry.load_head_b("c4")
+
+    assert loaded_c2 is not None
+    assert loaded_c4 is not None
+    assert getattr(loaded_c2, "version", None) == "c2"
+    assert getattr(loaded_c4, "version", None) == "c4"
+    assert getattr(loaded_c2, "metadata", {}).get("model_name") == "c2-phobert"
+    assert getattr(loaded_c4, "metadata", {}).get("model_name") == "G1:CRAFT-GRU"
 
 
 def test_model_registry_nonexistent_version():
