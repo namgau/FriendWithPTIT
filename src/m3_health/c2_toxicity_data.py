@@ -54,7 +54,7 @@ def segment_text_underthesea(text: str) -> str:
         return ""
     try:
         import underthesea
-        return underthesea.word_tokenize(str(text), format="text")
+        return underthesea.word_tokenize(str(text), format="text", use_token_normalize=False)
     except Exception:
         return str(text)
 
