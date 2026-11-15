@@ -44,6 +44,26 @@ def _assert_not_locked(path: Path | str) -> Path:
     return resolved
 
 
+def segment_text_underthesea(text: str) -> str:
+    """Tách từ tiếng Việt bằng underthesea format='text' (nối từ ghép bằng dấu gạch dưới).
+
+    Bắt buộc cho PhoBERT (vinai/phobert-base-v2) vì từ vựng của PhoBERT dựa trên các âm tiết
+    ghép thành từ có gạch dưới (ví dụ: 'Học_viện Công_nghệ', 'ví_dụ').
+    """
+    if not text or not str(text).strip():
+        return ""
+    try:
+        import underthesea
+        return underthesea.word_tokenize(str(text), format="text")
+    except Exception:
+        return str(text)
+
+
+def batch_segment_underthesea(texts: Sequence[str]) -> list[str]:
+    """Tách từ hàng loạt cho danh sách văn bản bằng underthesea."""
+    return [segment_text_underthesea(t) for t in texts]
+
+
 class ToxicityDataset(_DatasetBase):
     """PyTorch Dataset cho phân loại độc hại từng câu/tin nhắn.
 
@@ -58,6 +78,7 @@ class ToxicityDataset(_DatasetBase):
         max_length: int = 128,
         text_col: str = "text",
         label_col: str = "label",
+        word_segment: bool = False,
     ):
         if not _TORCH_AVAILABLE:
             raise ImportError("PyTorch is required for ToxicityDataset. Install torch.")
@@ -89,11 +110,16 @@ class ToxicityDataset(_DatasetBase):
                         f"Không tìm thấy cột nhãn '{label_col}' trong DataFrame. Các cột hiện có: {list(df.columns)}"
                     )
 
-            self.texts = ["" if pd.isna(t) else str(t) for t in df[actual_text_col]]
+            raw_texts = ["" if pd.isna(t) else str(t) for t in df[actual_text_col]]
+            if word_segment and raw_texts:
+                self.texts = [segment_text_underthesea(t) for t in raw_texts]
+            else:
+                self.texts = raw_texts
             self.labels = np.asarray(df[actual_label_col], dtype=np.float32)
 
         self.tokenizer = tokenizer
         self.max_length = int(max_length)
+        self.word_segment = bool(word_segment)
 
     def __len__(self) -> int:
         return len(self.texts)

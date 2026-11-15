@@ -318,3 +318,26 @@ def test_toxicity_dataset_with_phobert_tokenizer():
     assert item1["attention_mask"].shape == (128,)
     assert item1["label"].item() == 1.0
 
+
+def test_toxicity_dataset_word_segmentation_underthesea():
+    """Kiểm tra chức năng tách từ bằng underthesea trong ToxicityDataset."""
+    from src.m3_health.c2_toxicity_data import batch_segment_underthesea, segment_text_underthesea
+
+    raw_text = "Học viện Công nghệ Bưu chính Viễn thông"
+    segmented = segment_text_underthesea(raw_text)
+    assert "_" in segmented
+    assert "Học_viện" in segmented or "Công_nghệ" in segmented
+
+    batch_res = batch_segment_underthesea([raw_text, ""])
+    assert len(batch_res) == 2
+    assert batch_res[1] == ""
+
+    df = pd.DataFrame({
+        "text": ["Học viện Công nghệ", "bình thường"],
+        "label": [0, 1],
+    })
+    mock_tok = MockTokenizer()
+    ds = ToxicityDataset(df, tokenizer=mock_tok, max_length=64, word_segment=True)
+    assert "_" in ds.texts[0]
+
+
