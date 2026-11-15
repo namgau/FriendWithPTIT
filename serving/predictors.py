@@ -88,110 +88,30 @@ def toxicity_hits(text: str | None) -> int:
     return sum(1 for term in TOXIC_TERMS if f" {term} " in padded)
 
 
-def _calc_slope(values: np.ndarray) -> float:
-    n = len(values)
-    if n < 2:
-        return 0.0
-    x = np.arange(n, dtype=float)
-    x_mean = np.mean(x)
-    y_mean = np.mean(values)
-    dx = x - x_mean
-    denom = np.sum(dx ** 2)
-    if denom == 0:
-        return 0.0
-    return float(np.sum(dx * (values - y_mean)) / denom)
+def extract_t1_t2_features(past_messages: list[Message], now_ms: int | None = None) -> pd.DataFrame:
+    """Trích xuất 21 đặc trưng Head A (T1 thời gian + T2 văn bản) bằng hàm trích đặc trưng chuẩn của train.
 
-
-def _calc_burstiness(gaps: np.ndarray) -> float:
-    if len(gaps) == 0:
-        return 0.0
-    mu = float(np.mean(gaps))
-    sd = float(np.std(gaps))
-    if mu + sd > 0:
-        return float((sd - mu) / (sd + mu))
-    return 0.0
-
-
-def extract_t1_t2_features(past_messages: list[Message], now_ms: int) -> pd.DataFrame:
-    """Trích xuất 21 đặc trưng T1 (thời gian, nhịp điệu) và T2 (bề mặt văn bản)."""
+    Gọi trực tiếp src.m3_health.features.extract_features tại mẫu tin cuối (turn_idx = len(past)-1),
+    đảm bảo 1 hàm duy nhất dùng chung cho cả train và serving, triệt tiêu mọi độ lệch đặc trưng.
+    """
     n = len(past_messages)
-    if n == 0:
+    if n < 2:
         return pd.DataFrame([{col: 0.0 for col in FEATURE_NAMES_A}])
 
-    ts = np.array([m.timestamp_ms / 1000.0 for m in past_messages], dtype=float)
-    now_s = now_ms / 1000.0
-    conv_start_s = ts[0]
-    conv_age_log = float(np.log1p(max(now_s - conv_start_s, 0.0)))
-
-    silence_s = max(now_s - ts[-1], 0.0)
-    gap_last = float(np.log1p(silence_s))
-
-    if n >= 2:
-        gaps_s = np.diff(ts)
-        lg_gaps = np.log1p(np.maximum(gaps_s, 0.0))
-        gap_mean = float(np.mean(lg_gaps))
-        gap_max = float(np.max(lg_gaps))
-        gap_std = float(np.std(lg_gaps))
-        gap_slope = _calc_slope(lg_gaps[-10:])
-        hist_gap = gap_mean
-        burstiness = _calc_burstiness(gaps_s)
-    else:
-        gap_mean = gap_last
-        gap_max = gap_last
-        gap_std = 0.0
-        gap_slope = 0.0
-        hist_gap = gap_last
-        burstiness = 0.0
-
-    gap_rel = gap_last - hist_gap
-
-    dt = pd.to_datetime(ts[-1], unit="s", utc=True)
-    hour = float(dt.hour)
-    weekend = float(dt.dayofweek >= 5)
-    night = float(0 <= dt.hour < 7)
-
-    window = past_messages[-min(10, n):]
-    last_sender = window[-1].sender_id
-    share_last_sender = float(np.mean([m.sender_id == last_sender for m in window]))
-    double_text = float(len(window) >= 2 and window[-2].sender_id == last_sender)
-
-    words_counts = np.array([len(_words(m.text)) for m in window], dtype=float)
-    words_last = float(words_counts[-1])
-    words_mean = float(np.mean(words_counts))
-    words_slope = _calc_slope(words_counts)
-
-    is_shorts = np.array([float(is_short_reply(m.text)) for m in window], dtype=float)
-    short_share = float(np.mean(is_shorts))
-    short_last = float(is_shorts[-1])
-
-    is_quests = np.array([float(is_question(m.text)) for m in window], dtype=float)
-    question_share = float(np.mean(is_quests))
-    question_last = float(is_quests[-1])
-
-    data = {
-        "n_msgs": float(n),
-        "conv_age_log": conv_age_log,
-        "gap_last": gap_last,
-        "gap_mean": gap_mean,
-        "gap_max": gap_max,
-        "gap_std": gap_std,
-        "gap_slope": gap_slope,
-        "gap_rel": gap_rel,
-        "burstiness": burstiness,
-        "hour": hour,
-        "weekend": weekend,
-        "night": night,
-        "share_last_sender": share_last_sender,
-        "double_text": double_text,
-        "words_last": words_last,
-        "words_mean": words_mean,
-        "words_slope": words_slope,
-        "short_share": short_share,
-        "short_last": short_last,
-        "question_share": question_share,
-        "question_last": question_last,
-    }
-    return pd.DataFrame([data])
+    msgs_df = pd.DataFrame([
+        {
+            "conversation_id": "conv_serving",
+            "turn_idx": i,
+            "timestamp_s": m.timestamp_ms / 1000.0,
+            "sender_id": m.sender_id,
+            "text": m.text or "",
+        }
+        for i, m in enumerate(past_messages)
+    ])
+    samples_df = pd.DataFrame([{"conversation_id": "conv_serving", "turn_idx": n - 1}])
+    from src.m3_health.features import extract_features
+    f = extract_features(msgs_df, samples_df, window=10)
+    return f.reset_index(drop=True)
 
 
 def derive_health_factors(past_messages: list[Message], now_ms: int) -> list[str]:
@@ -301,7 +221,8 @@ class RuleSafetyPredictor:
     def score(self, context: list[Message], draft: Message) -> tuple[float, float]:
         tox = toxicity_score(draft.text)
         recent = [toxicity_score(m.text) for m in context[-5:]]
-        derail = min(1.0, 0.5 * tox + 0.5 * max(recent, default=0.0))
+        max_recent = max(recent, default=0.0)
+        derail = max(tox, min(1.0, 0.5 * tox + 0.5 * max_recent))
         return tox, derail
 
 
@@ -334,7 +255,7 @@ class TrainedHealthPredictor:
         if not past:
             return 0.5, ["no_messages"]
 
-        if self.model is None:
+        if self.model is None or len(past) < 2:
             return self.fallback.score(messages, now_ms, viewer_id)
 
         try:

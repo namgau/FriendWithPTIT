@@ -54,14 +54,40 @@ def test_model_registry_load_heads():
     assert 0.0 <= thresholds["tau1"] <= thresholds["tau2"] <= 1.0
     assert 0.0 <= thresholds["tau_nudge"] <= 1.0
 
-    # Load real artifacts
+    # In clean repository (before 20/11 export run), .pkl files are removed
+    # Registry must safely return None without throwing errors
     head_a = registry.load_head_a("v1")
-    assert head_a is not None
-    assert hasattr(head_a, "predict_proba") or hasattr(head_a, "predict")
-
     head_b = registry.load_head_b("v1")
-    assert head_b is not None
-    assert hasattr(head_b, "predict_proba") or hasattr(head_b, "predict")
+    if head_a is not None:
+        assert hasattr(head_a, "predict_proba") or hasattr(head_a, "predict")
+    if head_b is not None:
+        assert hasattr(head_b, "predict_proba") or hasattr(head_b, "predict")
+
+
+def test_export_serving_v1_bundle_and_reload(tmp_path):
+    """Kiểm tra toàn diện script export_serving_v1.py cho ngày 20/11."""
+    from src.m3_health.export_serving_v1 import export_serving_bundle
+
+    out_v1 = tmp_path / "models" / "m3" / "v1"
+    paths = export_serving_bundle(output_dir=out_v1, mock=True)
+
+    assert paths["head_a"].exists()
+    assert paths["head_b"].exists()
+    assert paths["metadata"].exists()
+
+    registry = ModelRegistry(root=tmp_path / "models")
+    loaded_a = registry.load_head_a("v1")
+    loaded_b = registry.load_head_b("v1")
+
+    assert loaded_a is not None
+    assert hasattr(loaded_a, "predict_proba")
+    assert loaded_b is not None
+    assert hasattr(loaded_b, "predict_proba")
+
+    thresh = registry.get_thresholds("v1")
+    assert thresh["tau1"] == 0.254
+    assert thresh["tau2"] == 0.562
+    assert thresh["tau_nudge"] == 0.4363
 
 
 def test_model_registry_load_c2_and_c4():
