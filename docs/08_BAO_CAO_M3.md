@@ -318,8 +318,21 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | TabPFN v2 (Hollmann 2025 ; B9, `B9_TABPFN_CV.md`) | LightGBM trên cùng tập con group | ≤ 1.000 group: TabPFN hơn +0.03–0.05 PR-AUC (paired cluster bootstrap CI không chứa 0, cả E1 lẫn E2). Nhưng LightGBM học trên đủ 60k hội thoại vẫn cao hơn TabPFN ở mức lớn nhất nó chạy được (E1 0.320 so với 0.283 ; E2 0.530 so với 0.497, cùng T1+T2), và TabPFN suy luận chậm hơn khoảng 1.000 lần → giữ LightGBM ; TabPFN hợp cho giai đoạn ít dữ liệu (cold start) |
 | CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR ; LR trên mean/last embedding | +0.022 PR-AUC so với TF-IDF (CI chứa 0), ngang `table_lr` → kết quả âm có kiểm định, vẫn báo |
 
+### Bản triển khai trong app (C6, `export_serving.py`)
+
+App chat tiếng Việt nên bản chạy trên server chọn mô hình **không phụ thuộc ngôn ngữ huấn luyện và nhẹ**, khác mô hình chốt của báo cáo:
+
+| Head | Báo cáo (chốt, đánh giá trên test) | App (`models/m3/v1`) | Lý do |
+|---|---|---|---|
+| A | LightGBM T1+T2+T3+T4 | LightGBM **T1+T2** học trên E1 ; τ1 = 0.139, τ2 = 0.273 (alert budget 10% trên OOF) | T3 dùng từ điển tiếng Anh ; T4 phải chạy BGE-M3 cho mỗi tin. E1 (chat 2 người) gần app hơn E2 (CSKH). X4 cho thấy chuyển miền yếu → điểm Head A trong app là **gợi ý**, không phải dự báo đã kiểm chứng trên chat tiếng Việt |
+| B | PhoBERT (H1) | TF-IDF + LR học trên H1 ; Platt ; τ_B = 0.429 (FPR ≤ 5% trên calibration) | PhoBERT cần ~540 MB trọng số + torch trên server ; TF-IDF chạy CPU tức thì, kém PhoBERT 0.06 PR-AUC |
+
+Cả hai fit trên toàn bộ train theo đúng giao thức CV (`final_models.py`) ; serving gọi chung hàm đặc trưng với lúc train (`features.extract_features`, `features_b.build_single`), có test kiểm serving nạp đúng file export. Không có file mô hình thì API tự lùi về luật.
+
 ## Tái lập
 
+- Mô hình cho app: `python -m src.m3_health.export_serving` → `models/m3/v1/` (file `.joblib` không commit, `metadata.json` có commit + ngưỡng).
+- Test (chỉ A, 20/11, một lần): `python -m src.m3_health.run_test --open` → `docs/results/TEST_RESULTS.md`.
 - Hình: `python -m src.eval.figures` → `docs/figures/` (đọc `experiments/ledger.csv` ; hình hiệu chỉnh cần `reports/headB_oof_*.csv`).
 
 - Mọi bảng sinh bằng `python -m src.m3_health.<script>` từ `configs/default.yaml`, seed 42.
