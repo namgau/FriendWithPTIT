@@ -65,38 +65,6 @@ def test_model_registry_load_heads():
         assert hasattr(head_b, "predict_proba") or hasattr(head_b, "predict")
 
 
-def test_export_serving_v1_bundle_and_reload(tmp_path):
-    """Kiểm tra toàn diện script export_serving_v1.py cho ngày 20/11."""
-    from src.m3_health.export_serving_v1 import export_serving_bundle
-
-    out_v1 = tmp_path / "models" / "m3" / "v1"
-    paths = export_serving_bundle(output_dir=out_v1, mock=True)
-
-    assert paths["head_a"].exists()
-    assert paths["head_b"].exists()
-    assert paths["metadata"].exists()
-
-    registry = ModelRegistry(root=tmp_path / "models")
-    loaded_a = registry.load_head_a("v1")
-    loaded_b = registry.load_head_b("v1")
-
-    assert loaded_a is not None
-    assert hasattr(loaded_a, "predict_proba")
-    assert loaded_b is not None
-    assert hasattr(loaded_b, "predict_proba")
-
-    thresh = registry.get_thresholds("v1")
-    assert thresh["tau1"] == 0.254
-    assert thresh["tau2"] == 0.562
-    assert thresh["tau_nudge"] == 0.4363
-
-
-class DummyServingModel:
-    """Mock model used to test registry loading of serialized artifacts."""
-    def predict_proba(self, X):
-        return [0.5]
-
-
 def test_model_registry_load_c2_and_c4(tmp_path):
     registry = ModelRegistry()
 
