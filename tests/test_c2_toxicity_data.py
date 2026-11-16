@@ -321,6 +321,7 @@ def test_toxicity_dataset_with_phobert_tokenizer():
 
 def test_toxicity_dataset_word_segmentation_underthesea():
     """Kiểm tra chức năng tách từ bằng underthesea trong ToxicityDataset."""
+    pytest.importorskip("underthesea")
     from src.m3_health.c2_toxicity_data import batch_segment_underthesea, segment_text_underthesea
 
     raw_text = "Học viện Công nghệ Bưu chính Viễn thông"

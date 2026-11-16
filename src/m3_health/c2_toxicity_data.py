@@ -52,11 +52,9 @@ def segment_text_underthesea(text: str) -> str:
     """
     if not text or not str(text).strip():
         return ""
-    try:
-        import underthesea
-        return underthesea.word_tokenize(str(text), format="text", use_token_normalize=False)
-    except Exception:
-        return str(text)
+    import underthesea  # thiếu thì báo lỗi: PhoBERT nhận câu chưa tách từ sẽ tụt chất lượng mà không ai biết
+
+    return underthesea.word_tokenize(str(text), format="text", use_token_normalize=False)
 
 
 def batch_segment_underthesea(texts: Sequence[str]) -> list[str]:

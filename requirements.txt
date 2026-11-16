@@ -23,7 +23,7 @@ scikit-survival>=0.24    # A6 survival: RSF, C-index, IBS
 lifelines>=0.29          # A6 survival: Cox PH
 # tabpfn                   (X7: foundation model bảng)
 # mapie                    (conformal prediction)
-# underthesea
+underthesea==9.5.0      # C2: tách từ cho PhoBERT (bản đã dùng khi train)
 # convokit                 (Head B: Conversations Gone Awry)
 # Serving
 fastapi>=0.110
