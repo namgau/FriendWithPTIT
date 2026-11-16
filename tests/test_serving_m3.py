@@ -65,6 +65,12 @@ def test_model_registry_load_heads():
         assert hasattr(head_b, "predict_proba") or hasattr(head_b, "predict")
 
 
+class DummyServingModel:
+    """Mock model used to test registry loading of serialized artifacts."""
+    def predict_proba(self, X):
+        return [0.5]
+
+
 def test_model_registry_load_c2_and_c4(tmp_path):
     registry = ModelRegistry()
 
