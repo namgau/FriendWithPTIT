@@ -1,7 +1,7 @@
 # Head B — Báo Cáo Kỹ Thuật Đánh Giá Mô Hình PhoBERT C2 & Thí Nghiệm Zero-Shot X12
 
 > **Tài liệu:** Đánh giá chi tiết hiệu chuẩn xác suất (Platt Scaling) và khả năng tổng quát hóa xuyên bộ dữ liệu (Cross-Dataset Zero-Shot X12) của PhoBERT `vinai/phobert-base-v2` cho phân loại độc hại tiếng Việt.  
-> **Người thực hiện:** Subagent 3 (Calibration & X12 Evaluator)  
+> **Người thực hiện:** C (Thắng)  
 > **Ngày chạy:** 15/11/2026 | **Git commit:** `c691fdd` | **Hardware:** NVIDIA GeForce RTX 5070 Laptop GPU (CUDA 13.1, PyTorch AMP FP16)  
 > **Trạng thái:** Hoàn tất 100%, kết quả đã được ghi vào `models/m3/c2/metadata.json`, `models/m3/c2/config.json` và `experiments/ledger.csv`.
 
@@ -17,10 +17,12 @@
 | **H2 (ViCTSD)** | TF-IDF + LR (Supervised In-Domain) | 0.349 ± 0.044 | 0.779 ± 0.034 | 0.085 ± 0.003 | — | 0.017 ± 0.002 | 0.303 ± 0.104 | 0.053 ± 0.020 | 0.419 ± 0.049 | 0.343 ± 0.066 |
 | **H2 (ViCTSD)** | **PhoBERT C2 (Zero-Shot X12)** | **0.3965** | **0.7474** | **0.0831** | 0.0719 | **0.0290** | **0.2132** | **0.0150** ($\ll 5\%$) | **0.6373** | **0.3195** |
 
-### Các điểm đột phá chính:
+### Điểm chính:
 1. **PhoBERT vượt trội baseline TF-IDF trên H1:** Đạt PR-AUC **0.7696 ± 0.0183** (+6.2 điểm tuyệt đối, +8.7% tương đối), ROC-AUC **0.9275 ± 0.0085**, độ nhạy (Recall) tại mức FPR 5% tăng từ 57.6% lên **66.30%** (+8.7% số ca độc hại được phát hiện mà không tăng tỉ lệ buộc tội oan).
 2. **Platt Scaling dập tắt lỗi Overconfidence:** ECE giảm mạnh từ **10.39% xuống 1.64%** (giảm 84.2% sai số hiệu chuẩn), đảm bảo xác suất xuất ra phản ánh chân thực tần suất độc hại thực tế để phục vụ tính năng "nhắc nhẹ" an toàn trong app FwP.
 3. **Hiện tượng Zero-Shot Transfer X12:** PhoBERT huấn luyện hoàn toàn trên H1 (mạng xã hội ViHSD) khi chuyển giao không giám sát (zero-shot) sang H2 (bình luận báo chí UIT-ViCTSD) đạt PR-AUC **0.3965**, **vượt qua cả mô hình TF-IDF có giám sát huấn luyện trực tiếp trên H2** (0.349).
+
+> **Lưu ý so sánh (A review):** 0.3965 là một lần đánh giá trên toàn bộ H2 train, còn 0.349 ± 0.044 là trung bình 5 fold CV trong H2 — hai con số không ghép cặp, chênh lệch nằm trong khoảng ~1 SD của baseline. Kết luận an toàn: PhoBERT học trên H1 chuyển sang H2 **ngang** TF-IDF học trực tiếp trên H2 ; so sánh có giám sát trên cùng fold H2 là B10.
 
 ---
 
