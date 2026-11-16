@@ -79,12 +79,12 @@
 | Mã | Việc | Hạn |
 |---|---|---|
 | C1 | Chọn **1** mô hình embedding đa ngữ (MiniLM hoặc BGE-M3, lý giải bằng VN-MTEB) ; đặc trưng **T4** ; PCA fit trên DailyDialog | 06/11 (đóng băng) — **xong 06/11**: BGE-M3 (VN-MTEB 64,90 so với MiniLM 46,05 — A đối chiếu bài gốc Table 3 ngày 07/11), `configs/embedding.yaml`, `src/m3_health/embeddings.py`, T4 `features_t4.py`, PCA 32 chiều fit trên DailyDialog (`models/m3/t4/`), benchmark `docs/results/C1_EMBEDDING.md`. Còn: dòng ledger cho benchmark + PCA |
-| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do A làm) | 13/11 |
-| C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 — baseline TF-IDF + LR trên G1/H1/H2 **B đã làm 02/11** (`src/m3_health/run_head_b.py`) ; C làm tiếp CRAFT-like |
+| C2 | **Bộ phân loại độc hại tiếng Việt** trên H1: TF-IDF+LR → PhoBERT/XLM-R ; cross-dataset H1 ↔ H2 (X12, phần imbalance do A làm) | 13/11 — **xong 16/11** (PR #12: PhoBERT H1 0.770 vs TF-IDF 0.708 ; X12 zero-shot H2 0.397) |
+| C4 | **Head B** trên G1: baseline "tin cuối", mô hình bảng, **CRAFT-like** (embedding + GRU) ; ngưỡng theo FPR (X11) | 18/11 — baseline TF-IDF + LR trên G1/H1/H2 **B đã làm 02/11** (`src/m3_health/run_head_b.py`) ; C làm tiếp CRAFT-like — **xong 14/11** (PR #13: CRAFT-GRU 0.653, CI vs TF-IDF chứa 0) |
 | C5 | **Cross-lingual Head B** (X14): điểm độc hại từ bộ phân loại tiếng Việt làm đặc trưng cho G1 ; hỗ trợ A chạy cross-domain Head A E1 ↔ E2 (X4) | 23/11 |
-| C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 |
+| C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 — **xong 16/11** (PR #9: API + silent checker ; export mô hình thật do A làm 19–20/11) |
 | C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 |
-| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 — **khung có sẵn** (`feature/chat/`: blur, `CompatibilityOrb`, `HealthPill`, gọi `m2/compat`, `m3/health`). Còn: (a) **chưa có Head B** — thêm hộp "Bạn có chắc muốn gửi?" gọi `/safety/score` trước khi gửi (không chặn, không phạt) ; (b) hiện 3 mức khỏe / hời hợt / nguy cơ theo τ1, τ2 của A ; (c) dùng luật blur mới của B-app1 |
+| C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 — **khung có sẵn** (`feature/chat/`: blur, `CompatibilityOrb`, `HealthPill`, gọi `m2/compat`, `m3/health`). Còn: (a) **chưa có Head B** — thêm hộp "Bạn có chắc muốn gửi?" gọi `/safety/score` trước khi gửi (không chặn, không phạt) ; (b) hiện 3 mức khỏe / hời hợt / nguy cơ theo τ1, τ2 của A ; (c) dùng luật blur mới của B-app1 — **xong 14/11** (PR #11) |
 
 ## 5. Phụ thuộc (điểm dễ nghẽn — A theo dõi)
 ```

@@ -88,7 +88,7 @@ messages → mẫu (c, t) + nhãn + cờ censor → đặc trưng T1+T2 (≤ t)
   - T2_surface (7): độ dài, tin cụt, câu hỏi.
   - T3 (B5): LSM trên từ chức năng, lexical mirroring, độ dài lượt / tỉ lệ đổi lượt, trong cửa sổ 10 tin kết thúc tại t ; giá trị thiếu là NaN + cờ thiếu. `[CHỜ C1/B8]` T4–T5: embedding BGE-M3 (chốt 06/11).
 - **Candidate Head A:** đa số ; rule của tài liệu gốc ; chỉ `gap_last` ; LR ; LightGBM (300 cây, lr 0.05, 31 lá). Mỗi mô hình × 5 phương án mất cân bằng (none, class_weight, undersample, oversample, SMOTE). Survival: Cox PH, Random Survival Forest. TabPFN v2 (X7, B9): so với LightGBM trên cùng tập con 100/300/1.000 group của từng outer-train (TabPFN v2 giới hạn 10.000 dòng).
-- **Candidate Head B:** đa số ; từ điển từ xúc phạm ; LR chỉ độ dài ; TF-IDF + LR (có và không có đặc trưng độ dài). `[CHỜ C2/C4]` PhoBERT/XLM-R, CRAFT-like.
+- **Candidate Head B:** đa số ; từ điển từ xúc phạm ; LR chỉ độ dài ; TF-IDF + LR (có và không có đặc trưng độ dài). PhoBERT `vinai/phobert-base-v2` fine-tune trên H1 (C2: tách từ underthesea, weighted BCE, 2 epoch, max_len 128, Platt). CRAFT-like trên G1 (C4: chuỗi embedding BGE-M3 → PCA-32 → GRU) so với LR trên mean + last PCA-32 (`table_lr`).
 - **Calibration:** Platt và isotonic, chọn theo Brier trên calibration. Prior shift đưa xác suất về prevalence thật trước khi hiệu chỉnh, vì resampling làm lệch xác suất.
 - **Ngưỡng:**
   - *Head A τ2:* **ngân sách cảnh báo** top 10% điểm. Lý do: tỉ lệ chi phí 1 : 2 cho recall 0.4% trên E1 (gần như không bao giờ báo), và cùng một tỉ lệ chi phí lại cho tỉ lệ cảnh báo rất khác giữa E1 và E2 (`HEAD_A_COST.md`). Ngân sách cố định giữ số lần làm phiền mỗi người dùng ổn định khi prevalence thay đổi.
@@ -145,7 +145,7 @@ Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 
 | + T3 (phong cách: LSM, mirroring, turn-taking ; B5) | 0.327 ± 0.006 (Δ +0.007 ± 0.003) | 0.566 ± 0.030 (Δ +0.035 ± 0.004) |
 | + T4 không T3 (BGE-M3 đóng băng: độ liên quan trả lời, topic drift / novelty, PCA 32 chiều) | 0.336 ± 0.009 (Δ +0.015 ± 0.004) | 0.585 ± 0.027 (Δ +0.054 ± 0.005) |
 | + T3 + T4 | **0.337 ± 0.010** (Δ +0.017 ± 0.005) | **0.606 ± 0.026** (Δ +0.076 ± 0.004) |
-| + T5 | `[CHỜ C4]` | |
+| + T5 (bộ mã hóa chuỗi) | không làm cho Head A — trên G1, GRU đọc chuỗi không hơn LR trên mean/last embedding (R8), nên không mở rộng sang E1/E2 | |
 
 ![Head A: ablation thêm dần nhóm đặc trưng](figures/headA_ablation.png)
 
@@ -216,12 +216,15 @@ RSF là **một** mô hình trả lời mọi Δ (1h, 24h, 48h, 72h), giữ đư
 
 - Ở τ_B (FPR 5%), TF-IDF + LR chỉ bắt 10% hội thoại hỏng.
 - **Horizon** (`HEAD_B_ERRORS.md`): 246/1,674 hội thoại hỏng (14.7%) được cảnh báo ở một tiền tố nào đó. Trong 196 TP tại tiền tố triển khai, lead trung vị 0 lượt (IQR 0–2) ; 48% được báo trước ≥ 1 lượt.
-- `[CHỜ C4]` CRAFT-like ; `[CHỜ C5]` X14 điểm độc hại tiếng Việt làm đặc trưng cho G1.
+- **CRAFT-like GRU** (C4, `HEAD_B_CRAFT.md`): PR-AUC 0.653 ± 0.035 so với TF-IDF + LR 0.630 ± 0.031 và `table_lr` (mean + last PCA-32) 0.643 ± 0.026. Paired cluster bootstrap GRU − TF-IDF: +0.022, CI 95% [−0.000, +0.044] ; GRU − table_lr: +0.004 [−0.014, +0.022]. → Lợi ích (nếu có) đến từ embedding, **không** từ việc đọc tiền tố như một chuỗi. Ở τ_B recall vẫn chỉ 0.14.
+- `[CHỜ C5]` X14 điểm độc hại tiếng Việt làm đặc trưng cho G1.
 
 ### R9 — Phân loại độc hại tiếng Việt (X12)
 
 - Kết quả TF-IDF + LR như ở R1.
-- `[CHỜ C2/B10]` PhoBERT / XLM-R ; cross H1 ↔ H2.
+- **PhoBERT fine-tune** (C2, `HEAD_B_C2_PHOBERT_X12.md`): H1 PR-AUC **0.770 ± 0.018** so với TF-IDF + LR 0.708 ± 0.013 (≈ 3 SD) ; ROC-AUC 0.928 ; ở τ_B recall 0.663 so với 0.576, FPR 0.053. ECE 0.104 → 0.016 sau Platt. Embedding đóng băng + LR chỉ 0.653–0.664 → **fine-tune là điều kiện để vượt TF-IDF**.
+- **X12 zero-shot H1 → H2:** PhoBERT học trên H1 đạt PR-AUC 0.397 trên toàn H2 train, ngang TF-IDF học trực tiếp trên H2 (0.349 ± 0.044 CV ; hai số không ghép cặp). Giữ τ_B của H1 thì FPR trên H2 chỉ 0.015 nhưng recall 0.21 → khi đổi miền phải chọn lại ngưỡng.
+- `[CHỜ B10]` PhoBERT có giám sát trên H2 với weighted loss / oversampling.
 
 ---
 
@@ -313,7 +316,7 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | SHAP (LightGBM `pred_contrib`) | feature importance | phát hiện artifact `n_msgs` |
 | Embedding đa ngữ BGE-M3, chọn theo VN-MTEB | MiniLM | chọn BGE-M3 do chất lượng tiếng Việt vượt trội trên VN-MTEB (64.90 so với 46.05 của MiniLM-L12 ; chi tiết tại [docs/results/C1_EMBEDDING.md](results/C1_EMBEDDING.md)) + `[CHỜ B8]` ablation |
 | TabPFN v2 (Hollmann 2025 ; B9, `B9_TABPFN_CV.md`) | LightGBM trên cùng tập con group | ≤ 1.000 group: TabPFN hơn +0.03–0.05 PR-AUC (paired cluster bootstrap CI không chứa 0, cả E1 lẫn E2). Nhưng LightGBM học trên đủ 60k hội thoại vẫn cao hơn TabPFN ở mức lớn nhất nó chạy được (E1 0.320 so với 0.283 ; E2 0.530 so với 0.497, cùng T1+T2), và TabPFN suy luận chậm hơn khoảng 1.000 lần → giữ LightGBM ; TabPFN hợp cho giai đoạn ít dữ liệu (cold start) |
-| CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR, baseline tin cuối | `[CHỜ C4]` |
+| CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR ; LR trên mean/last embedding | +0.022 PR-AUC so với TF-IDF (CI chứa 0), ngang `table_lr` → kết quả âm có kiểm định, vẫn báo |
 
 ## Tái lập
 
