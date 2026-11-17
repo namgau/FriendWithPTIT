@@ -159,3 +159,5 @@ b8-modal-e1-eddd4eb946a9,2026-11-10,m3_b8,B,5e4761d80453,eddd4eb946a9576768a3b86
 20261117-B10-H2-weighted,2026-11-17,m3_b10,B,1cba4fe9fec4,838d7dc3ee39,f4b6c4c,42 43 44,H2:phobert:weighted,pr_auc,0.50861,0.07392,5 folds x 3 seeds; underthesea word segmentation; T4; train CV
 20261115-232302,2026-11-15,m3_headB,C,a434da130171,c7458e3ae296,c691fdd,42,H1:phobert,pr_auc,0.76961,0.01834,"C2 PhoBERT pipeline, group K-fold K=5, Platt calib, FPR<=5% (tau_B=0.4778)"
 20261115-232302,2026-11-15,m3_headB,C,a434da130171,c7458e3ae296,c691fdd,42,H2:x12_zero_shot:phobert,pr_auc,0.39646,0.0,"X12 zero-shot transfer from H1 to H2 (8,001 comments), evaluated at tau_B=0.5012"
+20261117-234002,2026-11-17,m3_c5_x14,C,e6e3fdc54d84,13038c5b2223,6618cbd,42,G1:tfidf_lr+H1_BGE-M3_toxicity,paired_delta_pr_auc,0.00203,0.00216,"G1 group CV; BGE-M3 frozen; CI95=[-0.0023,0.0062]; p=0.3700"
+20261117-234505,2026-11-17,m3_c2_final,C,a2b602e3b3a7,a495f4ab10ed,6618cbd,42,H1:phobert_final_full_train,train_rows,26719.0,0.0,Full H1 train GPU fit; Platt coef=0.7561979219 intercept=-1.1912812270 tau_B=0.4889881182; weight sha256=4b035a25dcd09989704c26642a99ab8ab4fdca6b1e4e8c36e1fced220add1605
