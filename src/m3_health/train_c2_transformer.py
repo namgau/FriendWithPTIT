@@ -40,8 +40,10 @@ from src.eval.threshold import confusion_at, threshold_by_fpr
 from src.m3_health.c2_toxicity_data import (
     ToxicityDataset,
     WeightedBCEWithLogitsLoss,
+    batch_segment_underthesea,
     load_h1_train_data,
     load_h2_train_data,
+    segment_text_underthesea,
 )
 from src.m3_health.embedding_cache import has_cache, load_cache
 from src.m3_health.labels import PROC, ROOT, load_config
@@ -233,10 +235,11 @@ class PhoBERTClassifier:
         model_name: str = "vinai/phobert-base-v2",
         max_length: int = 128,
         lr: float = 2e-5,
-        batch_size: int = 16,
+        batch_size: int = 32,
         epochs: int = 2,
         seed: int = 42,
         device: str | None = None,
+        word_segment: bool = False,
         imbalance: str = "weighted",
         revision: str | None = None,
     ) -> None:
@@ -252,6 +255,7 @@ class PhoBERTClassifier:
             raise ValueError("invalid imbalance strategy")
         self.imbalance = imbalance
         self.revision = revision
+        self.word_segment = word_segment
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
         else:
@@ -267,6 +271,8 @@ class PhoBERTClassifier:
             self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False, revision=self.revision)
         if self.model is None:
             torch.manual_seed(self.seed)
+            if torch.cuda.is_available():
+                torch.cuda.manual_seed_all(self.seed)
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 self.model_name,
                 num_labels=1,
@@ -294,12 +300,15 @@ class PhoBERTClassifier:
             max_length=self.max_length,
             text_col="text",
             label_col="label",
+            word_segment=self.word_segment,
         )
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
         loss_fn = (WeightedBCEWithLogitsLoss.from_labels(y) if self.imbalance == "weighted"
                    else torch.nn.BCEWithLogitsLoss())
         loss_fn.to(self.device)
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=0.01)
+        use_cuda = (self.device == "cuda")
+        scaler = torch.amp.GradScaler("cuda", enabled=use_cuda)
 
         self.model.train()
         for epoch in range(self.epochs):
@@ -309,11 +318,14 @@ class PhoBERTClassifier:
                 attention_mask = batch["attention_mask"].to(self.device)
                 labels = batch["label"].to(self.device)
 
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-                logits = outputs.logits.squeeze(-1)
-                loss = loss_fn(logits, labels)
-                loss.backward()
-                optimizer.step()
+                with torch.amp.autocast("cuda", enabled=use_cuda, dtype=torch.float16):
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                    logits = outputs.logits.squeeze(-1)
+                    loss = loss_fn(logits, labels)
+
+                scaler.scale(loss).backward()
+                scaler.step(optimizer)
+                scaler.update()
         return self
 
     def predict_proba(
@@ -332,8 +344,10 @@ class PhoBERTClassifier:
             max_length=self.max_length,
             text_col="text",
             label_col="label",
+            word_segment=self.word_segment,
         )
         loader = DataLoader(dataset, batch_size=batch_size, shuffle=False)
+        use_cuda = (self.device == "cuda")
 
         self.model.eval()
         probs: list[float] = []
@@ -341,9 +355,10 @@ class PhoBERTClassifier:
             for batch in loader:
                 input_ids = batch["input_ids"].to(self.device)
                 attention_mask = batch["attention_mask"].to(self.device)
-                outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
-                logits = outputs.logits.squeeze(-1)
-                p = torch.sigmoid(logits).detach().cpu().numpy().tolist()
+                with torch.amp.autocast("cuda", enabled=use_cuda, dtype=torch.float16):
+                    outputs = self.model(input_ids=input_ids, attention_mask=attention_mask)
+                    logits = outputs.logits.squeeze(-1)
+                    p = torch.sigmoid(logits).detach().cpu().numpy().tolist()
                 if isinstance(p, float):
                     probs.append(p)
                 else:
@@ -354,7 +369,11 @@ class PhoBERTClassifier:
 def build_classifier(
     model_type: str = "auto",
     seed: int = 42,
-    epochs: int = 1,
+    epochs: int = 2,
+    batch_size: int = 32,
+    max_length: int = 128,
+    lr: float = 2e-5,
+    word_segment: bool = False,
 ) -> tuple[Any, str]:
     """Khởi tạo mô hình dựa trên cấu hình yêu cầu và phần cứng hiện hữu."""
     try:
@@ -367,7 +386,14 @@ def build_classifier(
     if model_type == "phobert":
         if torch is None:
             raise ImportError("PyTorch is required for PhoBERTClassifier. Please install torch.")
-        return PhoBERTClassifier(seed=seed, epochs=epochs), "phobert"
+        return PhoBERTClassifier(
+            seed=seed,
+            epochs=epochs,
+            batch_size=batch_size,
+            max_length=max_length,
+            lr=lr,
+            word_segment=word_segment,
+        ), "phobert"
     elif model_type == "sentence-transformer":
         device = "cuda" if has_cuda else "cpu"
         return SentenceTransformerClassifier(seed=seed, device=device), "sentence-transformer"
@@ -375,9 +401,16 @@ def build_classifier(
         return EmbeddingClassifierFallback(seed=seed), "embedding_fallback"
     else:  # auto
         if has_cuda:
-            return PhoBERTClassifier(seed=seed, epochs=epochs), "phobert"
+            return PhoBERTClassifier(
+                seed=seed,
+                epochs=epochs,
+                batch_size=batch_size,
+                max_length=max_length,
+                lr=lr,
+                word_segment=word_segment,
+            ), "phobert"
         else:
-            # Fallback trên CPU đảm bảo chạy nhanh theo đúng tài nguyên được giao
+            # Fallback trên CPU đảm bảo chạy nhanh nếu không có GPU
             return EmbeddingClassifierFallback(seed=seed), "embedding_fallback"
 
 
@@ -416,6 +449,10 @@ def run_group_cv(
     threshold_fpr: float = 0.05,
     model_type: str = "auto",
     X_emb: np.ndarray | None = None,
+    epochs: int = 2,
+    batch_size: int = 32,
+    max_length: int = 128,
+    lr: float = 2e-5,
 ) -> tuple[pd.DataFrame, dict]:
     """GroupKFold K=5 với inner held-out 80/20 train/cal và Platt calibration.
 
@@ -443,7 +480,15 @@ def run_group_cv(
         assert_no_group_leak(groups, cal, va)
 
         # Khởi tạo mô hình cho fold
-        model, resolved_tag = build_classifier(model_type=model_type, seed=seed + fold)
+        model, resolved_tag = build_classifier(
+            model_type=model_type,
+            seed=seed + fold,
+            epochs=epochs,
+            batch_size=batch_size,
+            max_length=max_length,
+            lr=lr,
+            word_segment=False,
+        )
 
         # Huấn luyện mô hình trên fit fold
         if isinstance(model, EmbeddingClassifierFallback) and X_emb is not None:
@@ -534,6 +579,10 @@ def train_final_h1_model(
     threshold_fpr: float = 0.05,
     model_type: str = "auto",
     X_emb: np.ndarray | None = None,
+    epochs: int = 2,
+    batch_size: int = 32,
+    max_length: int = 128,
+    lr: float = 2e-5,
 ) -> tuple[Any, PlattCalibrator, float, dict]:
     """Huấn luyện mô hình chốt trên H1 train với 80/20 train/cal split theo group."""
     groups = df_h1["group_id"].to_numpy()
@@ -545,7 +594,15 @@ def train_final_h1_model(
     )
     assert_no_group_leak(groups, fit_idx, cal_idx)
 
-    model, resolved_tag = build_classifier(model_type=model_type, seed=seed)
+    model, resolved_tag = build_classifier(
+        model_type=model_type,
+        seed=seed,
+        epochs=epochs,
+        batch_size=batch_size,
+        max_length=max_length,
+        lr=lr,
+        word_segment=False,
+    )
 
     if isinstance(model, EmbeddingClassifierFallback) and X_emb is not None:
         model.fit(X_emb[fit_idx], y[fit_idx])
@@ -644,8 +701,9 @@ def export_c2_artifacts(
     metadata_dict: dict,
     calibrator: PlattCalibrator,
     model: Any | None = None,
+    save_calibrator_pickle: bool = True,
 ) -> dict[str, Path]:
-    """Lưu artifact hoàn chỉnh vào models/m3/c2/ gồm config.json, metadata.json, calibrator.pkl, model.pkl."""
+    """Lưu artifact hoàn chỉnh vào models/m3/c2/ gồm config.json, metadata.json (và calibrator.pkl nếu yêu cầu)."""
     out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
@@ -657,17 +715,18 @@ def export_c2_artifacts(
     with open(metadata_path, "w", encoding="utf-8") as f:
         json.dump(metadata_dict, f, indent=2, ensure_ascii=False)
 
-    calibrator_path = out / "calibrator.pkl"
-    with open(calibrator_path, "wb") as f:
-        pickle.dump(calibrator, f)
-
     paths = {
         "config": config_path,
         "metadata": metadata_path,
-        "calibrator": calibrator_path,
     }
 
-    if model is not None:
+    if save_calibrator_pickle:
+        calibrator_path = out / "calibrator.pkl"
+        with open(calibrator_path, "wb") as f:
+            pickle.dump(calibrator, f)
+        paths["calibrator"] = calibrator_path
+
+    if model is not None and save_calibrator_pickle:
         model_path = out / "model.pkl"
         with open(model_path, "wb") as f:
             pickle.dump(model, f)
@@ -708,7 +767,7 @@ def record_c2_to_ledger(
         metric_name="pr_auc",
         values=[cv_summary["pr_auc_mean"]],
         metric_sd=cv_summary["pr_auc_sd"],
-        notes=f"C2 transformer pipeline, group K-fold K=5, Platt calib, FPR<=5% (tau_B={cv_summary['tau_b_mean']:.4f})",
+        notes=f"C2 PhoBERT pipeline, group K-fold K=5, Platt calib, FPR<=5% (tau_B={cv_summary['tau_b_mean']:.4f})",
     )
     rows.append(row_cv)
 
@@ -744,6 +803,12 @@ def run_pipeline(
     smoke_test: bool = False,
     smoke_samples: int = 500,
     write_ledger: bool = True,
+    word_segment: bool = True,
+    epochs: int = 2,
+    batch_size: int = 32,
+    max_length: int = 128,
+    lr: float = 2e-5,
+    save_pickle: bool = True,
 ) -> dict:
     """Toàn bộ quy trình C2 từ H1 CV, Platt calibration, H2 zero-shot tới xuất artifact."""
     print("=" * 70)
@@ -762,13 +827,19 @@ def run_pipeline(
     print(f"H1 Train: {len(df_h1):,} dòng (prevalence {df_h1['label'].mean():.4f}, {df_h1['group_id'].nunique():,} groups)")
     print(f"H2 Train: {len(df_h2):,} dòng (prevalence {df_h2['label'].mean():.4f}, {df_h2['group_id'].nunique():,} groups)")
 
-    # 2. Nạp precomputed embeddings nếu có
+    # 2. Tách từ tiếng Việt bằng underthesea cho PhoBERT
+    if word_segment:
+        print("\n--- Tiền xử lý: Tách từ tiếng Việt bằng underthesea cho PhoBERT ---")
+        df_h1["text"] = batch_segment_underthesea(df_h1["text"].tolist())
+        df_h2["text"] = batch_segment_underthesea(df_h2["text"].tolist())
+
+    # 3. Nạp precomputed embeddings nếu có
     X_emb_h1 = align_cached_embeddings("H1", df_h1) if not smoke_test else None
     X_emb_h2 = align_cached_embeddings("H2", df_h2) if not smoke_test else None
     if X_emb_h1 is not None and X_emb_h2 is not None:
         print(f"Embedding cache B8 sẵn sàng: H1={X_emb_h1.shape}, H2={X_emb_h2.shape}")
 
-    # 3. Chạy GroupKFold K=5 trên H1
+    # 4. Chạy GroupKFold K=5 trên H1
     print(f"\n--- BƯỚC 1: GroupKFold K={k_folds} trên H1 (ViHSD) ---")
     cv_df, cv_summary = run_group_cv(
         df_h1,
@@ -778,6 +849,10 @@ def run_pipeline(
         threshold_fpr=threshold_fpr,
         model_type=model_type,
         X_emb=X_emb_h1,
+        epochs=epochs,
+        batch_size=batch_size,
+        max_length=max_length,
+        lr=lr,
     )
     print(f"Kết quả CV (mean ± SD):")
     print(f"  PR-AUC:           {cv_summary['pr_auc_mean']:.4f} ± {cv_summary['pr_auc_sd']:.4f}")
@@ -789,8 +864,8 @@ def run_pipeline(
     print(f"  FPR @ tau_B:      {cv_summary['fpr_at_tau_mean']:.4f} ± {cv_summary['fpr_at_tau_sd']:.4f}")
     print(f"  tau_B trung bình: {cv_summary['tau_b_mean']:.4f}")
 
-    # 4. Huấn luyện mô hình chốt và fit Calibrator trên H1
-    print(f"\n--- BƯỚAL 2: Huấn luyện mô hình chốt & Platt Calibrator trên H1 ---")
+    # 5. Huấn luyện mô hình chốt và fit Calibrator trên H1
+    print(f"\n--- BƯỚC 2: Huấn luyện mô hình chốt & Platt Calibrator trên H1 ---")
     final_model, final_calibrator, tau_B, cal_meta = train_final_h1_model(
         df_h1,
         seed=seed,
@@ -798,12 +873,16 @@ def run_pipeline(
         threshold_fpr=threshold_fpr,
         model_type=model_type,
         X_emb=X_emb_h1,
+        epochs=epochs,
+        batch_size=batch_size,
+        max_length=max_length,
+        lr=lr,
     )
     print(f"Mô hình chốt: {cal_meta['model_type']}")
     print(f"Tập fit: {cal_meta['n_fit']} mẫu, Tập cal: {cal_meta['n_cal']} mẫu")
     print(f"Ngưỡng triển khai tau_B (FPR <= {threshold_fpr:.0%}): {tau_B:.4f}")
 
-    # 5. Đánh giá Zero-shot Cross-Dataset trên H2 train (8,001 bình luận - X12)
+    # 6. Đánh giá Zero-shot Cross-Dataset trên H2 train (8,001 bình luận - X12)
     print(f"\n--- BƯỚC 3: Cross-Dataset Zero-Shot trên H2 Train (X12) ---")
     x12_results = evaluate_cross_dataset_x12(
         final_model,
@@ -823,7 +902,7 @@ def run_pipeline(
     print(f"  Precision:      {x12_results['precision_at_tau']:.4f}")
     print(f"  Confusion:      TP={x12_results['tp']}, FP={x12_results['fp']}, FN={x12_results['fn']}, TN={x12_results['tn']}")
 
-    # 6. Chuẩn bị metadata và config
+    # 7. Chuẩn bị metadata và config
     config_dict = {
         "module": "m3",
         "version": "c2",
@@ -837,6 +916,7 @@ def run_pipeline(
         "tau_b": tau_B,
         "training_dataset": "H1 (ViHSD)",
         "evaluation_dataset": "H2 (UIT-ViCTSD)",
+        "word_segmentation": word_segment,
     }
 
     metadata_dict = {
@@ -849,6 +929,7 @@ def run_pipeline(
         "git_commit": git_commit(),
         "seed": seed,
         "tau_b": tau_B,
+        "word_segmentation": word_segment,
         "h1_train_summary": {
             "n_rows": len(df_h1),
             "prevalence": float(df_h1["label"].mean()),
@@ -859,7 +940,7 @@ def run_pipeline(
         "h2_x12_zero_shot": x12_results,
     }
 
-    # 7. Xuất artifact vào models/m3/c2/
+    # 8. Xuất artifact vào models/m3/c2/
     print(f"\n--- BƯỚC 4: Xuất artifact vào {output_dir} ---")
     exported_paths = export_c2_artifacts(
         output_dir=output_dir,
@@ -867,11 +948,12 @@ def run_pipeline(
         metadata_dict=metadata_dict,
         calibrator=final_calibrator,
         model=final_model,
+        save_calibrator_pickle=save_pickle,
     )
     for name, p in exported_paths.items():
         print(f"  + {name}: {p} ({p.stat().st_size:,} bytes)")
 
-    # 8. Ghi vào ledger
+    # 9. Ghi vào ledger
     if write_ledger and not smoke_test:
         print(f"\n--- BƯỚC 5: Ghi nhận thí nghiệm vào experiments/ledger.csv ---")
         ledger_rows = record_c2_to_ledger(
@@ -902,6 +984,12 @@ def main() -> None:
     parser.add_argument("--cv-folds", type=int, default=5)
     parser.add_argument("--cal-fraction", type=float, default=0.2)
     parser.add_argument("--threshold-fpr", type=float, default=0.05)
+    parser.add_argument("--epochs", type=int, default=2)
+    parser.add_argument("--batch-size", type=int, default=32)
+    parser.add_argument("--max-length", type=int, default=128)
+    parser.add_argument("--lr", type=float, default=2e-5)
+    parser.add_argument("--no-word-segment", action="store_true", help="Không tách từ bằng underthesea.")
+    parser.add_argument("--save-pickle", action="store_true", help="Lưu calibrator.pkl vào output dir.")
     parser.add_argument("--output-dir", type=str, default=str(ROOT / "models" / "m3" / "c2"))
     parser.add_argument("--smoke-test", action="store_true", help="Chạy thử nghiệm nhanh trên tập nhỏ.")
     parser.add_argument("--smoke-samples", type=int, default=500)
@@ -918,6 +1006,12 @@ def main() -> None:
         smoke_test=args.smoke_test,
         smoke_samples=args.smoke_samples,
         write_ledger=not args.no_ledger,
+        word_segment=not args.no_word_segment,
+        epochs=args.epochs,
+        batch_size=args.batch_size,
+        max_length=args.max_length,
+        lr=args.lr,
+        save_pickle=args.save_pickle,
     )
 
 
