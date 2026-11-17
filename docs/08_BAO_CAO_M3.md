@@ -220,6 +220,7 @@ RSF là **một** mô hình trả lời mọi Δ (1h, 24h, 48h, 72h), giữ đư
 - Ở τ_B (FPR 5%), TF-IDF + LR chỉ bắt 10% hội thoại hỏng.
 - **Horizon** (`HEAD_B_ERRORS.md`): 246/1,674 hội thoại hỏng (14.7%) được cảnh báo ở một tiền tố nào đó. Trong 196 TP tại tiền tố triển khai, lead trung vị 0 lượt (IQR 0–2) ; 48% được báo trước ≥ 1 lượt.
 - **CRAFT-like GRU** (C4, `HEAD_B_CRAFT.md`): PR-AUC 0.653 ± 0.035 so với TF-IDF + LR 0.630 ± 0.031 và `table_lr` (mean + last PCA-32) 0.643 ± 0.026. Paired cluster bootstrap GRU − TF-IDF: +0.022, CI 95% [−0.000, +0.044] ; GRU − table_lr: +0.004 [−0.014, +0.022]. → Lợi ích (nếu có) đến từ embedding, **không** từ việc đọc tiền tố như một chuỗi. Ở τ_B recall vẫn chỉ 0.14.
+- **Giới hạn chọn ngưỡng C4:** cùng phần calibration được dùng để chọn hidden size/dropout, dừng sớm, fit Platt và chọn τ_B, nên ngưỡng có thể hơi lạc quan. FPR trên validation là 0.055, cao hơn mục tiêu 0.05; điều kiện FPR ≤ 5% chỉ được áp trên calibration, không bảo đảm ở dữ liệu mới.
 - **X14 (C5, `HEAD_B_X14.md`)**: điểm độc hại học trên H1 bằng BGE-M3 đa ngữ đóng băng + LR thêm vào TF-IDF + LR G1. PR-AUC 0.631 → 0.632; paired cluster bootstrap Δ +0.002, CI 95% [−0.002, +0.006], p = 0.370. Không có bằng chứng điểm độc hại xuyên ngôn ngữ cải thiện dự báo G1. Hai nhiệm vụ có nhãn khác nhau: độc hại của bình luận hiện tại so với nguy cơ công kích trong phần tiếp theo của hội thoại.
 
 ### R9 — Phân loại độc hại tiếng Việt (X12)
