@@ -240,6 +240,8 @@ class PhoBERTClassifier:
         seed: int = 42,
         device: str | None = None,
         word_segment: bool = False,
+        imbalance: str = "weighted",
+        revision: str | None = None,
     ) -> None:
         import torch
 
@@ -249,6 +251,10 @@ class PhoBERTClassifier:
         self.batch_size = batch_size
         self.epochs = epochs
         self.seed = seed
+        if imbalance not in ("none", "weighted", "oversampling"):
+            raise ValueError("invalid imbalance strategy")
+        self.imbalance = imbalance
+        self.revision = revision
         self.word_segment = word_segment
         if device is None:
             self.device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -262,7 +268,7 @@ class PhoBERTClassifier:
         from transformers import AutoModelForSequenceClassification, AutoTokenizer
 
         if self.tokenizer is None:
-            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False)
+            self.tokenizer = AutoTokenizer.from_pretrained(self.model_name, use_fast=False, revision=self.revision)
         if self.model is None:
             torch.manual_seed(self.seed)
             if torch.cuda.is_available():
@@ -270,6 +276,7 @@ class PhoBERTClassifier:
             self.model = AutoModelForSequenceClassification.from_pretrained(
                 self.model_name,
                 num_labels=1,
+                revision=self.revision,
             )
             self.model.to(self.device)
 
@@ -280,9 +287,13 @@ class PhoBERTClassifier:
     ) -> PhoBERTClassifier:
         import torch
         from torch.utils.data import DataLoader
+        from src.m3_health.b10_h2 import oversample_fit_indices
 
         self._init_components()
         df = pd.DataFrame({"text": list(texts), "label": list(y)})
+        if self.imbalance == "oversampling":
+            indices = oversample_fit_indices(df.label.to_numpy(), np.arange(len(df)), seed=self.seed)
+            df = df.iloc[indices].reset_index(drop=True)
         dataset = ToxicityDataset(
             df,
             tokenizer=self.tokenizer,
@@ -292,7 +303,9 @@ class PhoBERTClassifier:
             word_segment=self.word_segment,
         )
         loader = DataLoader(dataset, batch_size=self.batch_size, shuffle=True)
-        loss_fn = WeightedBCEWithLogitsLoss.from_labels(y).to(self.device)
+        loss_fn = (WeightedBCEWithLogitsLoss.from_labels(y) if self.imbalance == "weighted"
+                   else torch.nn.BCEWithLogitsLoss())
+        loss_fn.to(self.device)
         optimizer = torch.optim.AdamW(self.model.parameters(), lr=self.lr, weight_decay=0.01)
         use_cuda = (self.device == "cuda")
         scaler = torch.amp.GradScaler("cuda", enabled=use_cuda)
