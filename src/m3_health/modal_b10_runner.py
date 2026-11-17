@@ -8,7 +8,7 @@ volume = modal.Volume.from_name('b8-friendwithptit-20261110', create_if_missing=
 if modal.is_local():
     root = Path(__file__).resolve().parents[2]
     image = (modal.Image.debian_slim(python_version='3.11')
-             .pip_install('torch==2.5.1', 'transformers==4.46.3', 'sentencepiece==0.2.0', 'underthesea==6.8.4',
+             .pip_install('torch==2.5.1', 'transformers==4.46.3', 'sentencepiece==0.2.0', 'underthesea==9.5.0', 'underthesea-core>=3.3.0',
                           'lightgbm==4.6.0', 'imbalanced-learn==0.13.0', 'numpy==1.26.4',
                           'pandas==2.2.3', 'pyarrow==19.0.1', 'PyYAML==6.0.2', 'scikit-learn==1.6.1',
                           'scipy==1.14.1', 'huggingface-hub==0.28.1')

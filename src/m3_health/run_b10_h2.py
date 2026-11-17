@@ -50,7 +50,8 @@ def main():
     torch.cuda.manual_seed_all(args.seed)
     np.random.seed(args.seed)
     model = PhoBERTClassifier(seed=args.seed, imbalance=args.strategy, revision=REVISION,
-                              model_name='vinai/phobert-base-v2', epochs=2, max_length=128, batch_size=16, lr=2e-5, device='cuda')
+                              model_name='vinai/phobert-base-v2', epochs=2, max_length=128, batch_size=16, lr=2e-5, device='cuda',
+                              word_segment=True)  # như C2: PhoBERT cần tách từ underthesea
     start = time.perf_counter()
     model.fit(frame.text.iloc[fit].tolist(), y[fit])
     fit_seconds = time.perf_counter() - start
@@ -74,7 +75,7 @@ def main():
               'precision_at_tau': float(at['precision']), 'f1_at_tau': float(at['f1']),
               'accuracy_at_tau': float(accuracy_score(y[val], pval >= tau)),
               'gpu': torch.cuda.get_device_name(0), 'model': model.model_name, 'revision': REVISION,
-              'epochs': 2, 'batch_size': 16, 'max_length': 128, 'lr': 2e-5,
+              'word_segment': True, 'epochs': 2, 'batch_size': 16, 'max_length': 128, 'lr': 2e-5,
               'torch': version('torch'), 'transformers': version('transformers'),
               'input_sha256': {n: sha256(PROC / 'H2' / n) for n in ('messages.parquet', 'labels_headB_train.parquet')},
               'runner_sha256': sha256(__file__), 'c2_sha256': sha256(Path(__file__).with_name('train_c2_transformer.py'))}

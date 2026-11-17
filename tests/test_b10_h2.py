@@ -34,6 +34,7 @@ def test_splits_match_a_and_no_group_leak():
 @pytest.mark.parametrize("word_segment", [False, True])
 def test_phobert_imbalance_and_word_segmentation_work_together(monkeypatch, strategy, word_segment):
     torch = pytest.importorskip("torch")
+    pytest.importorskip("transformers")  # _init_components import transformers kể cả khi đã gán tokenizer/model
     from types import SimpleNamespace
     from src.m3_health import c2_toxicity_data, train_c2_transformer
 
