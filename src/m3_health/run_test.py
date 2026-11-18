@@ -107,8 +107,21 @@ def head_b(d: str, cfg: dict) -> tuple[list[dict], pd.DataFrame]:
     model, tau = fit_head_b(frame, cfg, cfg["test_seed"])
     scores = {"lexicon": np.clip(te["last_toxic_hits"].to_numpy(float), 0, 1),
               "tfidf_lr": model.predict_proba(te)[:, 1]}
+    taus = {"tfidf_lr": tau}
+    chosen = "tfidf_lr"
+    if d in ("H1", "H2"):
+        # C2 final artifact is trained only on H1 train. H2 is a frozen zero-shot
+        # transfer; the H1 Platt parameters and threshold are not retuned on H2.
+        from src.m3_health.final_phobert_c2 import DEFAULT_DIR, predict_cpu
+        if not (DEFAULT_DIR / "manifest.json").is_file():
+            raise FileNotFoundError(f"Missing final C2 PhoBERT artifact: {DEFAULT_DIR}")
+        p_phobert, tau_phobert = predict_cpu(te["text"].fillna("").astype(str).tolist())
+        scores["phobert_c2" if d == "H1" else "phobert_c2_x12"] = p_phobert
+        taus["phobert_c2" if d == "H1" else "phobert_c2_x12"] = tau_phobert
+        if d == "H1":
+            chosen = "phobert_c2"
     y = te["y"].to_numpy(int)
-    rows = evaluate(d, y, scores, te["group_id"].to_numpy(), "tfidf_lr", {"tfidf_lr": tau}, cfg)
+    rows = evaluate(d, y, scores, te["group_id"].to_numpy(), chosen, taus, cfg)
     return rows, pd.DataFrame({"group_id": te["group_id"], "y": y, **scores})
 
 
@@ -120,13 +133,14 @@ def _fmt(r: dict) -> str:
     return "| " + " | ".join(cells) + " |"
 
 
-def main(open_flag: bool, again: bool) -> None:
+def main(open_flag: bool, again: bool, datasets: tuple[str, ...] = HEAD_A + HEAD_B) -> None:
     history = guard(open_flag, again)
     cfg = load_config()
-    history.append({"opened_at": dt.datetime.now().isoformat(timespec="seconds"), "git_commit": git_commit()})
+    history.append({"opened_at": dt.datetime.now().isoformat(timespec="seconds"), "git_commit": git_commit(),
+                    "datasets": list(datasets)})
     MARKER.write_text(json.dumps(history, indent=2) + "\n", encoding="utf-8")  # ghi trước khi đọc test
     rows = []
-    for d in HEAD_A + HEAD_B:
+    for d in datasets:
         r, scores = (head_a if d in HEAD_A else head_b)(d, cfg)
         scores.to_parquet(ROOT / "reports" / f"test_scores_{d}.parquet", index=False)
         rows += r
@@ -138,19 +152,25 @@ def main(open_flag: bool, again: bool) -> None:
                           + (f" ; Δ vs chốt {x['delta_vs_chosen']:+.4f} [{x['delta_lo']:+.4f}, {x['delta_hi']:+.4f}]"
                              if "delta_vs_chosen" in x else " ; mô hình chốt"))
         print(pd.DataFrame(r).round(4).to_string(), flush=True)
+    command = "python -m src.m3_health.run_test --open" + (
+        " --datasets " + " ".join(datasets) if datasets != HEAD_A + HEAD_B else ""
+    )
     lines = ["# Kết quả test (A8) — mở một lần", "",
-             f"> Sinh bởi `python -m src.m3_health.run_test --open` lúc {history[-1]['opened_at']}, commit "
-             f"`{history[-1]['git_commit']}`. Mô hình fit trên toàn bộ train (`final_models`), τ chọn trên train. "
+             f"> Sinh bởi `{command}` lúc {history[-1]['opened_at']}, commit "
+             f"`{history[-1]['git_commit']}`. Mô hình fit chỉ trên train (C2 fit toàn bộ H1 train), τ chọn trên train. "
              f"CI 95% cluster bootstrap theo group, B = {cfg['bootstrap']['B']} ; Δ = PR-AUC(chốt) − PR-AUC(mô hình), "
              "paired trên cùng lần lấy mẫu.", "",
              "| Bộ | Mô hình | PR-AUC [CI 95%] | ROC-AUC | Brier | Precision / Recall / FPR @ τ | Δ chốt − mô hình [CI] |",
              "|---|---|---|---|---|---|---|", *map(_fmt, rows), ""]
-    (ROOT / "docs" / "results" / "TEST_RESULTS.md").write_text("\n".join(lines), encoding="utf-8")
+    name = "TEST_RESULTS.md" if datasets == HEAD_A + HEAD_B else "TEST_RESULTS_" + "_".join(datasets) + ".md"
+    (ROOT / "docs" / "results" / name).write_text("\n".join(lines), encoding="utf-8")
 
 
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--open", action="store_true", dest="open_flag")
     p.add_argument("--again", action="store_true")
+    p.add_argument("--datasets", nargs="+", choices=HEAD_A + HEAD_B,
+                   help="Chỉ mở các bộ này (ví dụ --datasets H1 H2 cho C2 trên CPU).")
     a = p.parse_args()
-    main(a.open_flag, a.again)
+    main(a.open_flag, a.again, tuple(a.datasets) if a.datasets else HEAD_A + HEAD_B)

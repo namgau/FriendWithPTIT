@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "model": "vinai/phobert-base-v2",
+  "train_dataset": "H1 labels_headB_train only",
+  "train_rows": 26719,
+  "train_groups": 24452,
+  "train_file_sha256": "a495f4ab10eddb5cc262c5228a0131d79056b2eebb930f66a82befcea0c683bc",
+  "fit": {
+    "epochs": 2,
+    "batch_size": 32,
+    "max_length": 128,
+    "learning_rate": 2e-05,
+    "imbalance": "weighted",
+    "seed": 42,
+    "word_segmentation": "underthesea 9.5.0"
+  },
+  "calibration": {
+    "method": "Platt on raw-probability logit",
+    "source": "20% H1 group holdout from separate 80% fit model",
+    "coefficient": [
+      0.7561979218744912
+    ],
+    "intercept": -1.1912812270462965,
+    "n_fit": 21376,
+    "n_cal": 5343,
+    "tau_b": 0.4889881181701468,
+    "max_calibration_fpr": 0.05,
+    "observed_calibration_fpr": 0.04955872369314324
+  },
+  "note": "Calibration and tau transfer from the held-out model to the full-data refit; evaluate once on locked test.",
+  "environment": {
+    "python": "3.12.10",
+    "torch": "2.12.0.dev20260408+cu128",
+    "transformers": "4.57.6",
+    "underthesea": "9.5.0",
+    "gpu": "NVIDIA GeForce RTX 5070 Laptop GPU",
+    "elapsed_seconds": 376.5
+  },
+  "weights": [
+    {
+      "file": "model.safetensors",
+      "bytes": 540020308,
+      "sha256": "4b035a25dcd09989704c26642a99ab8ab4fdca6b1e4e8c36e1fced220add1605"
+    }
+  ],
+  "base_revision": "86cd7fd4c148980922ac11a2cf5e257f2ba639e1"
+}
