@@ -269,6 +269,10 @@ class TrainedHealthPredictor:
                 p = float(self.model.predict(features_df)[0])
 
             p = max(0.0, min(1.0, p))
+            # Model chấm tại tin cuối, không thấy im lặng đã trôi ; im ≥ 48h nghĩa là nhãn Head A đã xảy ra.
+            # shortcut: im lặng 0–48h chưa nâng p (cần mô hình sống sót có điều kiện), nâng cấp nếu app cần cảnh báo sớm hơn.
+            if now_ms - past[-1].timestamp_ms >= 48 * 3_600_000:
+                p = 1.0
             factors = derive_health_factors(past, now_ms)
             return p, factors
         except Exception:

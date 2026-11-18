@@ -73,6 +73,7 @@ def test_serving_loads_exported_models(tmp_path):
             for i in range(8)]
     p, _ = health.score(chat, chat[-1].timestamp_ms + 1000, "u0")
     assert p == pytest.approx(head_a.predict_proba(extract_t1_t2_features(chat))[0, 1])  # không lùi về luật
+    assert health.score(chat, chat[-1].timestamp_ms + 48 * 3_600_000, "u0")[0] == 1.0  # im ≥ 48h: nhãn đã xảy ra
     safety = TrainedSafetyPredictor(registry)
     assert safety.version.startswith("safety-trained")
     tox_bad, _ = safety.score([], Message(sender_id="u0", timestamp_ms=1, text="mày ngu quá"))
