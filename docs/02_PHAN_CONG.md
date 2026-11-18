@@ -85,6 +85,7 @@
 | C6 | API `POST /health/score`, `POST /safety/score` (FastAPI) + job kiểm tra hội thoại im lặng | 20/11 — **xong 16/11** (PR #9: API + silent checker ; export mô hình thật do A làm 19–20/11) |
 | C7 | Viết phần Head B + T3–T5 trong báo cáo ; duyệt chéo phần của B | 27/11 — **bản Head B/T3–T5 cập nhật 17/11** (`08_BAO_CAO_M3.md`); đã đối chiếu nguồn H1 và sửa mô tả nhãn Head B trong phần Objective and data. Duyệt bản B7 cuối khi B gửi. |
 | C-app | **Màn chat (M2):** ảnh rõ dần theo luật blur của B (Gaussian blur trên máy), quả cầu độ hợp (hiển thị), gợi ý/nhắc nhẹ từ API Module 3 | 25/11 — **khung có sẵn** (`feature/chat/`: blur, `CompatibilityOrb`, `HealthPill`, gọi `m2/compat`, `m3/health`). Còn: (a) **chưa có Head B** — thêm hộp "Bạn có chắc muốn gửi?" gọi `/safety/score` trước khi gửi (không chặn, không phạt) ; (b) hiện 3 mức khỏe / hời hợt / nguy cơ theo τ1, τ2 của A ; (c) dùng luật blur mới của B-app1 — **xong 14/11** (PR #11) |
+| C-app2 | **Tắt nhắc theo cuộc chat (giảm nhắc oan khi bạn bè đùa nhau):** bấm "Vẫn gửi" 3 lần trong một cuộc chat → thôi nhắc cuộc chat đó, bật lại được trong menu chat ; đếm lưu bền theo `matchId` ; có unit test | 23/11 — giảm thiểu cho Practical limits "Không phân biệt đùa với công kích" (`08_BAO_CAO_M3.md` §3.5) |
 
 ## 5. Phụ thuộc (điểm dễ nghẽn — A theo dõi)
 ```
