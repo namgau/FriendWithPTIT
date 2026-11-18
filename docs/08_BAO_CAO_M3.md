@@ -214,7 +214,7 @@ RSF là **một** mô hình trả lời mọi Δ (1h, 24h, 48h, 72h), giữ đư
 - **Ngân sách cảnh báo** 5 / 10 / 20%:
   - E1: precision 0.40 / 0.35 / 0.28, recall 0.20 / 0.34 / 0.57.
 - **Δ:** E1 prevalence gần như không đổi theo Δ (13.0% ở 10 phút, 10.4% ở 48h) ; E2 thay đổi mạnh (62% → 33%).
-- `[CHỜ B6]` X6: bộ phát hiện câu hỏi / tin cụt trên DailyDialog.
+- X6 (B6): quy tắc dấu `?` trên DailyDialog validation đạt precision 0,745 và recall 0,983 với act question (8.069 lượt); act không phải nhãn tin cụt, nên chưa đo được precision/recall tin cụt. Bản tiếng Việt chưa được đánh giá; chi tiết và giới hạn trong `docs/results/B6_DAILYDIALOG.md`.
 
 ### R8 — Head B dự báo trên G1 (X11)
 
