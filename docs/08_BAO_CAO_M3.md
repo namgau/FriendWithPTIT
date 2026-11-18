@@ -64,7 +64,7 @@ Các phát hiện chính:
 | Test (khóa) | 20% hội thoại **bắt đầu muộn nhất** | split chuẩn ConvoKit (cặp ghép cùng phía) | 20% theo group |
 | Outer CV | forward chaining K = 5 theo thời điểm bắt đầu group | group K-fold K = 5 (group = trang) | group K-fold K = 5 |
 | Calibration | 20% group muộn nhất của mỗi outer-train (mô hình fit trên 80% còn lại) | 20% group của outer-train | như G1 |
-| Seeds | 42 cho split test và mô hình ; R = 1 với LightGBM/LR. `[CHỜ B10]` R = 3 cho NN | 42 | 42 |
+| Seeds | 42 cho split test và mô hình ; R = 1 với LightGBM/LR. R = 3 (seed 42/43/44) cho PhoBERT B10 | 42 | 42 |
 | Bootstrap | cluster theo hội thoại, B = 2000, percentile CI 95% ; so sánh mô hình bằng paired bootstrap | cluster theo trang | cluster theo group |
 
 - **Chống rò rỉ:**
@@ -157,8 +157,9 @@ Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 
 - **Head B** (`IMBALANCE_B.md`, H2 prevalence 0.11):
   - Ở ngưỡng mặc định 0.5, "none" cho recall 0.009, tức gần như không bao giờ báo. class_weight / oversample / SMOTE nâng recall lên khoảng 0.40 nhưng FPR thành 8–10%.
   - Sau calibration và τ_B (FPR 5%), mọi phương án hội tụ về recall khoảng 0.30, trừ undersample còn 0.21.
-  - Lặp lại với **embedding BGE-M3 đóng băng + LR** (SMOTE trên vector câu): cùng kết luận ; undersample vẫn kém nhất. Embedding đóng băng **kém hơn TF-IDF** ở H1 (PR-AUC 0.664 ± 0.011 so với 0.707 ± 0.015) và không hơn ở H2 (0.327 ± 0.041 so với 0.339 ± 0.045): độc hại phụ thuộc mạnh vào từ ngữ cụ thể, vector câu tổng quát làm mờ tín hiệu này → cần fine-tune (PhoBERT/XLM-R, `[CHỜ C2/B10]`).
-  - **Kết luận:** lợi ích "thấy được" của resampling chủ yếu là dịch ngưỡng. Chọn ngưỡng đúng cách cho kết quả tương đương. `[CHỜ B10]` weighted loss / oversampling cho PhoBERT trên H2.
+  - Lặp lại với **embedding BGE-M3 đóng băng + LR** (SMOTE trên vector câu): cùng kết luận ; undersample vẫn kém nhất. Embedding đóng băng **kém hơn TF-IDF** ở H1 (PR-AUC 0.664 ± 0.011 so với 0.707 ± 0.015) và không hơn ở H2 (0.327 ± 0.041 so với 0.339 ± 0.045): độc hại phụ thuộc mạnh vào từ ngữ cụ thể, vector câu tổng quát làm mờ tín hiệu này → cần fine-tune (PhoBERT, C2/B10 bên dưới).
+  - **PhoBERT fine-tune trên H2** (B10, `B10_PHOBERT_H2.md`, tách từ underthesea, 5 fold × 3 seed): PR-AUC weighted BCE **0.509 ± 0.074**, none 0.482 ± 0.095, oversampling 0.471 ± 0.077. Paired theo fold (trung bình 3 seed): weighted − none +0.027, cao hơn ở 3/5 fold ; oversampling − weighted −0.038, thấp hơn ở cả 5/5 fold. Lặp mẫu không giúp mà còn tốn gấp ~1.7 thời gian fit.
+  - **Kết luận:** lợi ích "thấy được" của resampling chủ yếu là dịch ngưỡng. Chọn ngưỡng đúng cách cho kết quả tương đương. Với mạng nơ-ron cũng vậy: đổi trọng số loss có xu hướng nhỉnh hơn (chưa chắc chắn), lặp mẫu thì kém hơn. Head B dùng weighted BCE cho PhoBERT, class_weight cho LR, và τ_B theo FPR.
 
 ![Head B: 5 phương án mất cân bằng, TF-IDF và BGE-M3](figures/imbalanceB.png)
 
