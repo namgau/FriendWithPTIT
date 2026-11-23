@@ -43,7 +43,14 @@ là mean validation qua 5 fold, mỗi fold có ngưỡng calibration riêng. Kh�
 - *Head A:* trong app FwP, tại mỗi tin nhắn (và mỗi giờ với hội thoại đang im), ước lượng xác suất đã hiệu chỉnh p = P(không có tin mới trong 48h | lịch sử tới t). App hiện 3 mức: khỏe (p < τ1), hời hợt (τ1 ≤ p < τ2), nguy cơ (p ≥ τ2). Ở mức nguy cơ, app gợi ý riêng tư cho người dùng.
 - *Head B:* với G1, dự báo hội thoại có công kích ở phần tiếp theo từ tiền tố trước lượt công kích; với H1/H2, phân loại mức độc hại của một bình luận. App dùng điểm độc hại của tin đang soạn để **nhắc nhẹ người gửi**, không tự động phạt. Hai loại nhãn không đồng nhất và không có bằng chứng trực tiếp trên chat riêng của app.
 
-**Dữ liệu** (chỉ dataset công khai ; nhóm không thu dữ liệu thật). Chi tiết ở `docs/data_cards/`.
+**Dữ liệu và phạm vi suy luận.** Nhóm dùng năm bộ dữ liệu bên ngoài, không thu
+chat người dùng FwP. E1/E2 là hội thoại hỗ trợ bằng tiếng Anh; G1 là thảo luận
+Wikipedia tiếng Anh; H1/H2 là bình luận công khai tiếng Việt, mỗi mẫu chỉ gồm
+một bình luận. Vì vậy các bộ này là dữ liệu thay thế để kiểm chứng phương pháp,
+không phải mẫu đại diện cho chat riêng của sinh viên. Head A đo khoảng im lặng,
+không trực tiếp đo mức quan tâm hay chất lượng quan hệ; hội thoại kết thúc sau
+khi được hỗ trợ cũng có thể mang nhãn dương. Chi tiết nguồn, tiền xử lý và
+checksum tham chiếu ở `docs/data_cards/` và `data/checksums.txt`.
 
 | ID | Dataset | Nguồn / license | Train: N mẫu / N đơn vị độc lập | Test: N mẫu / N đơn vị | Prevalence train / test | Đơn vị độc lập |
 |---|---|---|---|---|---|---|
@@ -53,14 +60,39 @@ là mean validation qua 5 fold, mỗi fold có ngưỡng calibration riêng. Kh�
 | H1 | ViHSD | bản sao HF `htdung167/ViHSD` của `uitnlp/vihsd` ; MIT theo bản gốc | 26,719 / 24,452 nhóm nội dung | 6,681 / 6,116 | 0.173 / 0.173 | nội dung trùng |
 | H2 | UIT-ViCTSD | HF `tarudesu/ViCTSD` ; nghiên cứu | 8,001 / 660 bài báo | 1,999 / 165 | 0.110 / 0.110 | bài báo |
 
+Số trong bảng là số **mẫu sau tạo nhãn và chia tập**, không phải tổng số tin
+hay hội thoại thô trong Data Card. E1/E2 có thể có nhiều mốc trong một hội thoại;
+N đơn vị ở E2 là khách hàng, không phải số hội thoại. Prevalence là tỉ lệ nhãn
+dương trong các mẫu có nhãn xác định; N mẫu Head A trong `configs/test_lock.json`
+còn gồm các mốc bị censor và bị loại khi chạy phân loại nhị phân. Số train/test
+và prevalence trong bảng lấy từ file metadata khóa, không mở dữ liệu test; các
+prevalence fit/calibration/validation theo từng fold chưa được tổng hợp trong
+bản báo cáo này, không dùng tỉ lệ toàn train như thể là số của từng fold.
+
 H1 gộp OFFENSIVE (1) và HATE (2) thành độc hại; H2 dùng cột `Toxicity`, không dùng
 `Constructiveness` thay cho nhãn độc hại. G1 có prevalence 50% do ghép cặp theo thiết kế,
-không đại diện tần suất công kích trong app. Số liệu nguồn/split do code và Data Card
-đã công bố cung cấp; C7 đối chiếu các artifact này, không đọc lại tập test khóa.
-License H2 chưa được xác nhận ở nguồn HF; “nghiên cứu” chỉ mô tả mục đích sử dụng,
-không thay thế giấy phép (theo `data_cards/DATA_CARD_H2.md`).
+không đại diện tần suất công kích trong app. Nhãn công kích tương lai của G1 và
+nhãn độc hại tại bình luận của H1/H2 khác nhau, nên không gộp chúng thành cùng
+một mục tiêu hay so trực tiếp điểm như thể cùng phân phối.
+
+Về quyền sử dụng: E1 được Kaggle ghi “other”, không đủ để xác nhận quyền tái phân
+phối; E2 là CC BY-NC-SA 4.0, có hạn chế phi thương mại. Với G1, CC BY-SA áp dụng
+cho nội dung Wikipedia, còn quyền đối với nhãn corpus cần được xác nhận riêng;
+H1 ghi MIT theo nguồn gốc nhưng bản đang dùng là bản sao. H2 chưa có license xác
+nhận tại nguồn HF. Các mô tả “nghiên cứu” trong Data Card không thay thế giấy
+phép; cần xác minh điều khoản nguồn và bản sao trước khi phát hành hoặc sử dụng
+ngoài phạm vi được phép.
 
 - **Mẫu Head A:** mẫu là cặp (hội thoại, mốc t) tại tin thứ 6, 8, 10… Đặc trưng chỉ lấy từ tin ≤ t. Nhãn y = 1 nếu không có tin nào trong (t, t + 48h]. Mốc bị right-censor ở 48h bị loại khỏi bài nhị phân (E1: 97, E2: 1,736) nhưng vẫn giữ cho survival.
+- **Mẫu Head B:** G1 có một mẫu mỗi hội thoại; hội thoại hỏng chỉ dùng tiền tố
+  trước lượt công kích đầu tiên, hội thoại lành bỏ lượt cuối; nếu tiền tố rỗng
+  thì bỏ cả cặp (`src/m3_health/labels.py`). H1/H2 mỗi bình luận là một mẫu và
+  dùng nhãn của bộ dữ liệu, không có lịch sử hội thoại để đánh giá dự báo sớm.
+- **Tạo và chia dữ liệu:** E1 giữ hội thoại đúng hai người; E2 dựng cây trả lời,
+  giữ hội thoại một khách hàng và một tài khoản CSKH. H1 gộp split nguồn rồi
+  nhóm văn bản chuẩn hóa trùng nhau; H2 gộp split nguồn rồi nhóm theo tiêu đề
+  bài báo. G1 dùng split test chính thức, gộp train và validation nguồn vào train.
+  Chi tiết và giới hạn cách nhóm nằm trong từng Data Card; dữ liệu thô không commit.
 - **Vì sao chọn đơn vị độc lập như trên:**
   - Các mốc trong cùng hội thoại tự tương quan với nhau.
   - E2 có cùng một khách hàng ở nhiều hội thoại.
@@ -72,7 +104,7 @@ không thay thế giấy phép (theo `data_cards/DATA_CARD_H2.md`).
 
 | Phần | Head A (E1, E2) | Head B (G1) | Head B (H1, H2) |
 |---|---|---|---|
-| Test (khóa) | 20% hội thoại **bắt đầu muộn nhất** | split chuẩn ConvoKit (cặp ghép cùng phía) | 20% theo group |
+| Test (khóa) | 20% group **bắt đầu muộn nhất** (E1: hội thoại; E2: khách hàng) | split chuẩn ConvoKit (cặp ghép cùng phía) | 20% theo group |
 | Outer CV | forward chaining K = 5 theo thời điểm bắt đầu group | group K-fold K = 5 (group = trang) | group K-fold K = 5 |
 | Calibration | 20% group muộn nhất của mỗi outer-train (mô hình fit trên 80% còn lại) | 20% group của outer-train | như G1 |
 | Seeds | 42 cho split test và mô hình ; R = 1 với LightGBM/LR. R = 3 (seed 42/43/44) cho PhoBERT B10 | 42 | 42 |
