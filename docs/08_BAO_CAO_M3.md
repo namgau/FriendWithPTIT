@@ -1,6 +1,6 @@
 # Báo cáo Module 3 — Conversation Intelligence (BẢN NHÁP A10)
 
-> **Trạng thái 17/11/2026:** nháp từ kết quả CV/OOF trên **tập train**. Tập test **chưa mở** (A mở đúng 1 lần ngày 20/11).
+> **C7 cập nhật 23/11/2026:** nháp từ kết quả CV/OOF trên **tập train** đã có trong repo. Chưa có `TEST_RESULTS.md` trong checkout này; các ô test chờ A8 của A, không suy ra trạng thái mở test chỉ từ ngày hiện tại.
 > Ô ghi `[TEST 20/11]` điền sau A8 ; ô ghi `[CHỜ Bx/Cx]` điền khi việc của B/C xong. Mọi con số dưới đây lấy từ
 > `docs/results/*.md` (sinh bằng script, có dòng trong `experiments/ledger.csv`) — sửa số thì chạy lại script, không sửa tay.
 > Khung mục theo `01_CHUAN_BAO_CAO_AUDITABLE.md` §4 ; thiết kế đầy đủ ở `06_MODULE_3_HEALTH_MONITOR.md`.
@@ -20,7 +20,7 @@ Kết quả chính trên CV của train (mean ± SD qua 5 fold):
 | E1 | `gap_last` 0.147 ± 0.004 | LightGBM + class_weight | **0.318 ± 0.004** | top 10%: precision 0.345, recall 0.343, lift 3.3× |
 | E2 | `gap_last` 0.367 ± 0.026 | LightGBM + SMOTE | **0.529 ± 0.029** | top 10%: precision 0.620, recall 0.193, lift 1.9× |
 | G1 | độ dài tiền tố 0.553 ± 0.026 | TF-IDF + LR | **0.631 ± 0.031** | FPR 5%: recall 0.100 |
-| H1 | độ dài 0.300 ± 0.008 | TF-IDF + LR | **0.708 ± 0.013** | FPR 5%: recall 0.583 |
+| H1 | TF-IDF + LR 0.708 ± 0.013 | PhoBERT C2 | **0.770 ± 0.018** | validation: recall 0.663, FPR 0.053 tại τ_B chọn trên calibration |
 | H2 | độ dài 0.110 ± 0.022 | TF-IDF + LR | **0.349 ± 0.044** | FPR 5%: recall 0.297 |
 
 Các phát hiện chính:
@@ -30,6 +30,10 @@ Các phát hiện chính:
 - Mô hình **không chuyển được** giữa hai nền tảng (E1 → E2: ROC-AUC 0.50).
 - Phần lớn ca báo đúng chỉ được báo ở tin cuối, tức lead time ngắn.
 - Head B tiếng Việt "buộc tội oan" các câu chửi thề cảm thán, vì ViHSD gán nhãn như vậy. Đây là lệch định nghĩa, không phải lỗi mô hình.
+
+Các dòng Head A ở bảng tóm tắt dùng T1+T2 để đối chiếu nền; phần thêm T3/T4 ở R2.
+Điểm vận hành TF-IDF của G1/H2 là ngưỡng toàn cục trên OOF train; điểm PhoBERT H1
+là mean validation qua 5 fold, mỗi fold có ngưỡng calibration riêng. Không trộn hai cách tổng hợp này.
 
 ---
 
@@ -48,6 +52,13 @@ Các phát hiện chính:
 | G1 | Conversations Gone Awry — Wikipedia | ConvoKit ; CC BY-SA | 3,348 / 1,446 trang | 840 / 370 | 0.500 / 0.500 (ghép cặp) | trang (giữ cặp) |
 | H1 | ViHSD | bản sao HF `htdung167/ViHSD` của `uitnlp/vihsd` ; MIT theo bản gốc | 26,719 / 24,452 nhóm nội dung | 6,681 / 6,116 | 0.173 / 0.173 | nội dung trùng |
 | H2 | UIT-ViCTSD | HF `tarudesu/ViCTSD` ; nghiên cứu | 8,001 / 660 bài báo | 1,999 / 165 | 0.110 / 0.110 | bài báo |
+
+H1 gộp OFFENSIVE (1) và HATE (2) thành độc hại; H2 dùng cột `Toxicity`, không dùng
+`Constructiveness` thay cho nhãn độc hại. G1 có prevalence 50% do ghép cặp theo thiết kế,
+không đại diện tần suất công kích trong app. Số liệu nguồn/split do code và Data Card
+đã công bố cung cấp; C7 đối chiếu các artifact này, không đọc lại tập test khóa.
+License H2 chưa được xác nhận ở nguồn HF; “nghiên cứu” chỉ mô tả mục đích sử dụng,
+không thay thế giấy phép (theo `data_cards/DATA_CARD_H2.md`).
 
 - **Mẫu Head A:** mẫu là cặp (hội thoại, mốc t) tại tin thứ 6, 8, 10… Đặc trưng chỉ lấy từ tin ≤ t. Nhãn y = 1 nếu không có tin nào trong (t, t + 48h]. Mốc bị right-censor ở 48h bị loại khỏi bài nhị phân (E1: 97, E2: 1,736) nhưng vẫn giữ cho survival.
 - **Vì sao chọn đơn vị độc lập như trên:**
@@ -69,8 +80,8 @@ Các phát hiện chính:
 
 - **Chống rò rỉ:**
   - `assert_no_group_leak` và `assert_time_order` chạy ở mọi fold (`src/eval/splits.py`, test trong `tests/test_splits_no_leak.py`).
-  - Scaler, TF-IDF, SMOTE và calibrator chỉ fit trên phần fit của fold.
-  - Ngưỡng chọn trên OOF của train. Test chỉ dùng để báo cáo.
+  - Scaler, TF-IDF, SMOTE và mô hình chỉ fit trên phần fit của outer-train; calibrator fit trên phần calibration tách theo group, không trên outer-validation. PCA là biến đổi đóng băng fit từ DailyDialog train độc lập (C1), không fit lại trên các bộ đích.
+  - Ngưỡng từng fold chọn trên calibration; ngưỡng OOF toàn cục được báo riêng khi script có tính. Test chỉ dùng để báo cáo.
 - **Khóa test:** băm danh sách group test nằm ở `configs/test_lock.json`. `load_train()` không bao giờ trả về test. Chỉ A mở test, ngày 20/11.
 
 ## 3.3 Learning procedure
@@ -86,17 +97,18 @@ messages → mẫu (c, t) + nhãn + cờ censor → đặc trưng T1+T2 (≤ t)
   - T1_clock (3): giờ trong ngày, cuối tuần, ban đêm.
   - T1_asym (2): tỉ lệ người gửi tin cuối, double-text.
   - T2_surface (7): độ dài, tin cụt, câu hỏi.
-  - T3 (B5): LSM trên từ chức năng, lexical mirroring, độ dài lượt / tỉ lệ đổi lượt, trong cửa sổ 10 tin kết thúc tại t ; giá trị thiếu là NaN + cờ thiếu.
-  - T4 (C1/B8): BGE-M3 đa ngữ đóng băng, độ liên quan câu trả lời, topic drift/novelty và PCA-32 fit trên DailyDialog train. T3/T4 được thêm vào Head A theo cùng fold trong R2.
-  - T5 (C4): chuỗi embedding BGE-M3 → PCA-32 → GRU cho G1; so với `table_lr` dùng mean + last embedding. T5 Head A không chạy, nên không được ghi như một tầng đã kiểm chứng trên E1/E2.
+  - T3 (B5, 10 cột): LSM = trung bình `1 − |pA−pB|/(pA+pB+0.0001)` trên các nhóm từ chức năng có xuất hiện; mirroring = Jaccard token giữa hai tin kề khác sender; độ dài lượt và tỉ lệ đổi lượt. Cửa sổ 10 tin kết thúc tại t; chỉ đọc `turn_idx ≤ t`. LSM cần đúng hai sender; giá trị thiếu là NaN + cờ thiếu. Lexicon nhỏ tự xây, không tương đương LIWC; bản Việt tách âm tiết và chưa được đánh giá (`B5_T3_FEATURES.md`).
+  - T4 (C1/B8, 42 cột): BGE-M3 đa ngữ đóng băng, 10 thống kê/cờ về reply cosine, topic drift/novelty và 32 tọa độ PCA. Encoder 1.024 chiều, chuẩn hóa L2, max length 256, revision pin trong `configs/embedding.yaml`. PCA fit duy nhất trên 87.171 lượt DailyDialog train (giữ 0.420795 explained variance), không fit trên E1/E2/G1/H1/H2. T3/T4 được thêm vào Head A theo cùng fold trong R2; cache tin tương lai không được lấy vào tiền tố.
+  - T5 (C4): chuỗi embedding BGE-M3 → PCA-32 → GRU một chiều → dropout → linear, dùng hidden cuối cho G1. Đối chứng `table_lr` ghép đặc trưng số T2 với mean + last PCA-32 rồi StandardScaler + LR. Đây là CRAFT-like với encoder đóng băng, không phải tái lập nguyên bản CRAFT. T5 Head A không chạy, nên không được ghi như một tầng đã kiểm chứng trên E1/E2.
 - **Candidate Head A:** đa số ; rule của tài liệu gốc ; chỉ `gap_last` ; LR ; LightGBM (300 cây, lr 0.05, 31 lá). Mỗi mô hình × 5 phương án mất cân bằng (none, class_weight, undersample, oversample, SMOTE). Survival: Cox PH, Random Survival Forest. TabPFN v2 (X7, B9): so với LightGBM trên cùng tập con 100/300/1.000 group của từng outer-train (TabPFN v2 giới hạn 10.000 dòng).
 - **Candidate Head B:** đa số ; từ điển từ xúc phạm ; LR chỉ độ dài ; TF-IDF + LR (có và không có đặc trưng độ dài). PhoBERT `vinai/phobert-base-v2` fine-tune trên H1 (C2: tách từ underthesea, weighted BCE, 2 epoch, max_len 128, Platt). CRAFT-like trên G1 (C4: chuỗi embedding BGE-M3 → PCA-32 → GRU) so với LR trên mean + last PCA-32 (`table_lr`).
+- **Cấu hình C4:** `configs/c4_craft.yaml`, seed 42, hidden ∈ {32, 64}, dropout ∈ {0.1, 0.3}, tối đa 20 epoch, patience 3 theo Macro-F1 calibration, batch 64, AdamW lr 0.001, weight decay 0.0001, clip gradient 1.0. Split/khởi tạo dùng seed suy ra trong runner; K = 5, một lượt CV. Calibration đồng thời chọn cấu hình/early stopping/Platt/τ_B là giới hạn thiết kế, không phải nested CV độc lập hoàn toàn.
 - **C5 / X14:** BGE-M3 đa ngữ đóng băng mã hóa H1 và tiền tố G1. Bộ phân loại độc hại H1 trên embedding sinh một điểm cho mỗi tiền tố G1; điểm đó được thêm vào TF-IDF + LR G1. So sánh theo cùng group fold và paired cluster bootstrap. X14 không dùng PhoBERT đơn ngữ để mã hóa tiếng Anh.
 - **Calibration:** Head A dùng isotonic; Head B dùng Platt trên phần calibration tách theo group. Prior shift đưa xác suất về prevalence thật trước khi hiệu chỉnh khi resampling làm lệch xác suất.
 - **Ngưỡng:**
   - *Head A τ2:* **ngân sách cảnh báo** top 10% điểm. Lý do: tỉ lệ chi phí 1 : 2 cho recall 0.4% trên E1 (gần như không bao giờ báo), và cùng một tỉ lệ chi phí lại cho tỉ lệ cảnh báo rất khác giữa E1 và E2 (`HEAD_A_COST.md`). Ngân sách cố định giữ số lần làm phiền mỗi người dùng ổn định khi prevalence thay đổi.
   - *Head A τ1:* recall ≥ 0.8, với τ1 ≤ τ2.
-  - *Head B τ_B:* FPR ≤ 5%, vì báo nhầm nghĩa là buộc tội oan người dùng.
+  - *Head B τ_B:* chọn để FPR ≤ 5% trên calibration vì báo nhầm làm phiền người gửi. Đây là mục tiêu trên mẫu chọn ngưỡng; không bảo đảm FPR ≤ 5% trên validation, test hoặc chat tiếng Việt trong app. Fallback luật không có bảo đảm calibration này.
 
 ## 3.4 Results
 
@@ -123,8 +135,10 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
 | H1 | lexicon | 0.238 ± 0.013 | 0.564 ± 0.009 | 0.608 / 0.148 / 0.020 | — |
 | H1 | **TF-IDF + LR** | **0.708 ± 0.013** | 0.904 ± 0.004 | 0.715 / 0.576 / 0.048 | [0.691, 0.720] |
 | H2 | **TF-IDF + LR** | **0.349 ± 0.044** | 0.779 ± 0.034 | 0.419 / 0.303 / 0.053 | [0.263, 0.421] |
+| G1 | CRAFT-like GRU | 0.653 ± 0.035 | 0.671 ± 0.022 | 0.717 / 0.144 / 0.055 | [0.6289, 0.6681] |
+| H1 | PhoBERT C2 | 0.770 ± 0.018 | 0.928 ± 0.009 | 0.725 / 0.663 / 0.053 | chưa có CI bootstrap trong artifact C2 |
 
-- Mô hình thắng mọi baseline với khoảng cách lớn hơn nhiều lần SD. `[TEST 20/11]` paired bootstrap trên test để chốt "ngoài CI".
+- CV mean ± SD mô tả biến thiên giữa fold, không phải CI hay kiểm định thắng baseline. CRAFT và X14 có paired bootstrap ở R8; PhoBERT H1 cao hơn TF-IDF về điểm CV nhưng chưa có paired CI trong artifact C2. `[TEST 20/11]` chờ A8 báo paired bootstrap trên test đã khóa.
 - G1: bỏ đặc trưng độ dài gần như không đổi PR-AUC (0.631 → 0.626). Như vậy mô hình học nội dung, không chỉ học "tiền tố hỏng dài hơn 0.5 lượt".
 
 ![Head A: baseline và mô hình học](figures/headA_models.png)
@@ -133,7 +147,10 @@ Bảng đủ mọi candidate ở `docs/results/HEAD_A_CV.md`, `HEAD_B_CV.md`. R�
 
 ![Head B: đường hiệu chỉnh OOF](figures/headB_reliability.png)
 
-Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 10 bin phân vị 0.008–0.025), nên ngưỡng τ_B và mức "nhắc nhẹ" trong app có thể đọc như xác suất thật.
+Platt làm giảm sai số hiệu chỉnh trong miền được đánh giá: TF-IDF có ECE validation
+0.048 ± 0.013 (G1), 0.019 ± 0.003 (H1), 0.017 ± 0.002 (H2), theo `HEAD_B_CV.md`.
+PhoBERT H1 đạt 0.016 ± 0.006 (R9). ECE gộp nhỏ không chứng minh xác suất đúng
+cho từng người hay chat riêng tiếng Việt; app chỉ dùng lời nhắc, không hiển thị điểm như “% rủi ro thực tế”.
 
 ### R2 — Ablation (X1, LightGBM + none ; `HEAD_A_ABLATION.md`)
 
@@ -152,7 +169,7 @@ Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 
 
 ![Head A: ablation thêm dần nhóm đặc trưng](figures/headA_ablation.png)
 
-**RQ1 (tạm):** nhịp trả lời quyết định nhiều nhất, sau đó là bất đối xứng hai bên và bề mặt văn bản ; giờ trong ngày không giúp gì. Phong cách T3 thêm +0.035 trên E2 nhưng chỉ +0.007 trên E1 ; ngữ nghĩa T4 giúp rõ trên E2 (+0.054 khi thêm riêng, gấp khoảng 10 lần SD của hiệu số) nhưng ít trên E1 (+0.015). Hai nhóm bổ sung cho nhau: T3 + T4 cho E2 0.606 (+0.076), E1 0.337 (+0.017) — hội thoại CSKH "tắt" theo nội dung (đã giải quyết xong), còn IRC tắt chủ yếu theo nhịp.
+**RQ1 (tạm):** nhịp trả lời có ảnh hưởng lớn nhất trong ablation, sau đó là bất đối xứng hai bên và bề mặt văn bản; giờ trong ngày ít giúp trên hai bộ. T3/T4 tăng điểm CV nhiều hơn trên E2 so với E1. Đây là kết quả theo fold, chưa có paired cluster CI cho mức tăng T3/T4. Giả thuyết CSKH kết thúc sau khi giải quyết vấn đề phù hợp với miền dữ liệu nhưng chưa được kiểm chứng nhân quả. Dòng T4 không T3 lấy từ báo cáo lịch sử tại commit `49af78b`; bảng ablation hiện tại đã thay bằng tập tích lũy T3+T4 tại `d605bf5`.
 
 ### R3 — Mất cân bằng (X2)
 
@@ -176,7 +193,7 @@ Xác suất Head B sau hiệu chỉnh Platt bám sát đường chéo (ECE theo 
 | H1 | PhoBERT C2 fit toàn H1 train, Platt/τ_B từ group calibration (τ_B = 0.489) | | | | | |
 | H2 | TF-IDF + LR, τ_B = 0.267 | | | | | |
 
-`run_test.py` cũng đánh giá PhoBERT C2 zero-shot trên H2 với cùng Platt/τ_B của H1. Hai điểm PhoBERT chưa có số test; không chạy trước 20/11. A chốt cấu hình cuối ngày 19/11, rồi mở test một lần.
+`run_test.py` cũng đánh giá PhoBERT C2 zero-shot trên H2 với cùng Platt/τ_B của H1. Hai điểm PhoBERT chưa có số test trong checkout này; A phụ trách xác nhận cấu hình cuối và bàn giao A8. C7 không chạy lệnh mở test.
 
 ### R5 — Cross-domain Head A (X4, RQ2)
 
@@ -220,15 +237,15 @@ RSF là **một** mô hình trả lời mọi Δ (1h, 24h, 48h, 72h), giữ đư
 
 - Ở τ_B (FPR 5%), TF-IDF + LR chỉ bắt 10% hội thoại hỏng.
 - **Horizon** (`HEAD_B_ERRORS.md`): 246/1,674 hội thoại hỏng (14.7%) được cảnh báo ở một tiền tố nào đó. Trong 196 TP tại tiền tố triển khai, lead trung vị 0 lượt (IQR 0–2) ; 48% được báo trước ≥ 1 lượt.
-- **CRAFT-like GRU** (C4, `HEAD_B_CRAFT.md`): PR-AUC 0.653 ± 0.035 so với TF-IDF + LR 0.630 ± 0.031 và `table_lr` (mean + last PCA-32) 0.643 ± 0.026. Paired cluster bootstrap GRU − TF-IDF: +0.022, CI 95% [−0.000, +0.044] ; GRU − table_lr: +0.004 [−0.014, +0.022]. → Lợi ích (nếu có) đến từ embedding, **không** từ việc đọc tiền tố như một chuỗi. Ở τ_B recall vẫn chỉ 0.14.
+- **CRAFT-like GRU** (C4, `HEAD_B_CRAFT.md`): PR-AUC 0.653 ± 0.035 so với TF-IDF + LR 0.630 ± 0.031 và `table_lr` (T2 + mean/last PCA-32) 0.643 ± 0.026. Paired cluster bootstrap trên OOF, B = 2000, group = trang: GRU − TF-IDF +0.0217, CI 95% [−0.0003, +0.0436], p = 0.0540; GRU − table_lr +0.0041 [−0.0137, +0.0215], p = 0.6480. Cả hai CI chứa 0: chưa có bằng chứng mô hình chuỗi hơn đối chứng; cũng chưa chứng minh hai mô hình tương đương. Ở τ_B recall chỉ 0.144. Điểm PR-AUC trên OOF gộp 0.64714 khác mean fold 0.65297; CI [0.6289, 0.6681] thuộc OOF gộp.
 - **Giới hạn chọn ngưỡng C4:** cùng phần calibration được dùng để chọn hidden size/dropout, dừng sớm, fit Platt và chọn τ_B, nên ngưỡng có thể hơi lạc quan. FPR trên validation là 0.055, cao hơn mục tiêu 0.05; điều kiện FPR ≤ 5% chỉ được áp trên calibration, không bảo đảm ở dữ liệu mới.
 - **X14 (C5, `HEAD_B_X14.md`)**: điểm độc hại học trên H1 bằng BGE-M3 đa ngữ đóng băng + LR thêm vào TF-IDF + LR G1. PR-AUC 0.631 → 0.632; paired cluster bootstrap Δ +0.002, CI 95% [−0.002, +0.006], p = 0.370. Không có bằng chứng điểm độc hại xuyên ngôn ngữ cải thiện dự báo G1. Hai nhiệm vụ có nhãn khác nhau: độc hại của bình luận hiện tại so với nguy cơ công kích trong phần tiếp theo của hội thoại.
 
 ### R9 — Phân loại độc hại tiếng Việt (X12)
 
 - Kết quả TF-IDF + LR như ở R1.
-- **PhoBERT fine-tune** (C2, `HEAD_B_C2_PHOBERT_X12.md`): H1 PR-AUC **0.770 ± 0.018** so với TF-IDF + LR 0.708 ± 0.013 (≈ 3 SD) ; ROC-AUC 0.928 ; ở τ_B recall 0.663 so với 0.576, FPR 0.053. ECE 0.104 → 0.016 sau Platt. Embedding đóng băng + LR chỉ 0.653–0.664 → **fine-tune là điều kiện để vượt TF-IDF**.
-- **X12 zero-shot H1 → H2:** PhoBERT học trên H1 đạt PR-AUC 0.397 trên toàn H2 train, ngang TF-IDF học trực tiếp trên H2 (0.349 ± 0.044 CV ; hai số không ghép cặp). Giữ τ_B của H1 thì FPR trên H2 chỉ 0.015 nhưng recall 0.21 → khi đổi miền phải chọn lại ngưỡng.
+- **PhoBERT fine-tune** (C2, `HEAD_B_C2_PHOBERT_X12.md`): H1 PR-AUC **0.770 ± 0.018** so với TF-IDF + LR 0.708 ± 0.013; ROC-AUC 0.928; ở τ_B recall 0.663 so với 0.576, FPR 0.053 so với 0.048. ECE 0.104 → 0.016 sau Platt. Điểm CV tăng 0.062 nhưng chưa có paired CI; chưa kết luận ý nghĩa thống kê từ SD. Embedding BGE-M3 đóng băng + LR thấp hơn TF-IDF trong các cấu hình đã thử; điều này không chứng minh mọi mô hình đều cần fine-tune.
+- **X12 zero-shot H1 → H2:** PhoBERT học trên H1 đạt PR-AUC 0.397 trên toàn H2 train, so với TF-IDF học trực tiếp H2 0.349 ± 0.044 CV. Thiết kế không ghép cặp, chưa có CI cho chênh lệch, nên không kết luận hơn hoặc tương đương. Giữ τ_B = 0.5012 từ H1 thì FPR H2 0.015 và recall 0.213: điểm ngưỡng không chuyển nguyên hiệu quả giữa miền; muốn đổi ngưỡng cần calibration có nhãn ở miền đích tách khỏi test. Đây là model X12 lịch sử, khác artifact full-train ngày 17/11 có τ_B ≈ 0.489.
 - **B10 trên H2** (`B10_PHOBERT_H2.md`): weighted PR-AUC 0.509 ± 0.074, none 0.482 ± 0.095, oversampling 0.471 ± 0.077 trên 5 fold × 3 seed. Weighted hơn none ở 3/5 fold; oversampling kém weighted trong cả 5 fold. Fold của B10 khác A5b vì phiên bản scikit-learn khác, nên so sánh với TF-IDF chỉ mang tính tham khảo, không phải paired test.
 - **Bản PhoBERT cuối cho test H1/H2 ngày 20/11:** fit hiệu chuẩn Platt và τ_B trên 20% group H1 train tách khỏi model fit 80%, sau đó fit lại classifier trên **toàn bộ 26.719 dòng H1 train**. Tham số hiệu chuẩn/ngưỡng được chuyển sang model fit toàn bộ; khác biệt phân phối điểm giữa hai lần fit là giới hạn phải kiểm tra trên test. `run_test.py` nạp artifact bằng CPU, đánh giá H1 và zero-shot H2 với cùng ngưỡng H1, không chọn lại trên test.
 
@@ -294,7 +311,7 @@ Confusion matrix E1 tại τ2: TP 9,801, FN 19,038, FP 18,377, TN 233,676.
 | Lọc mẫu nghi nhiễu (confident learning) | PR-AUC −0.03 (H1) / −0.08 (H2) | bỏ |
 | Head A τ2: chi phí → ngân sách cảnh báo | recall 0.004 → 0.34 (E1) | dùng làm mặc định |
 
-Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) để giảm bias và kéo dài lead time `[CHỜ ablation T3–T5]`.
+T3/T4 đã tăng PR-AUC CV ở R2, nhưng chưa có đánh giá lead time sau khi thêm các nhóm này. T5 chỉ đánh giá G1 và chưa cho lợi ích ngoài CI so với đối chứng (R8); hướng tiếp theo là đánh giá lead time theo cùng giao thức, không suy ra từ PR-AUC.
 
 ---
 
@@ -307,8 +324,8 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | **Representativeness** | Không có chat hẹn hò tiếng Việt công khai ; E1 là hỗ trợ kỹ thuật, E2 là CSKH, H1 / H2 là bình luận công khai | mọi số Head A **không** chứng minh được hiệu quả với sinh viên PTIT | cross-domain ROC 0.50 (R5) | nói rõ đây là kiểm chứng phương pháp ; app có 3 mức + nhắc nhẹ, không phạt | không có cách đo trên người dùng thật (nhóm không thu dữ liệu) |
 | **Distribution shift** | Đổi nền tảng làm hỏng cả xếp hạng lẫn conformal | phải học lại hoặc ít nhất calibration lại khi triển khai | R5 ; X8 coverage 0.56 / 0.59 | ngân sách cảnh báo giữ tỉ lệ làm phiền ổn định ; calibration lại khôi phục coverage 0.90 | cần nhãn miền đích để calibration lại ; theo dõi PSI của đặc trưng sau triển khai |
 | **Lệch định nghĩa (Head B)** | ViHSD coi chửi thề là xúc phạm ; dataset ít câu tình dục / phân biệt giới bị gán đúng | buộc tội oan khoảng 1/4 FP | `HEAD_B_FP_AUDIT.md` nhóm B và A | chỉ nhắc người gửi, không phạt | cần định nghĩa và nhãn riêng cho app — ngoài phạm vi |
-| **Không phân biệt đùa với công kích (Head B)** | Bộ phân loại chấm **từng câu** (nhãn H1 theo từng bình luận) ; 5 tin gần nhất chỉ được dùng để **tăng** điểm "hội thoại xấu đi", không bao giờ giảm. Bạn thân chửi qua lại cho vui càng dễ bị nhắc | nhắc oan trong đúng nhóm người dùng thân nhau nhất → dễ bị coi là phiền và tắt hẳn | `HEAD_B_FP_AUDIT.md` nhóm B: 26/100 FP là chửi cảm thán / đùa thân mật, CI 95% [0.18, 0.35] ; X14 Δ +0.002: điểm độc hại không chuyển sang bài toán có ngữ cảnh G1 | **tầng sản phẩm:** chỉ người gửi thấy lời nhắc, luôn gửi được ; người dùng bấm "Vẫn gửi" 3 lần trong một cuộc chat thì app thôi nhắc cuộc chat đó và cho bật lại trong menu `[CHỜ C-app2]`. Đây là tín hiệu "chúng tôi là bạn" do chính người dùng cho, không thu hay gán nhãn dữ liệu | mô hình có ngữ cảnh (ai nói với ai, hai bên cùng giọng, có "=))", người nhận phản ứng ra sao) cần dữ liệu chat tiếng Việt gán nhãn đùa / công kích — không có dữ liệu công khai, nhóm không tự thu → ngoài phạm vi |
-| **Lead time ngắn** | đa số ca chỉ được báo ở tin cuối | gợi ý trong app đến muộn | E1 lead = 0: 83% (τ2) | mức hời hợt (τ1) báo sớm hơn | `[CHỜ T3–T5]` |
+| **Không phân biệt đùa với công kích (Head B)** | Bộ phân loại chấm **từng câu** (nhãn H1 theo từng bình luận); serving dùng 5 tin gần nhất để tăng nguy cơ so với điểm tin hiện tại, không học quan hệ thân mật | lời nhắc có thể làm phiền bạn bè đang đùa | `HEAD_B_FP_AUDIT.md` nhóm B: 26/100 FP là chửi cảm thán / đùa thân mật, CI 95% [0.18, 0.35]; X14 Δ +0.002 với CI chứa 0 chưa cho bằng chứng cải thiện G1 | **C-app2 đã triển khai 23/11:** lần bấm “Vẫn gửi” thứ 3 tắt nhắc riêng cuộc chat; menu cho bật lại và reset đếm. Lưu bền trên thiết bị theo nguồn/tài khoản/matchId; áp dụng chat demo/backend, không lưu draft hay gửi bộ đếm lên server. Đây là lựa chọn giao diện, không phải nhãn “bạn thân” để huấn luyện | không chứng minh quan hệ thân mật hay tăng độ chính xác mô hình; không đồng bộ lựa chọn qua thiết bị. Chưa thử giao diện trên thiết bị/HTTP thật; xem `C_APP2_C7_VERIFICATION.md` |
+| **Lead time ngắn** | đa số ca chỉ được báo ở tin cuối | gợi ý trong app đến muộn | E1 lead = 0: 83% (τ2) | mức hời hợt (τ1) báo sớm hơn | T3/T4 tăng PR-AUC, chưa đánh giá lại lead time; T5 không chạy Head A |
 | **Cận dưới conformal vô dụng** | L ≈ 0 ở mọi bộ | không dùng được câu "còn im ít nhất L giờ" | `HEAD_A_CONFORMAL.md` | chỉ dùng cận trên U ở E1 | — |
 
 ---
@@ -321,13 +338,15 @@ Hướng tương lai: cần T3 (nhịp đối đáp) và T4–T5 (nội dung) đ
 | Conformal (CQR, Romano 2019) + weighted conformal dưới covariate shift (Tibshirani 2019) | hồi quy phân vị không conformal | đạt coverage đúng trong miền ; chỉ ra giới hạn ESS khi chuyển miền |
 | Confident learning (Northcutt 2021) | đọc tay 100 FP | báo nhiễu cao hơn đọc tay khoảng 4 lần ; lọc làm giảm PR-AUC → kết quả âm, vẫn báo |
 | SHAP (LightGBM `pred_contrib`) | feature importance | phát hiện artifact `n_msgs` |
-| Embedding đa ngữ BGE-M3, chọn theo VN-MTEB | MiniLM | chọn BGE-M3 do chất lượng tiếng Việt vượt trội trên VN-MTEB (64.90 so với 46.05 của MiniLM-L12 ; chi tiết tại [docs/results/C1_EMBEDDING.md](results/C1_EMBEDDING.md)) + `[CHỜ B8]` ablation |
+| Embedding đa ngữ BGE-M3, chọn theo VN-MTEB | MiniLM | BGE-M3 64.90 so với MiniLM-L12 46.05 trên VN-MTEB; benchmark/tài nguyên tại [C1_EMBEDDING.md](results/C1_EMBEDDING.md); cache B8 đã dùng trong ablation R2 |
 | TabPFN v2 (Hollmann 2025 ; B9, `B9_TABPFN_CV.md`) | LightGBM trên cùng tập con group | ≤ 1.000 group: TabPFN hơn +0.03–0.05 PR-AUC (paired cluster bootstrap CI không chứa 0, cả E1 lẫn E2). Nhưng LightGBM học trên đủ 60k hội thoại vẫn cao hơn TabPFN ở mức lớn nhất nó chạy được (E1 0.320 so với 0.283 ; E2 0.530 so với 0.497, cùng T1+T2), và TabPFN suy luận chậm hơn khoảng 1.000 lần → giữ LightGBM ; TabPFN hợp cho giai đoạn ít dữ liệu (cold start) |
-| CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR ; LR trên mean/last embedding | +0.022 PR-AUC so với TF-IDF (CI chứa 0), ngang `table_lr` → kết quả âm có kiểm định, vẫn báo |
+| CRAFT-like (Chang & Danescu-Niculescu-Mizil 2019) | TF-IDF + LR ; LR trên T2 + mean/last embedding | Δ +0.0217 so với TF-IDF và +0.0041 so với `table_lr`, cả hai CI chứa 0; chưa chứng minh cải thiện hoặc tương đương |
 
 ### Bản triển khai trong app (C6, `export_serving.py`)
 
-App chat tiếng Việt nên bản chạy trên server chọn mô hình **không phụ thuộc ngôn ngữ huấn luyện và nhẹ**, khác mô hình chốt của báo cáo:
+App dùng mô hình nhẹ: Head A đọc đặc trưng hành vi/bề mặt từ E1 tiếng Anh,
+Head B dùng TF-IDF học trên H1 tiếng Việt. Cả hai vẫn phụ thuộc miền và ngôn ngữ dữ liệu;
+chúng khác cấu hình đánh giá trong báo cáo:
 
 | Head | Báo cáo (chốt, đánh giá trên test) | App (`models/m3/v1`) | Lý do |
 |---|---|---|---|
@@ -345,11 +364,11 @@ Cả hai fit trên toàn bộ train theo đúng giao thức CV (`final_models.py
 - Mọi bảng sinh bằng `python -m src.m3_health.<script>` từ `configs/default.yaml`, seed 42.
 - Mỗi lần chạy ghi 1 dòng vào `experiments/ledger.csv`: commit, hash dữ liệu, metric mean / SD.
 - Dữ liệu tải và chuẩn hóa bằng `python -m src.data.prepare`, nhãn và khóa test bằng `python -m src.m3_health.labels`.
-- Test: `pytest` (56 test, gồm kiểm tra rò rỉ split).
+- Test Python: `pytest` (gồm kiểm tra rò rỉ split; số test phụ thuộc checkout). Test/build C-app2 và phạm vi kiểm chứng C7 ở `C_APP2_C7_VERIFICATION.md`.
 
 ## Việc còn lại trước khi nộp
 
-- [ ] 09–18/11: thêm T3–T5, CRAFT-like, PhoBERT, TabPFN vào R1/R2/R8/R9 (B, C).
+- [x] C7 23/11: cập nhật Head B và T3–T5 vào R1/R2/R8/R9; phân biệt OOF/CV và giới hạn calibration/chuyển miền. Duyệt chéo phần B hiện có tại `C7_REVIEW_B.md`; bản B7 cuối vẫn chờ B bàn giao.
 - [ ] 19/11: đóng băng cấu hình ; pin `requirements.txt`.
 - [ ] 20/11: A8 — mở test 1 lần, điền R4 + paired bootstrap ; chạy lại A9 trên test.
 - [ ] A duyệt `reports/h1_fp_audit.csv`, viết ≥ 10 ví dụ lỗi bằng lời.

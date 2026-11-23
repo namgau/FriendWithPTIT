@@ -11,14 +11,27 @@ import kotlinx.coroutines.launch
 import retrofit2.HttpException
 import vn.ptit.fwp.AppContainer
 import vn.ptit.fwp.core.data.PresentationIdentity
+import vn.ptit.fwp.core.data.displayMessage
 import vn.ptit.fwp.core.data.remote.SocialMessagesDto
+import vn.ptit.fwp.core.ai.SafetyEngine
+import vn.ptit.fwp.feature.chat.ChatSafetyPrompt
 
 class BackendChatViewModel(container: AppContainer, identity: PresentationIdentity, private val matchId: String) : BackendScopedViewModel(container, identity) {
     private val mutable = MutableStateFlow(BackendChatState())
     val state = mutable.asStateFlow()
     private val reads = Mutex()
+    val safety = ChatSafetyPrompt(
+        scope = viewModelScope,
+        preferences = container.chatNudgeStore.forConversation("backend:${identity.email}", matchId),
+        risk = { text, context ->
+            container.remoteAi.safetyScore(matchId, context, text)?.shouldNudge ?: SafetyEngine.isToxicOffline(text)
+        },
+        canSend = { valid && mutable.value.match != null && !mutable.value.unavailable },
+        onSend = { text -> enqueue(text) },
+        onError = { if (valid) mutable.update { it.copy(error = "Không thể kiểm tra hoặc lưu tùy chọn nhắc an toàn. Hãy thử lại.") } }
+    )
     init { observeIdentity(container); refresh() }
-    override fun invalidate() { mutable.value = BackendChatState(loading = false, unavailable = true) }
+    override fun invalidate() { safety.invalidate(); mutable.value = BackendChatState(loading = false, unavailable = true) }
 
     fun refresh() {
         if (!valid || mutable.value.refreshing || mutable.value.unavailable) return
@@ -66,12 +79,19 @@ class BackendChatViewModel(container: AppContainer, identity: PresentationIdenti
 
     fun send(text: String): Boolean {
         if (!valid || mutable.value.match == null || mutable.value.unavailable) return false
-        val pending = try { newPendingSend(text) } catch (_: IllegalArgumentException) {
+        if (text.trim().isEmpty() || text.trim().length > 2000) {
             mutable.update { it.copy(error = "Tin nhắn cần từ 1 đến 2000 ký tự.") }; return false
+        }
+        return safety.send(text, mutable.value.messages.map { it.displayMessage() })
+    }
+
+    private fun enqueue(text: String) {
+        if (!valid || mutable.value.unavailable) return
+        val pending = try { newPendingSend(text) } catch (_: IllegalArgumentException) {
+            mutable.update { it.copy(error = "Tin nhắn cần từ 1 đến 2000 ký tự.") }; return
         }
         mutable.update { it.copy(pending = it.pending + pending) }
         submit(pending)
-        return true
     }
     fun retry(key: String) {
         val pending = mutable.value.pending.firstOrNull { it.request.clientMessageId == key } ?: return
@@ -119,7 +139,9 @@ class BackendChatViewModel(container: AppContainer, identity: PresentationIdenti
     fun block() = action { val match = mutable.value.match ?: return@action; api.block(match); closeConversation() }
     fun report(reason: String) = action { api.report(matchId, reason); closeConversation() }
     fun unmatch() = action { api.unmatch(matchId); closeConversation() }
-    private fun closeConversation() { if (valid) mutable.value = BackendChatState(loading = false, unavailable = true) }
+    private fun closeConversation() {
+        if (valid) { safety.invalidate(); mutable.value = BackendChatState(loading = false, unavailable = true) }
+    }
     private fun action(block: suspend () -> Unit) {
         if (!valid || mutable.value.busy || mutable.value.unavailable) return
         mutable.update { it.copy(busy = true, error = null) }

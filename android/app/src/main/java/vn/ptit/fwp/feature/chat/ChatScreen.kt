@@ -106,7 +106,8 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
     val state by viewModel.uiState.collectAsState()
     val message by viewModel.message.collectAsState()
     val finished by viewModel.finished.collectAsState()
-    val pendingDraft by viewModel.pendingDraft.collectAsState()
+    val safety by viewModel.safety.state.collectAsState()
+    val pendingDraft = safety.pendingDraft
     val snackbar = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
@@ -133,6 +134,12 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
     }
     LaunchedEffect(finished) {
         if (finished) onBack()
+    }
+    LaunchedEffect(safety.notice) {
+        safety.notice?.let { snackbar.showSnackbar(it); viewModel.safety.consumeNotice() }
+    }
+    LaunchedEffect(safety.failedDraft) {
+        safety.failedDraft?.let { input = it; viewModel.safety.consumeFailedDraft() }
     }
     LaunchedEffect(state.messages.size, state.typing) {
         if (state.messages.isNotEmpty()) {
@@ -231,6 +238,11 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
                         Icon(Icons.Rounded.MoreVert, contentDescription = "Tùy chọn")
                     }
                     DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenuItem(
+                            text = { Text(if (safety.enabled) "Tắt nhắc an toàn cuộc chat" else "Bật lại nhắc an toàn cuộc chat") },
+                            enabled = safety.ready && !safety.busy,
+                            onClick = { showMenu = false; viewModel.safety.setEnabled(!safety.enabled) }
+                        )
                         DropdownMenuItem(
                             text = { Text("Hủy match") },
                             leadingIcon = { Icon(Icons.Rounded.HeartBroken, null) },
@@ -349,11 +361,11 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
                 value = input,
                 onValueChange = { input = it },
                 onSend = {
-                    viewModel.send(input)
-                    input = ""
+                    if (viewModel.send(input)) input = ""
                 },
                 onAttach = { imagePicker.launch(arrayOf("image/*")) },
-                onAssistant = { sheet = ChatSheet.ASSISTANT }
+                onAssistant = { sheet = ChatSheet.ASSISTANT },
+                enabled = !safety.busy && pendingDraft == null
             )
         }
 
@@ -509,7 +521,7 @@ fun ChatScreen(matchId: String, onBack: () -> Unit) {
             },
             title = { Text("Cảnh báo an toàn", fontWeight = FontWeight.Bold) },
             text = {
-                Text("Bạn có chắc muốn gửi tin nhắn này? Nội dung có thể gây hiểu lầm hoặc thiếu tích cực")
+                Text("Bạn có chắc muốn gửi tin nhắn này? Nội dung có thể gây hiểu lầm. Sau 3 lần chọn Vẫn gửi, nhắc an toàn sẽ tự tắt riêng cuộc chat này; bạn có thể bật lại trong menu.")
             },
             confirmButton = {
                 TextButton(
