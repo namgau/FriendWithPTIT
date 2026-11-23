@@ -1,0 +1,8 @@
+{
+  "_note": "τ của mô hình chốt do run_test (A8, 23/11/2026) chọn trên train và in ra (4 chữ số) ; dùng cho run_error_analysis_test, không chọn lại trên test.",
+  "E1": {"tau1": 0.1342, "tau2": 0.2842},
+  "E2": {"tau1": 0.2491, "tau2": 0.6404},
+  "G1": {"tau": 0.6892},
+  "H1": {"tau": 0.4890},
+  "H2": {"tau": 0.2526}
+}
