@@ -9,6 +9,7 @@ import vn.ptit.fwp.core.ai.RemoteAiClient
 import vn.ptit.fwp.core.data.CampusRepository
 import vn.ptit.fwp.core.data.FwpRepository
 import vn.ptit.fwp.core.data.SettingsStore
+import vn.ptit.fwp.core.data.ChatNudgeStore
 import vn.ptit.fwp.core.data.BackendSessionManager
 import vn.ptit.fwp.core.data.SecureSessionStore
 import vn.ptit.fwp.core.data.BackendProfileRepository
@@ -29,6 +30,7 @@ class FwpApplication : Application() {
 class AppContainer(context: Application) {
     val database: FwpDatabase = FwpDatabase.get(context)
     val settingsStore = SettingsStore(context)
+    val chatNudgeStore = ChatNudgeStore(context)
     val repository = FwpRepository(database, settingsStore)
     val campusApi = CampusApiFactory()
     val backendSession = BackendSessionManager(campusApi, SecureSessionStore(context), settingsStore)

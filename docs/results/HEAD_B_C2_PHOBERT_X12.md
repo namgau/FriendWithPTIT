@@ -5,6 +5,8 @@
 > **Ngày chạy:** 15/11/2026 | **Git commit:** `c691fdd` | **Hardware:** NVIDIA GeForce RTX 5070 Laptop GPU (CUDA 13.1, PyTorch AMP FP16)  
 > **Trạng thái:** Hoàn tất 100%, kết quả đã được ghi vào `models/m3/c2/metadata.json`, `models/m3/c2/config.json` và `experiments/ledger.csv`.
 
+> **C7 duyệt diễn giải 23/11:** giữ nguyên số liệu lần chạy 15/11; đây là CV/held-out calibration/X12 trên train, không phải test cuối. SD không phải CI. Ngưỡng 0.5012 thuộc model X12 lịch sử; artifact full-train 17/11 có ngưỡng ≈0.489, còn app TF-IDF có ngưỡng riêng. Không lấy một ngưỡng trong tài liệu này áp cho model khác.
+
 ---
 
 ## 1. Tổng Quan Kết Quả Cốt Lõi
@@ -18,11 +20,11 @@
 | **H2 (ViCTSD)** | **PhoBERT C2 (Zero-Shot X12)** | **0.3965** | **0.7474** | **0.0831** | 0.0719 | **0.0290** | **0.2132** | **0.0150** ($\ll 5\%$) | **0.6373** | **0.3195** |
 
 ### Điểm chính:
-1. **PhoBERT vượt trội baseline TF-IDF trên H1:** Đạt PR-AUC **0.7696 ± 0.0183** (+6.2 điểm tuyệt đối, +8.7% tương đối), ROC-AUC **0.9275 ± 0.0085**, độ nhạy (Recall) tại mức FPR 5% tăng từ 57.6% lên **66.30%** (+8.7% số ca độc hại được phát hiện mà không tăng tỉ lệ buộc tội oan).
-2. **Platt Scaling dập tắt lỗi Overconfidence:** ECE giảm mạnh từ **10.39% xuống 1.64%** (giảm 84.2% sai số hiệu chuẩn), đảm bảo xác suất xuất ra phản ánh chân thực tần suất độc hại thực tế để phục vụ tính năng "nhắc nhẹ" an toàn trong app FwP.
-3. **Hiện tượng Zero-Shot Transfer X12:** PhoBERT huấn luyện hoàn toàn trên H1 (mạng xã hội ViHSD) khi chuyển giao không giám sát (zero-shot) sang H2 (bình luận báo chí UIT-ViCTSD) đạt PR-AUC **0.3965**, **vượt qua cả mô hình TF-IDF có giám sát huấn luyện trực tiếp trên H2** (0.349).
+1. **Điểm CV trên H1:** PhoBERT PR-AUC **0.7696 ± 0.0183**, cao hơn TF-IDF 0.708 về điểm trung bình; chưa có paired CI để kết luận ý nghĩa thống kê. Recall tăng từ 0.576 lên **0.6630**, đồng thời FPR validation tăng từ 0.048 lên 0.0529; mục tiêu 5% chỉ dùng khi chọn ngưỡng trên calibration.
+2. **Platt:** ECE H1 giảm từ **0.1039 xuống 0.0164** trên CV. Đây là sai số gộp trong miền đã đánh giá, không bảo đảm xác suất cá nhân hoặc xác suất trên chat riêng tiếng Việt.
+3. **X12:** PhoBERT học H1 đạt PR-AUC **0.3965** trên H2 train. TF-IDF H2 0.349 là mean CV khác thiết kế; chưa có paired CI, không kết luận hơn hoặc tương đương.
 
-> **Lưu ý so sánh (A review):** 0.3965 là một lần đánh giá trên toàn bộ H2 train, còn 0.349 ± 0.044 là trung bình 5 fold CV trong H2 — hai con số không ghép cặp, chênh lệch nằm trong khoảng ~1 SD của baseline. Kết luận an toàn: PhoBERT học trên H1 chuyển sang H2 **ngang** TF-IDF học trực tiếp trên H2 ; so sánh có giám sát trên cùng fold H2 là B10.
+> **Lưu ý so sánh (A review; C7 làm rõ 23/11):** 0.3965 là một lần đánh giá trên toàn bộ H2 train, còn 0.349 ± 0.044 là trung bình 5 fold CV trong H2. Hai số không ghép cặp; SD không cho phép kết luận thắng hay tương đương. B10 cung cấp so sánh các phương án imbalance trên cùng fold H2, nhưng fold B10 khác A5b nên vẫn không phải paired test PhoBERT–TF-IDF.
 
 ---
 
@@ -69,7 +71,7 @@ $$\tau_B = \min \{ t \in [0, 1] \mid \text{FPR}(t) \le 0.05 \}$$
   - F1 đạt được: **$0.7139$ ($71.39\%$)**.
 - **Tính ổn định qua 5 Fold Cross-Validation:**
   - Ngưỡng trung bình: $\tau_{B,\text{mean}} = \mathbf{0.4778}$.
-  - FPR trung bình: **$0.0529 \pm 0.0071$** (gần như trùng khớp biên an toàn 5%).
+  - FPR validation trung bình: **$0.0529 \pm 0.0071$**, cao hơn mục tiêu calibration 5%; không bảo đảm FPR trên dữ liệu mới.
   - Recall trung bình: **$0.6630 \pm 0.0274$** (bắt trúng 2/3 tổng số phát ngôn độc hại).
   - Precision trung bình: **$0.7247 \pm 0.0255$**.
   - F1 trung bình: **$0.6921 \pm 0.0190$**.
@@ -91,14 +93,14 @@ Thí nghiệm X12 kiểm tra khả năng chuyển giao không giám sát (Zero-S
 ### 3.2 Hiệu năng Zero-Shot X12
 - **PR-AUC Zero-Shot:** **$0.3965$**
   - Đối chiếu với Baseline TF-IDF + LR có giám sát (huấn luyện trực tiếp trên H2 qua 5-fold CV): **$0.349 \pm 0.044$**.
-  - **Nhận định quan trọng:** PhoBERT Zero-Shot vượt mô hình in-domain supervised TF-IDF $+0.0475$ PR-AUC (+13.6% tương đối). Điều này chứng minh rằng việc học ngữ cảnh sâu (deep contextual representations) từ mô hình ngôn ngữ tiếng Việt tiền huấn luyện có khả năng bắt được bản chất ngữ nghĩa độc hại tốt hơn hẳn việc đếm từ n-gram cục bộ, ngay cả khi n-gram được tiếp cận nhãn của tập đích!
+  - Chênh lệch điểm tham khảo $+0.0475$ đến từ hai thiết kế khác nhau, chưa có CI cho hiệu số; không chứng minh PhoBERT hơn mô hình in-domain hoặc xác định nguyên nhân cải thiện.
 - **ROC-AUC:** **$0.7474$** (giữ vững khả năng phân biệt xếp hạng giữa bình luận độc hại và bình thường).
 - **Brier Score:** **$0.0831$** (tương đương mức in-domain $0.0853$).
 - **Độ tin cậy hiệu chuẩn xuyên miền (Cross-Domain ECE):**
   - ECE chưa hiệu chuẩn: **$0.0719$** ($7.19\%$).
   - ECE sau hiệu chuẩn bằng PlattCalibrator (mang từ H1 sang): **$0.0290$** ($2.90\%$).
   - **Mức giảm ECE: 59.6%**.
-  - Đây là bằng chứng thực nghiệm giá trị: tham số Platt Scaling học từ H1 hoàn toàn có giá trị chuyển giao sang H2 mà không cần re-calibration, giữ cho sai số xác suất dưới 3%.
+  - ECE 0.0290 mô tả tập H2 train đã đánh giá; không bảo đảm calibration trên miền mới hoặc từng nhóm người dùng. Chọn lại ngưỡng cần tập calibration miền đích riêng, không dùng test.
 
 ### 3.3 Ma Trận Nhầm Lẫn Tại Ngưỡng Triển Khai $\tau_B = 0.5012$
 Áp dụng trực tiếp ngưỡng $\tau_B = 0.5012$ đã chốt từ H1 lên 8,001 bình luận của H2:
@@ -112,10 +114,10 @@ Tổng                        7,119                    882             8,001
 
 - **Tỷ lệ báo động oan (FPR):**
   $$\text{FPR} = \frac{\text{FP}}{\text{FP} + \text{TN}} = \frac{107}{107 + 7012} = \frac{107}{7119} = \mathbf{1.503\%}$$
-  - FPR thực tế $1.50\%$ **thấp hơn rất nhiều so với trần 5.0%**, chứng minh độ an toàn tuyệt đối khi triển khai sang môi trường mới.
+  - FPR quan sát $1.50\%$ trên H2 train thấp hơn mục tiêu 5%, đi kèm recall chỉ 21.32%; không chứng minh an toàn khi triển khai sang miền mới.
 - **Độ chính xác cảnh báo (Precision):**
   $$\text{Precision} = \frac{\text{TP}}{\text{TP} + \text{FP}} = \frac{188}{188 + 107} = \frac{188}{295} = \mathbf{63.73\%}$$
-  - Gần 2/3 số tin bị gắn cờ là thực sự vi phạm chuẩn mực văn hóa giao tiếp.
+  - Gần 2/3 mẫu bị gắn cờ có nhãn Toxicity dương trong dataset; nhãn này không đồng nghĩa mọi chuẩn giao tiếp của người dùng app.
 - **Độ bao phủ (Recall):**
   $$\text{Recall} = \frac{\text{TP}}{\text{TP} + \text{FN}} = \frac{188}{188 + 694} = \frac{188}{882} = \mathbf{21.32\%}$$
   - Recall suy giảm từ 68.7% (trên H1) xuống 21.3% (trên H2). Đây là hệ quả tự nhiên của domain shift: độc hại trong bình luận báo chí thường mang sắc thái châm biếm, chỉ trích ẩn danh, không chứa các từ văng tục bộc trực như mạng xã hội H1.
@@ -145,7 +147,7 @@ Tổng                        7,119                    882             8,001
    - Thay thế hoặc bổ sung dòng H1 với PhoBERT: PR-AUC đạt **0.770 ± 0.018**, ROC-AUC **0.928 ± 0.009**, Brier **0.074 ± 0.004**, ECE **0.016 ± 0.006**.
    - Cải thiện vượt bậc so với TF-IDF + LR (0.708) và lexicon (0.238).
 2. **Về việc cập nhật mục R9 (Thí nghiệm X12):**
-   - Điền kết quả chính thức cho ô `[CHỜ C2/B10]`: PhoBERT zero-shot từ H1 sang H2 đạt PR-AUC **0.3965**, cao hơn cả TF-IDF huấn luyện trực tiếp trên H2 (0.349).
+   - Báo X12 PR-AUC **0.3965** trên H2 train; đối chiếu TF-IDF H2 0.349 chỉ mang tính tham khảo vì không ghép cặp.
 3. **Về tích hợp Serving:**
-   - Sử dụng $\tau_B = 0.5012$ làm ngưỡng an toàn sản xuất cho bộ phân loại độc hại tiếng Việt.
-   - Nhờ ECE đạt mức 1.6% trên H1 và 2.9% trên H2, điểm xác suất xuất ra có thể hiển thị trực tiếp cho người dùng dưới dạng % rủi ro thực tế mà không cần ánh xạ phi tuyến bổ sung.
+   - Ngưỡng $\tau_B = 0.5012$ chỉ thuộc model X12 ngày 15/11; serving phải nạp ngưỡng đi kèm artifact được export, không chép ngưỡng giữa mô hình.
+   - ECE trên H1/H2 không đủ để hiển thị “% rủi ro thực tế” của chat riêng. App dùng nhắc nhẹ người gửi, luôn cho Vẫn gửi, có tùy chọn tắt nhắc theo cuộc chat (C-app2).

@@ -20,6 +20,7 @@ import vn.ptit.fwp.core.ai.HealthEngine
 import vn.ptit.fwp.core.ai.RemoteAiClient
 import vn.ptit.fwp.core.ai.SafetyEngine
 import vn.ptit.fwp.core.data.AppSettings
+import vn.ptit.fwp.core.data.ChatNudgePreferences
 import vn.ptit.fwp.core.data.FwpChatRepository
 import vn.ptit.fwp.core.model.ChatMessage
 import vn.ptit.fwp.core.model.CompatibilityReport
@@ -52,13 +53,15 @@ class ChatViewModel internal constructor(
     private val matchId: String,
     private val repository: FwpChatRepository,
     private val settingsFlow: kotlinx.coroutines.flow.Flow<AppSettings>,
-    private val remoteAi: RemoteAiClient
+    private val remoteAi: RemoteAiClient,
+    nudgePreferences: ChatNudgePreferences
 ) : ViewModel() {
     constructor(container: AppContainer, matchId: String) : this(
         matchId = matchId,
         repository = container.repository,
         settingsFlow = container.settingsStore.settings,
-        remoteAi = container.remoteAi
+        remoteAi = container.remoteAi,
+        nudgePreferences = container.chatNudgeStore.forConversation("demo", matchId)
     )
 
     private val _typing = MutableStateFlow(false)
@@ -67,11 +70,9 @@ class ChatViewModel internal constructor(
     private val _analyzing = MutableStateFlow(false)
     private val _remoteCompatibility = MutableStateFlow<Pair<Int, CompatibilityReport>?>(null)
     private val _remoteHealth = MutableStateFlow<Pair<Int, HealthReport>?>(null)
-    private val _pendingDraft = MutableStateFlow<String?>(null)
 
     val message: StateFlow<String?> = _message.asStateFlow()
     val finished: StateFlow<Boolean> = _finished.asStateFlow()
-    val pendingDraft: StateFlow<String?> = _pendingDraft.asStateFlow()
 
     private data class Snapshot(
         val match: FwpMatch?,
@@ -169,6 +170,15 @@ class ChatViewModel internal constructor(
         )
     }.stateIn(viewModelScope, SharingStarted.Eagerly, ChatUiState())
 
+    val safety = ChatSafetyPrompt(
+        scope = viewModelScope,
+        preferences = nudgePreferences,
+        risk = ::checkSafetyRisk,
+        canSend = { uiState.value.match != null && uiState.value.profile != null },
+        onSend = ::doSend,
+        onError = { _message.value = "Không thể lưu tùy chọn hoặc gửi tin. Hãy thử lại." }
+    )
+
     init {
         viewModelScope.launch {
             uiState.collect { state ->
@@ -183,42 +193,19 @@ class ChatViewModel internal constructor(
         }
     }
 
-    fun send(text: String) {
-        val trimmed = text.trim()
-        if (trimmed.isEmpty()) return
-        val state = uiState.value
-        if (state.match == null || state.profile == null) return
-        viewModelScope.launch {
-            val needsNudge = checkSafetyRisk(trimmed, state.messages)
-            if (needsNudge) {
-                _pendingDraft.value = trimmed
-            } else {
-                doSend(trimmed)
-            }
-        }
-    }
+    fun send(text: String): Boolean = safety.send(text, uiState.value.messages)
 
     private suspend fun checkSafetyRisk(text: String, context: List<ChatMessage>): Boolean {
         val remote = remoteAi.safetyScore(matchId, context, text)
         if (remote != null) {
-            return remote.shouldNudge  // ngưỡng τ_B do server quyết định (FPR ≤ 5%), app không tự đặt ngưỡng
+            return remote.shouldNudge  // τ_B chọn trên calibration server; không bảo đảm FPR ở chat mới
         }
         return SafetyEngine.isToxicOffline(text)
     }
 
-    fun confirmSend() {
-        val draft = _pendingDraft.value ?: return
-        _pendingDraft.value = null
-        val state = uiState.value
-        if (state.match == null || state.profile == null) return
-        viewModelScope.launch {
-            doSend(draft)
-        }
-    }
+    fun confirmSend() = safety.confirmSend()
 
-    fun cancelSend() {
-        _pendingDraft.value = null
-    }
+    fun cancelSend() = safety.cancelSend()
 
     private suspend fun doSend(trimmed: String) {
         repository.sendMessage(matchId, "me", trimmed)

@@ -27,12 +27,20 @@ fun BackendChatScreen(identity: PresentationIdentity, matchId: String, onBack: (
     val container = appContainer()
     val vm = fwpViewModel(key = "chat:$identity:$matchId") { BackendChatViewModel(container, identity, matchId) }
     val state by vm.state.collectAsState()
+    val safety by vm.safety.state.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
     var input by remember(identity, matchId) { mutableStateOf("") }
     var menu by remember { mutableStateOf(false) }
     var confirm by remember { mutableStateOf<String?>(null) }
     var report by remember { mutableStateOf("") }
     val list = rememberLazyListState()
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    LaunchedEffect(safety.notice) {
+        safety.notice?.let { snackbar.showSnackbar(it); vm.safety.consumeNotice() }
+    }
+    LaunchedEffect(safety.failedDraft) {
+        safety.failedDraft?.let { input = it; vm.safety.consumeFailedDraft() }
+    }
     LaunchedEffect(identity, matchId, lifecycle) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             vm.refresh()
@@ -51,6 +59,9 @@ fun BackendChatScreen(identity: PresentationIdentity, matchId: String, onBack: (
                 Box {
                     IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Tùy chọn") }
                     DropdownMenu(menu, onDismissRequest = { menu = false }) {
+                        DropdownMenuItem(text = { Text(if (safety.enabled) "Tắt nhắc an toàn cuộc chat" else "Bật lại nhắc an toàn cuộc chat") },
+                            enabled = safety.ready && !safety.busy && !state.unavailable,
+                            onClick = { menu = false; vm.safety.setEnabled(!safety.enabled) })
                         for ((key, label) in listOf("unmatch" to "Hủy match", "block" to "Chặn", "report" to "Báo cáo"))
                             DropdownMenuItem(text = { Text(label) }, enabled = state.match != null && !state.busy && !state.unavailable,
                                 onClick = { menu = false; confirm = key })
@@ -93,8 +104,17 @@ fun BackendChatScreen(identity: PresentationIdentity, matchId: String, onBack: (
                     }
                 }
             }
-            Composer(input, { input = it }, onSend = { if (vm.send(input)) input = "" }, onAttach = {}, onAssistant = {}, backend = true, enabled = match != null)
+            SnackbarHost(snackbar)
+            Composer(input, { input = it }, onSend = { if (vm.send(input)) input = "" }, onAttach = {}, onAssistant = {}, backend = true,
+                enabled = match != null && !safety.busy && safety.pendingDraft == null)
         }
+    }
+    safety.pendingDraft?.let { draft ->
+        AlertDialog(onDismissRequest = { input = draft; vm.safety.cancelSend() },
+            title = { Text("Cảnh báo an toàn") },
+            text = { Text("Bạn có chắc muốn gửi tin nhắn này? Nội dung có thể gây hiểu lầm. Sau 3 lần chọn Vẫn gửi, nhắc an toàn sẽ tự tắt riêng cuộc chat này; bạn có thể bật lại trong menu.") },
+            confirmButton = { TextButton(onClick = vm.safety::confirmSend) { Text("Vẫn gửi", color = PtitRed) } },
+            dismissButton = { TextButton(onClick = { input = draft; vm.safety.cancelSend() }) { Text("Sửa lại") } })
     }
     confirm?.let { action -> AlertDialog(onDismissRequest = { confirm = null },
         title = { Text(when (action) { "block" -> "Chặn người này?"; "report" -> "Báo cáo kết nối"; else -> "Hủy match?" }) },

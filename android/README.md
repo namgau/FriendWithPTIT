@@ -97,6 +97,25 @@ Campus route, logout/đổi tài khoản và reconcile/order/dedup. Các test d�
 hoặc interceptor trong process; chưa thay thế kiểm thử HTTP Android–NestJS thật,
 Compose navigation, lifecycle/poll và trải nghiệm trên thiết bị.
 
+## Nhắc an toàn theo cuộc chat — C-app2
+
+- Cả chat demo và backend kiểm tra draft qua `/safety/score` khi có AI Service;
+  khi không có kết quả server thì dùng bộ từ khóa offline. Chỉ người gửi thấy hộp
+  nhắc và luôn có thể chọn **Vẫn gửi** hoặc **Sửa lại**.
+- Chọn **Vẫn gửi** lần thứ ba tự tắt nhắc riêng cuộc chat; các tin sau bỏ qua
+  kiểm tra safety. Đóng hộp thoại/Sửa lại không tăng đếm; retry tin backend đã
+  duyệt không tạo xác nhận hoặc UUID mới.
+- Menu **⋮ → Bật lại nhắc an toàn cuộc chat** đặt đếm về 0. Menu cũng cho tắt
+  thủ công; thao tác chỉ ảnh hưởng lời nhắc Head B của cuộc chat đó.
+- Preferences DataStore lưu bộ đếm 0–3, phân biệt demo/backend, tài khoản backend
+  và `matchId`, tồn tại sau mở lại app/đăng nhập lại cùng tài khoản. Demo dùng một
+  kho hội thoại local chung hiện có. Không đồng bộ sang thiết bị khác; không lưu
+  draft/lịch sử trong kho tùy chọn hay gửi bộ đếm lên server.
+- Khi đang chờ kết quả safety, tránh gửi lặp; kết quả của phiên đã hết hiệu lực
+  không được gửi. Lỗi đọc tùy chọn trả draft về ô nhập; lỗi lưu xác nhận giữ draft
+  trong hộp thoại để sửa lại/thử lại.
+- Hướng dẫn kiểm thử và giới hạn: `../docs/C_APP2_C7_VERIFICATION.md`.
+
 ## Kiểm thử hồi quy Phase 3B-II
 
 ```powershell

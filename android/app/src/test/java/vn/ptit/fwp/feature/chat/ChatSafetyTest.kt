@@ -194,12 +194,12 @@ class ChatSafetyTest {
         val repo = FakeChatRepository()
         val settings = MutableStateFlow(AppSettings())
         val remoteAi = RemoteAiClient(enabled = false)
-        val vm = ChatViewModel("match1", repo, settings, remoteAi)
+        val vm = ChatViewModel("match1", repo, settings, remoteAi, MemoryChatNudgePreferences())
 
         vm.send("Chào cậu, chiều nay rảnh không?")
 
         assertEquals(listOf("Chào cậu, chiều nay rảnh không?"), repo.sentMessages)
-        assertNull(vm.pendingDraft.value)
+        assertNull(vm.safety.state.value.pendingDraft)
     }
 
     @Test
@@ -207,14 +207,14 @@ class ChatSafetyTest {
         val repo = FakeChatRepository()
         val settings = MutableStateFlow(AppSettings())
         val remoteAi = RemoteAiClient(enabled = false) // offline mode
-        val vm = ChatViewModel("match1", repo, settings, remoteAi)
+        val vm = ChatViewModel("match1", repo, settings, remoteAi, MemoryChatNudgePreferences())
 
         vm.send("Mày ngu thế")
 
         // Tin nhắn độc hại bị dừng lại, chưa gửi vào repo
         assertTrue(repo.sentMessages.isEmpty())
         // Giữ trong pendingDraft để hiển thị Dialog xin ý kiến
-        assertEquals("Mày ngu thế", vm.pendingDraft.value)
+        assertEquals("Mày ngu thế", vm.safety.state.value.pendingDraft)
     }
 
     @Test
@@ -222,10 +222,10 @@ class ChatSafetyTest {
         val repo = FakeChatRepository()
         val settings = MutableStateFlow(AppSettings())
         val remoteAi = RemoteAiClient(enabled = false)
-        val vm = ChatViewModel("match1", repo, settings, remoteAi)
+        val vm = ChatViewModel("match1", repo, settings, remoteAi, MemoryChatNudgePreferences())
 
         vm.send("Đồ óc chó")
-        assertEquals("Đồ óc chó", vm.pendingDraft.value)
+        assertEquals("Đồ óc chó", vm.safety.state.value.pendingDraft)
         assertTrue(repo.sentMessages.isEmpty())
 
         // Người dùng chọn "Vẫn gửi"
@@ -234,7 +234,7 @@ class ChatSafetyTest {
         // Tin nhắn được gửi mà không bị phạt
         assertEquals(listOf("Đồ óc chó"), repo.sentMessages)
         // pendingDraft được giải phóng
-        assertNull(vm.pendingDraft.value)
+        assertNull(vm.safety.state.value.pendingDraft)
     }
 
     @Test
@@ -242,10 +242,10 @@ class ChatSafetyTest {
         val repo = FakeChatRepository()
         val settings = MutableStateFlow(AppSettings())
         val remoteAi = RemoteAiClient(enabled = false)
-        val vm = ChatViewModel("match1", repo, settings, remoteAi)
+        val vm = ChatViewModel("match1", repo, settings, remoteAi, MemoryChatNudgePreferences())
 
         vm.send("Cút đi")
-        assertEquals("Cút đi", vm.pendingDraft.value)
+        assertEquals("Cút đi", vm.safety.state.value.pendingDraft)
         assertTrue(repo.sentMessages.isEmpty())
 
         // Người dùng chọn "Sửa lại"
@@ -254,7 +254,29 @@ class ChatSafetyTest {
         // Không gửi tin nào
         assertTrue(repo.sentMessages.isEmpty())
         // pendingDraft đã xóa
-        assertNull(vm.pendingDraft.value)
+        assertNull(vm.safety.state.value.pendingDraft)
+    }
+
+    @Test fun testThreeOverridesSurviveViewModelRecreationAndReenable() = runBlocking {
+        val repo = FakeChatRepository()
+        val prefs = MemoryChatNudgePreferences()
+        val vm = ChatViewModel("match1", repo, MutableStateFlow(AppSettings()), RemoteAiClient(enabled = false), prefs)
+        repeat(3) {
+            vm.send("Mày ngu thế")
+            assertEquals("Mày ngu thế", vm.safety.state.value.pendingDraft)
+            vm.confirmSend()
+        }
+        assertFalse(vm.safety.state.value.enabled)
+        assertEquals(3, repo.sentMessages.size)
+        val reopened = ChatViewModel("match1", repo, MutableStateFlow(AppSettings()), RemoteAiClient(enabled = false), prefs)
+        reopened.send("Mày ngu thế")
+        assertNull(reopened.safety.state.value.pendingDraft)
+        assertEquals(4, repo.sentMessages.size)
+        reopened.safety.setEnabled(true)
+        reopened.send("Mày ngu thế")
+        assertEquals("Mày ngu thế", reopened.safety.state.value.pendingDraft)
+        assertEquals(0, prefs.settings.value.overrides)
+        assertEquals(4, repo.sentMessages.size)
     }
 
     @Test
@@ -277,15 +299,15 @@ class ChatSafetyTest {
         val repo = FakeChatRepository()
         val settings = MutableStateFlow(AppSettings())
         val remoteAi = RemoteAiClient(customApi = fakeApi)
-        val vm = ChatViewModel("match1", repo, settings, remoteAi)
+        val vm = ChatViewModel("match1", repo, settings, remoteAi, MemoryChatNudgePreferences())
 
         vm.send("Câu nói có sắc thái căng thẳng")
 
         assertTrue(repo.sentMessages.isEmpty())
-        assertEquals("Câu nói có sắc thái căng thẳng", vm.pendingDraft.value)
+        assertEquals("Câu nói có sắc thái căng thẳng", vm.safety.state.value.pendingDraft)
 
         vm.confirmSend()
         assertEquals(listOf("Câu nói có sắc thái căng thẳng"), repo.sentMessages)
-        assertNull(vm.pendingDraft.value)
+        assertNull(vm.safety.state.value.pendingDraft)
     }
 }

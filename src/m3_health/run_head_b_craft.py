@@ -787,13 +787,13 @@ def write_craft_report(
     lines += [
         "",
         "## 5. Error Analysis & Lead Time Insights (Phân tích lỗi & Nhận định)",
-        "- **Độ trễ và Ngưỡng an toàn (FPR ≤ 5%):** Trong ứng dụng mạng xã hội sinh viên, việc cảnh báo sai (buộc tội oan một người dùng bình thường là kẻ độc hại) mang chi phí tâm lý rất lớn. Khi ép FPR ≤ 5%, CRAFT-GRU duy trì được Precision cao (~68–74%), chấp nhận đánh đổi Recall (~13–18%) nhưng đảm bảo can thiệp chính xác.",
-        "- **Mô hình chuỗi chưa cho lợi ích đo được:** CRAFT-GRU hơn `tfidf_lr` +0.022 PR-AUC nhưng CI 95% paired bootstrap chứa 0, và gần như bằng `table_lr` (mean + last PCA32, không mô hình hóa thứ tự; Δ +0.004). Phần lớn lợi ích đến từ biểu diễn embedding, không phải từ việc đọc tiền tố như một chuỗi.",
+        "- **Ngưỡng τ_B:** FPR ≤ 5% là điều kiện trên calibration, không bảo đảm trên validation hay dữ liệu mới; xem FPR thực tế ở bảng kết quả. Cùng calibration được dùng để chọn cấu hình, early stopping, Platt và ngưỡng, nên kết quả chọn ngưỡng có thể lạc quan.",
+        "- **Đánh giá lợi ích mô hình chuỗi:** Đọc Δ và CI của paired cluster bootstrap ở bảng 4.2. CI chứa 0 không chứng minh hơn baseline hoặc tương đương baseline; không quy kết lợi ích riêng cho embedding từ chênh lệch điểm đơn lẻ. `table_lr` dùng T2 + mean/last PCA32.",
         "",
         "## 6. Practical Limits (Giới hạn thực tế)",
-        "- **Tài nguyên tính toán:** Pipeline chạy hoàn toàn trên PyTorch CPU (~15–25 giây/fold), tiêu thụ < 1,5 GB RAM, cực kỳ phù hợp triển khai serving nhẹ trong microservice không cần GPU đắt đỏ.",
-        "- **Độ trễ suy luận (Inference Latency):** Nhờ PCA-32 chiều, 1 chuỗi 10 lượt tin mất < 2 ms để chạy qua GRU, đáp ứng tốt yêu cầu chấm điểm thời gian thực (`POST /safety/score`).",
-        "- **Lệch phân phối (Distribution Shift):** G1 được thu thập từ trang thảo luận Wikipedia bằng tiếng Anh với văn phong trang trọng/bách khoa. Khi chuyển miền sang ứng dụng chat sinh viên tiếng Việt (FriendWithPTIT), cần kết hợp thêm bộ phân loại độc hại tiếng Việt (C2 PhoBERT/XLM-R) như thiết kế trong thí nghiệm X14.",
+        "- **Tài nguyên tính toán:** GRU đọc cache BGE-M3/PCA có sẵn; thời gian fit từng fold không bao gồm tạo embedding. BGE-M3 vẫn cần tài nguyên riêng khi suy luận từ văn bản mới; xem benchmark C1/B8.",
+        "- **Độ trễ suy luận:** Chưa có benchmark end-to-end gồm tokenizer, BGE-M3, PCA, GRU và HTTP trong artifact C4. Không suy ra độ trễ serving từ thời gian fit hoặc số chiều PCA.",
+        "- **Lệch phân phối:** G1 là thảo luận Wikipedia tiếng Anh, khác chat sinh viên tiếng Việt. X14 thử điểm độc hại H1 từ BGE-M3 đa ngữ + LR, không dùng PhoBERT đơn ngữ để mã hóa G1; xem HEAD_B_X14.md. Chưa có đánh giá chat riêng tiếng Việt.",
         "",
         "> Checkpoint và metadata hoàn chỉnh đã lưu tại `models/m3/c4/`. Ledger cập nhật tại `experiments/ledger.csv`.",
     ]
