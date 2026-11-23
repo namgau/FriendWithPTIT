@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -32,10 +33,29 @@ data class DiscoverUiState(
 
 data class CelebrationData(val profile: Profile, val matchId: String)
 
+internal data class RemoteDeck(
+    val viewer: Profile,
+    val filters: DiscoveryFilters,
+    val candidates: Map<String, Profile>,
+    val ranks: List<RankedProfile>
+)
+
+internal fun orderedDeck(
+    viewer: Profile?, filters: DiscoveryFilters, local: List<RankedProfile>, remote: RemoteDeck?
+): List<RankedProfile> {
+    val current = local.associateBy { it.profile.id }
+    if (remote == null || remote.viewer != viewer || remote.filters != filters ||
+        remote.candidates != current.mapValues { it.value.profile }) return local
+    // The service order and filtering are authoritative only for the exact request.
+    return remote.ranks.distinctBy { it.profile.id }.mapNotNull { ranked ->
+        current[ranked.profile.id]?.let { ranked.copy(profile = it.profile) }
+    }
+}
+
 class DiscoverViewModel(private val container: AppContainer) : ViewModel() {
     private val repository = container.repository
     private val _filters = MutableStateFlow(DiscoveryFilters())
-    private val _remoteRanks = MutableStateFlow<Map<String, RankedProfile>>(emptyMap())
+    private val _remoteRanks = MutableStateFlow<RemoteDeck?>(null)
     private val _message = MutableStateFlow<String?>(null)
     private val _celebration = MutableStateFlow<CelebrationData?>(null)
     private val _busy = MutableStateFlow(false)
@@ -73,15 +93,13 @@ class DiscoverViewModel(private val container: AppContainer) : ViewModel() {
         _refreshing
     ) { base, remote, busy, refreshing ->
         val localRanks = RankingEngine.rank(base.me, base.candidates, base.filters)
-        val merged = localRanks.map { local ->
-            remote[local.profile.id] ?: local
-        }
+        val merged = orderedDeck(base.me, base.filters, localRanks, remote)
         DiscoverUiState(
             loading = false,
             me = base.me,
             deck = merged,
             filters = base.filters,
-            source = merged.firstOrNull()?.source ?: if (remote.isNotEmpty()) "AI Service · fallback" else "Quy tắc FwP (fallback)",
+            source = merged.firstOrNull()?.source ?: "Quy tắc FwP (fallback)",
             aiConfigured = container.remoteAi.isConfigured,
             canUndo = base.hasSwipes,
             busy = busy,
@@ -129,7 +147,7 @@ class DiscoverViewModel(private val container: AppContainer) : ViewModel() {
     fun resetDeck() {
         viewModelScope.launch {
             repository.resetSwipes()
-            _remoteRanks.value = emptyMap()
+            _remoteRanks.value = null
             _message.value = "Đã làm mới toàn bộ gợi ý. Bắt đầu lại từ hồ sơ đầu tiên nhé!"
         }
     }
@@ -148,12 +166,28 @@ class DiscoverViewModel(private val container: AppContainer) : ViewModel() {
         }
         _refreshing.value = true
         viewModelScope.launch {
-            val remote = container.remoteAi.rank(me, state.deck.map { it.profile }, state.filters)
+            val base = baseDeck.first()
+            val viewer = base.me
+            if (viewer == null) {
+                _refreshing.value = false
+                return@launch
+            }
+            val candidates = RankingEngine.rank(viewer, base.candidates, base.filters).map { it.profile }
+            val remote = container.remoteAi.rank(viewer, candidates, base.filters)
             if (remote.isNullOrEmpty()) {
+                _remoteRanks.value = null
                 _message.value = "Không kết nối được AI Service. Giữ nguyên thứ hạng từ Quy tắc FwP (fallback)."
             } else {
-                _remoteRanks.value = remote.associateBy { it.profile.id }
-                _message.value = "Đã cập nhật thứ hạng từ AI Service. Nguồn: ${remote.first().source}."
+                val current = baseDeck.first()
+                val currentCandidates = RankingEngine.rank(current.me, current.candidates, current.filters).map { it.profile }
+                if (current.me != viewer || current.filters != base.filters ||
+                    currentCandidates.associateBy { it.id } != candidates.associateBy { it.id }) {
+                    _remoteRanks.value = null
+                    _message.value = "Danh sách đã thay đổi; đang dùng thứ hạng trên thiết bị."
+                } else {
+                    _remoteRanks.value = RemoteDeck(viewer, base.filters, candidates.associateBy { it.id }, remote)
+                    _message.value = "Đã cập nhật thứ hạng từ AI Service. Nguồn: ${remote.first().source}."
+                }
             }
             _refreshing.value = false
         }

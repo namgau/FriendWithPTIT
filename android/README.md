@@ -59,6 +59,10 @@ Khi `FWP_AI_BASE_URL` trống, app dùng các engine quy tắc cục bộ và hi
 - Trong phiên backend, **Hôm nay/Khám phá** dùng Discover/Swipe server; **Match**
   hiển thị kết nối và incoming likes được phép công khai; **Chat** dùng danh sách
   match server. Hồ sơ, lịch sử, badge và thành tích Room không đại diện tài khoản.
+- Deck backend giữ thứ tự server và hiển thị lý do công khai server trả về (số
+  sở thích chung, cùng chế độ); server cũ không trả lý do thì hiện nhãn chung.
+  Không suy luận GPA/khoảng cách riêng tư từ lý do. Demo dùng thứ tự M1 nếu làm mới
+  thành công, tự trở về luật local khi hồ sơ, bộ lọc hoặc deck thay đổi.
 - Route hồ sơ/chat chọn riêng theo phiên và định dạng ID; Nearby/Double Date vẫn
   chỉ có trong demo. `authorToken` và `anon:<matchId>` không tra cứu Room hay gửi
   đến endpoint profile/swipe thông thường. Handle `anon:<matchId>` chỉ dùng block.

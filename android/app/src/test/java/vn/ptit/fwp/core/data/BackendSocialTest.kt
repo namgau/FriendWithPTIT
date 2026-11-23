@@ -54,6 +54,14 @@ class BackendSocialTest {
         assertEquals(0.0, display.distanceKm, 0.0)
     }
 
+    @Test fun discoverReasonsDecodeAndOlderServersRemainCompatible() {
+        val gson = Gson()
+        val withReasons = gson.fromJson("""{"id":"p","userId":"u","rankingReasons":["2 sở thích chung"]}""", SocialProfileDto::class.java)
+        assertEquals(listOf("2 sở thích chung"), withReasons.rankingReasons)
+        val old = gson.fromJson("""{"id":"p","userId":"u"}""", SocialProfileDto::class.java)
+        assertTrue(old.rankingReasons.orEmpty().isEmpty())
+    }
+
     @Test fun anonymousMappingStripsEvenContradictoryHiddenProfileFields() {
         val masked = match(true)
         val display = masked.displayProfile()

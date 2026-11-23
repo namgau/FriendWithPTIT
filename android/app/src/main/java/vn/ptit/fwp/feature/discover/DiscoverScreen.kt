@@ -353,10 +353,12 @@ internal fun SwipeCard(
                             offsetX.value > 280f -> scope.launch {
                                 offsetX.animateTo(1400f, tween(220))
                                 onLike()
+                                offsetX.snapTo(0f)
                             }
                             offsetX.value < -280f -> scope.launch {
                                 offsetX.animateTo(-1400f, tween(220))
                                 onPass()
+                                offsetX.snapTo(0f)
                             }
                             else -> scope.launch { offsetX.animateTo(0f, tween(220)) }
                         }

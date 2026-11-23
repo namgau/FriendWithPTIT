@@ -49,7 +49,7 @@ fun BackendDiscoverScreen(identity: PresentationIdentity, onOpenChat: (String) -
             val top = state.profiles.firstOrNull()
             when {
                 top != null -> key(top.id) { SwipeCard(
-                    ranked = RankedProfile(top.displayProfile(), top.compatibility ?: 0, listOf("Nguồn: Backend"), "Backend"),
+                    ranked = RankedProfile(top.displayProfile(), top.compatibility ?: 0, top.rankingReasons.orEmpty().ifEmpty { listOf("Gợi ý từ backend") }, "Backend"),
                     me = null, busy = state.busy || state.loading, modifier = Modifier.fillMaxSize(),
                     onLike = { vm.swipe(SwipeAction.LIKE) }, onPass = { vm.swipe(SwipeAction.PASS) }, onSuperLike = { vm.swipe(SwipeAction.SUPER_LIKE) }
                 ) }

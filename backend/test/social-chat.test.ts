@@ -306,6 +306,24 @@ test('discover applies graduation and location filters and sorts by shared tags'
   assert.ok(!ids.includes(hidden.id));
   assert.ok(ids.indexOf(two.id) < ids.indexOf(one.id));
   assert.equal(res.body.items.find((item: any) => item.userId === two.id).compatibility, 100);
+  assert.equal(res.body.items.find((item: any) => item.userId === two.id).rankingReasons[0], '2 sở thích chung');
+  const byDistance = await http('GET', '/profiles/discover?sort=distance', viewer.token);
+  assert.deepEqual(byDistance.body.items.find((item: any) => item.userId === two.id).rankingReasons, []);
+});
+
+test('discover -> pass and mutual likes refresh server deck and create match', { skip }, async () => {
+  const a = await account(); const b = await account(); const passed = await account();
+  await ds.query(`UPDATE profiles SET verified=true WHERE user_id=ANY($1)`, [[a.id, b.id, passed.id]]);
+  const deck = await http('GET', '/profiles/discover?limit=100', a.token);
+  assert.ok(deck.body.items.some((item: any) => item.userId === b.id && Array.isArray(item.rankingReasons)));
+  assert.equal((await http('POST', '/swipes', a.token, { targetUserId: passed.id, action: 'PASS' })).status, 200);
+  assert.equal((await http('POST', '/swipes', a.token, { targetUserId: b.id, action: 'LIKE' })).body.matched, false);
+  const refreshed = await http('GET', '/profiles/discover?limit=100', a.token);
+  assert.ok(!refreshed.body.items.some((item: any) => [b.id, passed.id].includes(item.userId)));
+  const matched = await http('POST', '/swipes', b.token, { targetUserId: a.id, action: 'LIKE' });
+  assert.equal(matched.body.matched, true);
+  assert.ok(matched.body.match.id);
+  assert.equal((await http('GET', `/matches/${matched.body.match.id}`, a.token)).status, 200);
 });
 
 test('incoming likes excludes either block direction and preserves anonymous/PASS/already-swiped privacy', { skip }, async () => {
