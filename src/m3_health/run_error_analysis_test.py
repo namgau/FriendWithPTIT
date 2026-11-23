@@ -71,7 +71,8 @@ def head_b(d: str, tau: dict, cfg: dict, examples: list[str]) -> list[str]:
     s = _scores(d, te["group_id"])
     y, p, groups = s["y"].to_numpy(int), s[CHOSEN[d]].to_numpy(float), te["group_id"].to_numpy()
     flag = p >= tau["tau"]
-    text, last = te["text"].fillna("").astype(str), te["last_text"].fillna("").astype(str)
+    text = te["text"].fillna("").astype(str)
+    last = te["last_text"].fillna("").astype(str) if "last_text" in te else text  # H1/H2: một bình luận
     sl = {"có từ trong lexicon độc hại": te["toxic_hits"].to_numpy() > 0,
           "dài (> trung vị số từ)": (te["n_words"] > te["n_words"].median()).to_numpy()}
     if d != "G1":
