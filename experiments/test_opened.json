@@ -1,0 +1,36 @@
+[
+  {
+    "opened_at": "2026-11-23T19:13:11",
+    "git_commit": "5df9dc1",
+    "datasets": [
+      "E1",
+      "E2",
+      "G1",
+      "H1",
+      "H2"
+    ]
+  },
+  {
+    "opened_at": "2026-11-23T20:01:53",
+    "git_commit": "5df9dc1",
+    "datasets": [
+      "E1"
+    ]
+  },
+  {
+    "opened_at": "2026-11-23T20:50:50",
+    "git_commit": "5df9dc1",
+    "datasets": [
+      "E2"
+    ]
+  },
+  {
+    "opened_at": "2026-11-23T20:57:00",
+    "git_commit": "5df9dc1",
+    "datasets": [
+      "G1",
+      "H1",
+      "H2"
+    ]
+  }
+]
