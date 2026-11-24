@@ -1,6 +1,8 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -30,6 +32,18 @@ export interface SwipeOptions {
   anonymous?: boolean;
 }
 
+/** Lượt quẹt mỗi ngày (giờ Việt Nam) ; đổi bằng env DAILY_SWIPE_LIMIT. */
+export function dailySwipeLimit(): number {
+  const n = Number.parseInt(process.env.DAILY_SWIPE_LIMIT ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : 10;
+}
+
+/** 00:00 hôm nay theo giờ Việt Nam (UTC+7), dạng Date UTC. */
+export function startOfVietnamDay(now = Date.now()): Date {
+  const offset = 7 * 3_600_000;
+  return new Date(Math.floor((now + offset) / 86_400_000) * 86_400_000 - offset);
+}
+
 @Injectable()
 export class SocialService {
   constructor(
@@ -43,7 +57,20 @@ export class SocialService {
     @InjectRepository(Report) private readonly reports: Repository<Report>,
   ) {}
 
+  async swipeQuota(userId: string) {
+    const limit = dailySwipeLimit();
+    const since = startOfVietnamDay().getTime();
+    const used = (await this.swipes.find({ where: { fromUserId: userId } }))
+      .filter((s) => !s.anonymous && s.createdAt && new Date(s.createdAt).getTime() >= since).length;
+    return { limit, used, remaining: Math.max(0, limit - used) };
+  }
+
   async swipe(userId: string, dto: SwipeDto, options: SwipeOptions = {}) {
+    const result = await this.swipeInner(userId, dto, options);
+    return options.anonymous ? result : { ...result, remainingToday: (await this.swipeQuota(userId)).remaining };
+  }
+
+  private async swipeInner(userId: string, dto: SwipeDto, options: SwipeOptions = {}) {
     if (userId === dto.targetUserId) {
       throw new BadRequestException('You cannot swipe yourself');
     }
@@ -77,6 +104,12 @@ export class SocialService {
           throw new ConflictException('This conversation cannot be reused anonymously');
         }
       }
+    }
+    if (!existingSwipe && !viaCampus && (await this.swipeQuota(userId)).remaining <= 0) {
+      throw new HttpException(
+        { statusCode: 429, code: 'DAILY_SWIPE_LIMIT', message: `Bạn đã dùng hết ${dailySwipeLimit()} lượt quẹt hôm nay` },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
     if (existingSwipe) {
       // Duplicate swipes are idempotent. The anonymous origin is sticky: a

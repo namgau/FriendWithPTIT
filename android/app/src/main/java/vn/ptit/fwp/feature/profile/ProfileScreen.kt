@@ -172,9 +172,9 @@ fun ProfileScreen(
                                     modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                                 )
                             }
-                            Surface(shape = RoundedCornerShape(50), color = PtitGold) {
+                            if (!state.backendProfile) Surface(shape = RoundedCornerShape(50), color = PtitGold) {
                                 Text(
-                                    if (state.backendProfile) "BACKEND" else "DEMO",
+                                    "DEMO",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color(0xFF4A3800),
                                     fontWeight = FontWeight.Bold,

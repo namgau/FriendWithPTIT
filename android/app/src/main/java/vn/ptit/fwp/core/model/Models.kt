@@ -111,7 +111,12 @@ data class Profile(
     val mode: ConnectionMode,
     val likedYou: Boolean = false,
     val blocked: Boolean = false,
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    /** Tất cả ảnh (URL tuyệt đối) ; photoUrl là ảnh bìa = photos.first(). */
+    val photos: List<String> = listOfNotNull(photoUrl),
+    /** % hợp gu từ câu hỏi ; null khi chưa đủ 3 câu chung. */
+    val questionMatch: Int? = null,
+    val commonQuestions: Int = 0
 ) {
     val displayGpa: String
         get() = if (showGpa) String.format(java.util.Locale.US, "%.2f", gpa) else "Tầng ${gpaTier.label}"
@@ -240,7 +245,7 @@ data class MyProfileDraft(
     val campus: String = UniversityCatalog.ptit.campuses.first(),
     val faculty: String = "",
     val major: String = "",
-    val academicYear: String = "K66",
+    val academicYear: String = "2024",
     val alumni: Boolean = false,
     val gpa: Double = 3.2,
     val bio: String = "",
@@ -250,5 +255,30 @@ data class MyProfileDraft(
     val showLocation: Boolean = true,
     val mode: ConnectionMode = ConnectionMode.DATING,
     val email: String = "",
-    val photoUrl: String? = null
+    val photoUrl: String? = null,
+    /** Đường dẫn ảnh thô: `content://` mới chọn, hoặc đường dẫn/URL backend đã có. */
+    val photos: List<String> = listOfNotNull(photoUrl)
 )
+
+/** Khóa = năm nhập học ; PTIT mới có tới khóa 2026. */
+const val LATEST_PTIT_COHORT = 2026
+fun cohortError(academicYear: String): String? {
+    val year = academicYear.trim().toIntOrNull()
+        ?: return "Khóa ghi theo năm nhập học, ví dụ 2024."
+    return when {
+        year < 2000 -> "Khóa ghi theo năm nhập học, ví dụ 2024."
+        year > LATEST_PTIT_COHORT -> "PTIT mới có tới khóa $LATEST_PTIT_COHORT."
+        else -> null
+    }
+}
+
+/** "22 - khóa 2024" ; đọc được cả dữ liệu cũ dạng D24. */
+fun ageCohortLabel(age: Int, academicYear: String): String {
+    val raw = academicYear.trim()
+    val year = Regex("^[DdKk]([0-9]{2})$").find(raw)?.groupValues?.get(1)?.let { "20$it" } ?: raw
+    return if (year.isBlank()) "$age" else "$age - khóa $year"
+}
+
+/** Số ảnh tối thiểu / tối đa của một hồ sơ (khớp backend). */
+const val MIN_PROFILE_PHOTOS = 3
+const val MAX_PROFILE_PHOTOS = 6

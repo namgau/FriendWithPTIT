@@ -44,6 +44,10 @@ class BackendSocialSession internal constructor(
             distance = filters.maxDistanceKm, verified = filters.onlyVerified, school = school, graduation = filters.graduation.name)
     }
     suspend fun incoming() = call { api, auth -> api.incomingLikes(auth) }
+    suspend fun swipeQuota() = call { api, auth -> api.swipeQuota(auth) }
+    suspend fun questions() = call { api, auth -> api.questions(auth) }
+    suspend fun answer(id: String, answer: Int, acceptable: List<Int>) =
+        call { api, auth -> api.answerQuestion(auth, id, AnswerQuestionRequest(answer, acceptable)) }
     suspend fun notifications() = call { api, auth -> api.notifications(auth) }
     suspend fun readNotifications() = call { api, auth -> api.readNotifications(auth, SocialReadRequest()) }
     suspend fun profile(id: String) = call { api, auth -> api.socialProfile(auth, requireBackendId(id)).also { requireBackendId(it.userId); check(it.id == id || it.userId == id) } }
@@ -95,7 +99,10 @@ internal fun SocialProfileDto.displayProfile(masked: Boolean = anonymous): Profi
         avatarSeed = avatarSeed, distanceKm = if (!hidden && showLocationPublic) distanceKm else 0.0,
         verified = !hidden && verified, isDemo = false, showGpa = !hidden && showGpaPublic && gpa != null,
         showLocation = !hidden && showLocationPublic,
-        mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS)
+        mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS),
+        photoUrl = if (hidden) null else photos?.firstOrNull()?.let(::backendAbsoluteUrl),
+        photos = if (hidden) emptyList() else photos.orEmpty().map(::backendAbsoluteUrl),
+        questionMatch = if (hidden) null else questionMatch, commonQuestions = if (hidden) 0 else commonQuestions ?: 0
     )
 }
 internal fun SocialMatchDto.displayProfile(): Profile = other.displayProfile(anonymous)

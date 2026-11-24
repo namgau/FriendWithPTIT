@@ -216,3 +216,10 @@ export class NearbyQueryDto {
   @Max(100)
   radiusKm?: number;
 }
+
+export class AddPhotoDto {
+  /** Data URL base64 (JPEG/PNG/WebP), kiểm tra và mã hóa lại như ảnh Campus. */
+  @IsString()
+  @MaxLength(6_000_000)
+  image: string;
+}

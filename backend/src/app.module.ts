@@ -9,6 +9,7 @@ import { ChatModule } from './chat/chat.module';
 import { ENTITIES } from './database/entities';
 import { NotificationsModule } from './notifications/notifications.module';
 import { ProfilesModule } from './profiles/profiles.module';
+import { QuestionsModule } from './questions/questions.module';
 import { SeedModule } from './seed/seed.module';
 import { SocialModule } from './social/social.module';
 
@@ -59,6 +60,7 @@ import { SocialModule } from './social/social.module';
     }),
     AuthModule,
     ProfilesModule,
+    QuestionsModule,
     SocialModule,
     CampusModule,
     ChatModule,

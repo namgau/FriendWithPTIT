@@ -23,6 +23,11 @@ export class SocialController {
     return this.social.swipe(user.userId, dto);
   }
 
+  @Get('swipes/quota')
+  swipeQuota(@CurrentUser() user: RequestUser) {
+    return this.social.swipeQuota(user.userId);
+  }
+
   @Get('matches')
   matches(@CurrentUser() user: RequestUser) {
     return this.social.list(user.userId);

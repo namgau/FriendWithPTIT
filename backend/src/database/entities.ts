@@ -104,6 +104,10 @@ export class Profile {
   @Column({ name: 'avatar_seed', type: 'int', default: 1 })
   avatarSeed: number;
 
+  /** Absolute URLs (seed) or `/profiles/photos/<file>` paths (uploads); first is the cover. */
+  @Column({ type: 'text', array: true, default: () => "'{}'" })
+  photos: string[];
+
   @Column({ length: 16, default: 'FRIENDS' })
   mode: ConnectionMode;
 
@@ -649,6 +653,31 @@ export class CampusCommentReport {
   createdAt: Date;
 }
 
+/** One answer per (user, question) for the fun questions (OkCupid-style). */
+@Entity('question_answers')
+@Index(['userId', 'questionId'], { unique: true })
+export class QuestionAnswer {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Index()
+  @Column({ name: 'user_id' })
+  userId: string;
+
+  @Column({ name: 'question_id', length: 32 })
+  questionId: string;
+
+  @Column({ type: 'int' })
+  answer: number;
+
+  /** Answers this user would accept from someone else (always includes their own). */
+  @Column({ type: 'int', array: true, default: () => "'{}'" })
+  acceptable: number[];
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}
+
 export const ENTITIES = [
   User,
   Profile,
@@ -666,4 +695,5 @@ export const ENTITIES = [
   CampusPostBookmark,
   CampusPostReport,
   CampusCommentReport,
+  QuestionAnswer,
 ];

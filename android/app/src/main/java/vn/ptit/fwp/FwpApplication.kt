@@ -28,6 +28,7 @@ class FwpApplication : Application() {
 }
 
 class AppContainer(context: Application) {
+    val appContext: Application = context
     val database: FwpDatabase = FwpDatabase.get(context)
     val settingsStore = SettingsStore(context)
     val chatNudgeStore = ChatNudgeStore(context)

@@ -206,6 +206,11 @@ internal fun IncomingLikeCard(like: IncomingLikeData, onClick: () -> Unit) {
                 style = MaterialTheme.typography.labelSmall,
                 color = PtitGold
             )
+            if (profile.isDemo || profile.showGpa) Text(
+                "GPA " + String.format(java.util.Locale.US, "%.2f", profile.gpa),
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.White.copy(alpha = 0.85f)
+            )
         }
     }
 }
@@ -265,7 +270,7 @@ internal fun MatchRow(card: MatchCardData, onClick: () -> Unit) {
                     )
                     Spacer(Modifier.width(5.dp))
                     if (profile != null && !card.match.isGroup && (profile.isDemo || profile.showGpa)) {
-                        GpaBadge(profile.gpaTier, compact = true)
+                        GpaBadge(profile.gpaTier, compact = true, gpa = profile.gpa.takeIf { profile.showGpa || profile.isDemo })
                     }
                 }
                 Spacer(Modifier.height(3.dp))

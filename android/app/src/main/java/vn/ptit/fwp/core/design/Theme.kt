@@ -3,6 +3,7 @@ package vn.ptit.fwp.core.design
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.dp
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
@@ -115,11 +116,12 @@ fun FwpTheme(
         colorScheme = colors,
         typography = FwpTypography,
         shapes = androidx.compose.material3.Shapes(
-            extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(8),
-            small = androidx.compose.foundation.shape.RoundedCornerShape(12),
-            medium = androidx.compose.foundation.shape.RoundedCornerShape(18),
-            large = androidx.compose.foundation.shape.RoundedCornerShape(26),
-            extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(34)
+            // dp, không phải %: RoundedCornerShape(34) là 34% cạnh → bottom sheet cong quá mức.
+            extraSmall = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+            small = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            medium = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+            large = androidx.compose.foundation.shape.RoundedCornerShape(16.dp),
+            extraLarge = androidx.compose.foundation.shape.RoundedCornerShape(20.dp)
         ),
         content = content
     )

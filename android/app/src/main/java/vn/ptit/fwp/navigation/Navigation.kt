@@ -55,6 +55,7 @@ object Routes {
     const val NEARBY = "nearby"
     const val PROFILE = "profile/{profileId}"
     const val CHAT = "chat/{matchId}"
+    const val QUESTIONS = "questions"
 
     fun profile(id: String) = "profile/$id"
     fun chat(id: String) = "chat/$id"
@@ -141,9 +142,15 @@ fun FwpNavHost(container: AppContainer, darkTheme: Boolean) {
                 onOpenSettings = { navController.navigate(Routes.SETTINGS) },
                 onEditProfile = { navController.navigate(Routes.EDIT_PROFILE) },
                 onOpenDoubleDate = { navController.navigate(Routes.DOUBLE_DATE) },
-                onOpenNearby = { navController.navigate(Routes.NEARBY) }
+                onOpenNearby = { navController.navigate(Routes.NEARBY) },
+                onOpenQuestions = { navController.navigate(Routes.QUESTIONS) }
             )
           }
+        }
+        composable(Routes.QUESTIONS) {
+            if (identity?.authenticated == true && !identity.demo)
+                key(identity) { vn.ptit.fwp.feature.social.BackendQuestionsScreen(identity, onBack = { navController.popBackStack() }) }
+            else DemoRouteUnavailable()
         }
         composable(Routes.EDIT_PROFILE) {
             ProfileSetupScreen(

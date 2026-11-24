@@ -1,5 +1,12 @@
 package vn.ptit.fwp.feature.setup
 
+import vn.ptit.fwp.core.model.MIN_PROFILE_PHOTOS
+import vn.ptit.fwp.core.model.MAX_PROFILE_PHOTOS
+import androidx.compose.ui.graphics.Color
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.AddAPhoto
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.aspectRatio
 import android.content.Intent
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -87,23 +94,20 @@ fun ProfileSetupScreen(
     val state by viewModel.state.collectAsState()
     var gpaText by remember(state.loaded) { mutableStateOf(formatGpa(state.draft.gpa)) }
 
-    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
+    val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        uris.forEach { uri ->
             runCatching {
-                context.contentResolver.takePersistableUriPermission(
-                    uri,
-                    Intent.FLAG_GRANT_READ_URI_PERMISSION
-                )
+                context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
-            viewModel.setPhotoUri(uri.toString())
         }
+        if (uris.isNotEmpty()) viewModel.addPhotos(uris.map { it.toString() })
     }
 
     LaunchedEffect(state.done) {
         if (state.done) onDone()
     }
 
-    Column(Modifier.fillMaxSize()) {
+    Column(Modifier.fillMaxSize().statusBarsPadding()) {
         FwpTopBar(
             title = if (editMode) "Chỉnh sửa hồ sơ" else "Hoàn thiện hồ sơ",
             subtitle = "Bước ${state.step + 1}/${state.totalSteps} · ${stepTitle(state.step)}",
@@ -194,80 +198,60 @@ private fun BasicStep(
         subtitle = "Nickname và vài dòng giới thiệu là thứ đầu tiên người khác thấy."
     )
     Spacer(Modifier.height(18.dp))
-    Row(verticalAlignment = Alignment.CenterVertically) {
-        Box(
-            Modifier
-                .size(118.dp)
-                .clip(RoundedCornerShape(32.dp))
-                .background(PtitRedSoft),
-            contentAlignment = Alignment.Center
-        ) {
-            if (!state.draft.photoUrl.isNullOrBlank()) {
-                AsyncImage(
-                    model = state.draft.photoUrl,
-                    contentDescription = "Ảnh đại diện đã chọn",
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                DemoPortrait(state.draft.avatarSeed, Modifier.fillMaxSize())
-            }
-            Box(
-                Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(8.dp)
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .clickable(onClick = onPickPhoto),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(Icons.Rounded.Edit, null, tint = MaterialTheme.colorScheme.onPrimary, modifier = Modifier.size(17.dp))
-            }
-        }
-        Spacer(Modifier.width(16.dp))
-        Column(Modifier.weight(1f)) {
-            Text("Ảnh đại diện", style = MaterialTheme.typography.titleSmall)
-            Text(
-                if (state.backendProfile) "Backend chỉ lưu kiểu chân dung minh họa; ảnh thiết bị không được tải lên." else "Chọn ảnh từ thiết bị hoặc dùng chân dung minh họa.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Spacer(Modifier.height(8.dp))
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.surfaceVariant,
-                modifier = Modifier.clickable(onClick = onPickPhoto)
-            ) {
-                Text(
-                    "Chọn ảnh",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                )
-            }
-        }
-    }
-    Spacer(Modifier.height(14.dp))
-    Text("Hoặc chọn phong cách minh họa", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-    Spacer(Modifier.height(8.dp))
-    Row(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-        (1..6).forEach { seed ->
-            val selected = state.draft.avatarSeed == seed && state.draft.photoUrl.isNullOrBlank()
-            Box(
-                Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .border(2.dp, if (selected) PtitRed else MaterialTheme.colorScheme.outline, CircleShape)
-                    .padding(3.dp)
-                    .clip(CircleShape)
-                    .clickable {
-                        viewModel.setAvatarSeed(seed)
-                        viewModel.setPhotoUri(null)
+    Text(
+        "Ảnh của bạn (${state.draft.photos.size}/$MAX_PROFILE_PHOTOS)",
+        style = MaterialTheme.typography.titleSmall
+    )
+    Text(
+        "Cần ít nhất $MIN_PROFILE_PHOTOS ảnh. Ảnh đầu tiên là ảnh bìa ; mọi ảnh đều được làm mờ cho tới khi hai bạn đồng ý mở.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Spacer(Modifier.height(10.dp))
+    val slots = state.draft.photos.size.coerceAtLeast(MIN_PROFILE_PHOTOS).let { if (it < MAX_PROFILE_PHOTOS && it == state.draft.photos.size) it + 1 else it }
+    (0 until slots).chunked(3).forEach { row ->
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(bottom = 8.dp)) {
+            row.forEach { index ->
+                val photo = state.draft.photos.getOrNull(index)
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .aspectRatio(0.78f)
+                        .clip(RoundedCornerShape(12.dp))
+                        .background(PtitRedSoft)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+                        .clickable(enabled = photo == null, onClick = onPickPhoto),
+                    contentAlignment = Alignment.Center
+                ) {
+                    if (photo != null) {
+                        AsyncImage(
+                            model = vn.ptit.fwp.core.data.remote.backendAbsoluteUrl(photo),
+                            contentDescription = "Ảnh ${index + 1}",
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier.fillMaxSize()
+                        )
+                        Box(
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(5.dp)
+                                .size(26.dp)
+                                .clip(CircleShape)
+                                .background(Color.Black.copy(alpha = 0.55f))
+                                .clickable { viewModel.removePhoto(index) },
+                            contentAlignment = Alignment.Center
+                        ) { Icon(Icons.Rounded.Close, "Xóa ảnh", tint = Color.White, modifier = Modifier.size(16.dp)) }
+                        if (index == 0) Text(
+                            "Ảnh bìa",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            modifier = Modifier.align(Alignment.BottomStart).background(Color.Black.copy(alpha = 0.45f)).padding(horizontal = 6.dp, vertical = 2.dp)
+                        )
+                    } else {
+                        Icon(Icons.Rounded.AddAPhoto, "Thêm ảnh", tint = PtitRed)
                     }
-            ) {
-                DemoPortrait(seed, Modifier.fillMaxSize())
+                }
             }
+            repeat(3 - row.size) { Spacer(Modifier.weight(1f)) }
         }
     }
     Spacer(Modifier.height(20.dp))
@@ -461,7 +445,7 @@ private fun AcademicStep(
             value = state.draft.academicYear,
             onValueChange = viewModel::setAcademicYear,
             label = "Khóa",
-            placeholder = "K66",
+            placeholder = "2024",
             modifier = Modifier.weight(1f)
         )
         FwpTextField(
@@ -624,7 +608,7 @@ private fun PrivacyStep(state: SetupUiState, viewModel: ProfileSetupViewModel) {
                 ) {
                     if (!state.draft.photoUrl.isNullOrBlank()) {
                         AsyncImage(
-                            model = state.draft.photoUrl,
+                            model = vn.ptit.fwp.core.data.remote.backendAbsoluteUrl(state.draft.photoUrl.orEmpty()),
                             contentDescription = null,
                             contentScale = ContentScale.Crop,
                             modifier = Modifier.fillMaxSize()

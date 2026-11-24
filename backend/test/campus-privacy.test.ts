@@ -717,6 +717,10 @@ function socialFixtures(options: { blocked?: boolean } = {}) {
       storedSwipes.find((item) =>
         Object.entries(where).every(([key, value]) => item[key] === value),
       ) ?? null,
+    find: async ({ where }: any) =>
+      storedSwipes.filter((item) =>
+        Object.entries(where).every(([key, value]) => item[key] === value),
+      ),
     save: async (item: any) => {
       if (!item.id) item.id = `swipe-${storedSwipes.length + 1}`;
       const existing = storedSwipes.find(

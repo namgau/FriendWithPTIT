@@ -98,19 +98,13 @@ fun FwpLogo(
         }
         if (withWordmark) {
             Spacer(Modifier.width(10.dp))
-            Column {
-                Text(
-                    "Friend With PTIT",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = if (onDark) PtitWhite else MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    "FwP · Gió tầng nào, mây tầng đấy",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (onDark) PtitWhite.copy(alpha = 0.72f) else PtitMuted
-                )
-            }
+            Text(
+                "Friend With PTIT",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                color = if (onDark) PtitWhite else MaterialTheme.colorScheme.onBackground
+            )
         }
     }
 }
@@ -326,7 +320,9 @@ fun ModeChip(mode: ConnectionMode, selected: Boolean, onClick: () -> Unit) {
 fun GpaBadge(
     tier: GpaTier,
     modifier: Modifier = Modifier,
-    compact: Boolean = false
+    compact: Boolean = false,
+    /** Điểm thật khi người đó công khai GPA ; null thì chỉ hiện tầng. */
+    gpa: Double? = null
 ) {
     val color = when (tier) {
         GpaTier.EXCELLENT -> Color(0xFF1565C0)
@@ -341,7 +337,11 @@ fun GpaBadge(
         border = BorderStroke(1.dp, color.copy(alpha = 0.22f))
     ) {
         Text(
-            text = if (compact) tier.label else "Tầng ${tier.label}",
+            text = when {
+                gpa != null && gpa > 0 -> "GPA " + String.format(java.util.Locale.US, "%.2f", gpa) + " · " + tier.label
+                compact -> tier.label
+                else -> "Tầng ${tier.label}"
+            },
             style = MaterialTheme.typography.labelMedium,
             color = color,
             modifier = Modifier.padding(horizontal = if (compact) 7.dp else 9.dp, vertical = 4.dp)

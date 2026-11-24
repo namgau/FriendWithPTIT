@@ -99,12 +99,14 @@ class ProfileSetupViewModel(
     fun setShowGpa(value: Boolean) = updateDraft { copy(showGpa = value) }
     fun setShowLocation(value: Boolean) = updateDraft { copy(showLocation = value) }
 
-    fun setPhotoUri(uri: String?) {
-        if (_state.value.backendProfile && uri != null) {
-            _state.update { it.copy(error = "Ảnh từ thiết bị chỉ hỗ trợ hồ sơ demo; backend chưa hỗ trợ tải ảnh hồ sơ.") }
-            return
-        }
-        updateDraft { copy(photoUrl = uri) }
+    fun addPhotos(uris: List<String>) = updateDraft {
+        val next = (photos + uris).distinct().take(vn.ptit.fwp.core.model.MAX_PROFILE_PHOTOS)
+        copy(photos = next, photoUrl = next.firstOrNull())
+    }
+
+    fun removePhoto(index: Int) = updateDraft {
+        val next = photos.filterIndexed { i, _ -> i != index }
+        copy(photos = next, photoUrl = next.firstOrNull())
     }
 
     fun toggleInterest(interest: String) = updateDraft {
@@ -174,9 +176,13 @@ class ProfileSetupViewModel(
             try {
                 val draft = s.draft.copy(email = s.email)
                 if (s.backendProfile) {
-                    val saved = container.backendProfile.save(original ?: throw IllegalStateException("Hãy tải lại hồ sơ trước khi lưu."), draft)
+                    original = container.backendProfile.save(original ?: throw IllegalStateException("Hãy tải lại hồ sơ trước khi lưu."), draft)
+                    val local = draft.photos.filter { it.startsWith("content://") || it.startsWith("file://") }
+                    val images = local.map { vn.ptit.fwp.core.util.encodeImageDataUrl(container.appContext, it) }
+                    val saved = container.backendProfile.syncPhotos(keep = draft.photos - local.toSet(), newImages = images)
                     original = saved
-                    if (!saved.profileComplete) throw IllegalStateException("Backend chưa xác nhận hồ sơ hoàn chỉnh. Hãy kiểm tra các trường bắt buộc.")
+                    _state.update { it.copy(draft = it.draft.copy(photos = saved.photos.orEmpty())) }
+                    if (!saved.profileComplete) throw IllegalStateException("Backend chưa xác nhận hồ sơ hoàn chỉnh. Hãy kiểm tra các trường bắt buộc và ảnh (ít nhất 3).")
                 } else {
                     container.repository.saveMyProfile(draft)
                 }
@@ -188,7 +194,8 @@ class ProfileSetupViewModel(
 
     private fun validate(step: Int, draft: MyProfileDraft): String? = when (step) {
         0 -> when {
-            _state.value.backendProfile && draft.fullName.isBlank() -> "Hãy nhập họ tên cho hồ sơ backend."
+            _state.value.backendProfile && draft.fullName.isBlank() -> "Hãy nhập họ tên đầy đủ."
+            draft.photos.size < vn.ptit.fwp.core.model.MIN_PROFILE_PHOTOS -> "Thêm ít nhất ${vn.ptit.fwp.core.model.MIN_PROFILE_PHOTOS} ảnh của bạn (tối đa ${vn.ptit.fwp.core.model.MAX_PROFILE_PHOTOS})."
             draft.nickname.trim().length < 2 -> "Nickname cần ít nhất 2 ký tự."
             draft.bio.trim().length < 10 -> "Hãy viết vài dòng giới thiệu (ít nhất 10 ký tự) để mọi người hiểu bạn hơn."
             else -> null
@@ -197,6 +204,8 @@ class ProfileSetupViewModel(
             draft.faculty.isBlank() -> "Bạn chưa nhập khoa."
             draft.major.isBlank() -> "Bạn chưa nhập ngành học."
             draft.academicYear.isBlank() -> "Bạn chưa nhập khóa học."
+            vn.ptit.fwp.core.model.cohortError(draft.academicYear) != null ->
+                vn.ptit.fwp.core.model.cohortError(draft.academicYear)
             else -> null
         }
         2 -> when {
@@ -228,6 +237,7 @@ class ProfileSetupViewModel(
         showLocation = showLocation,
         mode = mode,
         email = email,
-        photoUrl = photoUrl
+        photoUrl = photoUrl,
+        photos = photos
     )
 }

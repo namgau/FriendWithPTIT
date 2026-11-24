@@ -56,7 +56,8 @@ data class RemoteProfileDto(
     val profileComplete: Boolean = false,
     val showGpaPublic: Boolean = true,
     val showLocationPublic: Boolean = true,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    val photos: List<String>? = null
 )
 
 data class UpdateRemoteProfileRequest(
@@ -218,6 +219,16 @@ interface CampusApi {
     suspend fun socialProfile(@Header("Authorization") auth: String, @Path("id") id: String): SocialProfileDto
     @POST("swipes")
     suspend fun swipe(@Header("Authorization") auth: String, @Body request: SocialSwipeRequest): SocialSwipeDto
+    @GET("swipes/quota")
+    suspend fun swipeQuota(@Header("Authorization") auth: String): SwipeQuotaDto
+    @GET("questions")
+    suspend fun questions(@Header("Authorization") auth: String): FunQuestionsDto
+    @PUT("questions/{id}")
+    suspend fun answerQuestion(@Header("Authorization") auth: String, @Path("id") id: String, @Body request: AnswerQuestionRequest): FunQuestionsDto
+    @POST("profiles/me/photos")
+    suspend fun addPhoto(@Header("Authorization") auth: String, @Body request: AddPhotoRequest): RemoteProfileDto
+    @DELETE("profiles/me/photos/{index}")
+    suspend fun removePhoto(@Header("Authorization") auth: String, @Path("index") index: Int): RemoteProfileDto
     @GET("matches")
     suspend fun matches(@Header("Authorization") auth: String): SocialMatchesDto
     @GET("matches/{id}")
@@ -380,10 +391,13 @@ class CampusApiFactory(
             .create(CampusApi::class.java)
     } else null
 
-    fun absoluteUrl(path: String): String = when {
-        path.isBlank() -> ""
-        path.startsWith("http://") || path.startsWith("https://") -> path
-        path.startsWith("/") -> root + path
-        else -> "$root/$path"
-    }
+    fun absoluteUrl(path: String): String = backendAbsoluteUrl(path, root)
+}
+
+/** Đường dẫn ảnh backend (`/profiles/photos/…`) → URL tuyệt đối ; URL http(s)/content giữ nguyên. */
+fun backendAbsoluteUrl(path: String, root: String = BuildConfig.BACKEND_BASE_URL.trim().trimEnd('/')): String = when {
+    path.isBlank() -> ""
+    path.startsWith("http://") || path.startsWith("https://") || path.startsWith("content://") || path.startsWith("file://") -> path
+    path.startsWith("/") -> root + path
+    else -> "$root/$path"
 }

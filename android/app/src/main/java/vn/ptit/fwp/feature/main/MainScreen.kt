@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Explore
-import androidx.compose.material.icons.rounded.Favorite
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Person
@@ -39,7 +38,6 @@ import vn.ptit.fwp.feature.social.BackendDiscoverScreen
 import vn.ptit.fwp.feature.social.BackendMatchesScreen
 import vn.ptit.fwp.core.design.PtitRed
 import vn.ptit.fwp.feature.campus.CampusScreen
-import vn.ptit.fwp.feature.chats.ChatsScreen
 import vn.ptit.fwp.feature.discover.DiscoverScreen
 import vn.ptit.fwp.feature.explore.ExploreScreen
 import vn.ptit.fwp.feature.matches.MatchesScreen
@@ -51,8 +49,8 @@ private val tabs = listOf(
     MainTab("Hôm nay", Icons.Rounded.LocalFireDepartment),
     MainTab("Khám phá", Icons.Rounded.Explore),
     MainTab("Campus", Icons.Rounded.School),
-    MainTab("Match", Icons.Rounded.Favorite),
-    MainTab("Chat", Icons.Rounded.Forum),
+    // Match và Chat gộp một tab: danh sách match chính là danh sách cuộc trò chuyện.
+    MainTab("Match", Icons.Rounded.Forum),
     MainTab("Tôi", Icons.Rounded.Person)
 )
 
@@ -65,7 +63,8 @@ fun MainScreen(
     onOpenSettings: () -> Unit,
     onEditProfile: () -> Unit,
     onOpenDoubleDate: () -> Unit,
-    onOpenNearby: () -> Unit
+    onOpenNearby: () -> Unit,
+    onOpenQuestions: () -> Unit = {}
 ) {
     var selected by rememberSaveable { mutableIntStateOf(0) }
     val matches by container.repository.matches.collectAsState(initial = emptyList())
@@ -88,8 +87,7 @@ fun MainScreen(
             ) {
                 tabs.forEachIndexed { index, tab ->
                     val badge = when (index) {
-                        3 -> demoCountOrZero(demo, incomingLikes)
-                        4 -> demoCountOrZero(demo, unreadMessages)
+                        3 -> demoCountOrZero(demo, incomingLikes + unreadMessages)
                         else -> 0
                     }
                     NavigationBarItem(
@@ -127,14 +125,14 @@ fun MainScreen(
                 .padding(padding)
         ) {
             when (selected) {
-                0 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications) else Column {
+                0 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications, onOpenQuestions) else Column {
                   Text("Khám phá demo trên thiết bị · không đồng bộ tài khoản backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
                   DiscoverScreen(
                     onOpenChat = onOpenChat,
                     onOpenNotifications = onOpenNotifications
                   )
                 }
-                1 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications) else Column {
+                1 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications, onOpenQuestions) else Column {
                   Text("Hồ sơ gợi ý demo trên thiết bị", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
                   ExploreScreen(
                     onOpenProfile = onOpenProfile,
@@ -149,13 +147,6 @@ fun MainScreen(
                     onOpenChat = onOpenChat,
                     onOpenProfile = onOpenProfile,
                     onOpenDoubleDate = onOpenDoubleDate
-                  )
-                }
-                4 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile, chats = true) else Column {
-                  Text("Chat demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
-                  ChatsScreen(
-                    onOpenChat = onOpenChat,
-                    onOpenMatches = { selected = 3 }
                   )
                 }
                 else -> ProfileScreen(
