@@ -17,11 +17,11 @@ Kết quả chính trên CV của train (mean ± SD qua 5 fold):
 
 | | Baseline mạnh nhất | Mô hình chốt | PR-AUC chốt | Vận hành |
 |---|---|---|---|---|
-| E1 | `gap_last` 0.147 ± 0.004 | LightGBM + class_weight | **0.318 ± 0.004** | top 10%: precision 0.345, recall 0.343, lift 3.3× |
-| E2 | `gap_last` 0.367 ± 0.026 | LightGBM + SMOTE | **0.529 ± 0.029** | top 10%: precision 0.620, recall 0.193, lift 1.9× |
+| E1 | `gap_last` 0.147 ± 0.004 | LightGBM T1+T2 (class_weight) ; chốt test: T1–T4, không resampling | **0.318 ± 0.004** | top 10%: precision 0.345, recall 0.343, lift 3.3× |
+| E2 | `gap_last` 0.367 ± 0.026 | LightGBM T1+T2 (SMOTE) ; chốt test: như E1 | **0.529 ± 0.029** | top 10%: precision 0.620, recall 0.193, lift 1.9× |
 | G1 | độ dài tiền tố 0.553 ± 0.026 | TF-IDF + LR | **0.631 ± 0.031** | FPR 5%: recall 0.100 |
 | H1 | TF-IDF + LR 0.708 ± 0.013 | PhoBERT C2 | **0.770 ± 0.018** | validation: recall 0.663, FPR 0.053 tại τ_B chọn trên calibration |
-| H2 | độ dài 0.110 ± 0.022 | TF-IDF + LR | **0.349 ± 0.044** | FPR 5%: recall 0.297 |
+| H2 | lexicon 0.111 ± 0.001 / độ dài 0.110 ± 0.022 (ngang majority 0.110) | TF-IDF + LR | **0.349 ± 0.044** | FPR 5%: recall 0.297 |
 
 Các phát hiện chính:
 
@@ -29,11 +29,19 @@ Các phát hiện chính:
 - Xử lý mất cân bằng gần như không đổi PR-AUC, nhưng làm hỏng calibration nếu không hiệu chỉnh lại.
 - Mô hình **không chuyển được** giữa hai nền tảng (E1 → E2: ROC-AUC 0.50).
 - Phần lớn ca báo đúng chỉ được báo ở tin cuối, tức lead time ngắn.
-- Head B tiếng Việt "buộc tội oan" các câu chửi thề cảm thán, vì ViHSD gán nhãn như vậy. Đây là lệch định nghĩa, không phải lỗi mô hình.
+- Head B tiếng Việt hay "buộc tội oan" câu có từ tục (FPR test 0.333 so với 0.076). Đọc tay 100 FP (phân loại sơ bộ, 3.4b): 26 ca chửi cảm thán / thân mật, 16 ca nhãn có thể sai, 22 ca lỗi rõ của mô hình. Giả thuyết là một phần do định nghĩa nhãn ViHSD, phần còn lại do mô hình túi từ không biết từ tục nhắm vào ai ; chưa phải kết luận nhân quả cho từng lỗi.
 
 Các dòng Head A ở bảng tóm tắt dùng T1+T2 để đối chiếu nền; phần thêm T3/T4 ở R2.
 Điểm vận hành TF-IDF của G1/H2 là ngưỡng toàn cục trên OOF train; điểm PhoBERT H1
 là mean validation qua 5 fold, mỗi fold có ngưỡng calibration riêng. Không trộn hai cách tổng hợp này.
+
+**Tiêu chí chọn mô hình chốt** (chốt trước A8, cấu hình đóng băng ở `5df9dc1`): (1) hơn baseline với bằng chứng paired ;
+(2) nếu ứng viên phức tạp hơn **không** có CI paired ngoài 0 thì giữ mô hình đơn giản hơn — chạy CPU, rẻ, ngưỡng chọn trên chính mô hình đó ;
+(3) có artifact fit toàn train sẵn cho `run_test`. Theo đó:
+- *E1/E2:* LightGBM T1–T4, không resampling + isotonic. Resampling không đổi PR-AUC nhưng làm hỏng calibration (R3) ; T3/T4 tăng PR-AUC ở R2, được xác nhận paired trên test (R4).
+- *G1:* TF-IDF + LR thay vì CRAFT-like GRU — GRU − TF-IDF +0.022, CI paired [−0.0003, +0.0436] chứa 0 ; GRU còn dùng chung calibration để tinh chỉnh và chọn τ (R8).
+- *H1:* PhoBERT C2 — CV +0.062 so với TF-IDF ; test xác nhận paired +0.080 [+0.056, +0.102].
+- *H2:* TF-IDF + LR. PhoBERT weighted B10 (0.509 ± 0.074) dùng fold khác (lệch phiên bản scikit-learn) nên không so paired được, và không có artifact H2 fit toàn train trước A8 ; trên test chỉ so được PhoBERT zero-shot từ H1 (Δ +0.047, CI chứa 0). Đây là quyết định thận trọng, không phải bằng chứng TF-IDF tốt hơn PhoBERT trên H2.
 
 **Trên test (R4, mở một lần):** E1 0.337 [0.333, 0.341], E2 0.593 [0.581, 0.604] (LightGBM T1–T4) ; G1 0.616 [0.585, 0.653], H1 PhoBERT 0.787 [0.763, 0.810], H2 0.401 [0.268, 0.528]. Test khớp CV ; mọi mô hình chốt hơn baseline với CI paired ngoài 0.
 
@@ -216,7 +224,7 @@ CI 95% cluster bootstrap theo group (B = 2000) ; Δ = PR-AUC(chốt) − PR-AUC(
 | E1 → E1 (in-domain) | 0.320 ± 0.005 | 0.829 ± 0.003 | 0.079 |
 | E2 → E1 | 0.132 ± 0.003 | 0.602 ± 0.003 | 0.106 → 0.094 |
 
-**RQ2 (Head A):** E1 → E2 chỉ ngang ngẫu nhiên. Nguyên nhân là ý nghĩa của "tắt" khác nhau giữa hai nền tảng: IRC tắt khi bỏ đi, CSKH tắt khi đã giải quyết xong. Prior shift chỉ sửa được calibration, không sửa được xếp hạng. Khi chuyển miền phải học lại trên dữ liệu của miền đích.
+**RQ2 (Head A):** E1 → E2 chỉ ngang ngẫu nhiên. Giả thuyết (chưa kiểm chứng nhân quả): ý nghĩa của "tắt" khác nhau giữa hai nền tảng — IRC tắt khi bỏ đi, CSKH tắt khi đã giải quyết xong ; ví dụ 1–7 ở 3.4b khớp với giả thuyết này. Prior shift chỉ sửa được calibration, không sửa được xếp hạng. Khi chuyển miền phải học lại trên dữ liệu của miền đích.
 
 ### R6 — Survival vs nhị phân (X3, `HEAD_A_SURVIVAL.md`)
 
@@ -302,7 +310,26 @@ Confusion matrix E1 tại τ2: TP 9,801, FN 19,038, FP 18,377, TN 233,676.
 | D. Lỗi rõ của mô hình | 22 | [0.15, 0.31] |
 | E. Rác dữ liệu | 2 | [0.01, 0.07] |
 
-- `[A viết]` Chọn ≥ 10 ví dụ tiêu biểu, viết lại bằng lời (không chép nguyên văn), kèm giả thuyết nguyên nhân cho từng ví dụ.
+**E3b — Ví dụ lỗi viết lại bằng lời** (không chép nguyên văn, không tên người). Head A: ca sai tự tin nhất trên test (`run_error_analysis_test`) ; Head B: FP của TF-IDF trên OOF train từ audit 100 ca. Cột cuối là giả thuyết, không phải kết luận.
+
+| # | Head / bộ | Loại | Tình huống (viết lại) | p | Giả thuyết nguyên nhân |
+|---|---|---|---|---|---|
+| 1 | A / E1 | FP | Người hỏi được chỉ cách sửa, đáp "cảm ơn" hai lần liền ; vài phút sau hai bên vẫn nói tiếp | 0.67 | Tin ngắn + lời cảm ơn là tín hiệu kết thúc mạnh trong T2 ; trên IRC người ta hay cảm ơn rồi hỏi tiếp câu khác |
+| 2 | A / E1 | FP | Một người viết tiếng Tây Ban Nha hỏi có ai nói tiếng đó không, người khác bảo nhầm kênh ; hội thoại vẫn tiếp ngay | 0.67 | Tin lặp, ngắn, lạc chủ đề trông giống hội thoại sắp chết ; thực tế là pha "dò kênh" ngắn |
+| 3 | A / E1 | FP | Một người gõ lặp cùng một lệnh đổi tên ba lần, người khác nhắn "dừng lại" ; hai bên vẫn nói tiếp | 0.67 | Chuỗi tin trùng lặp bị coi như hời hợt ; mô hình không phân biệt spam với chán nói |
+| 4 | A / E1 | FN | Người hỏi báo không cài được một phần mềm ; người kia hỏi "vấn đề là gì" rồi nói mình chưa thử bao giờ ; sau đó không ai nhắn nữa | 0.00 | Hỏi – đáp nhịp nhanh khiến mô hình tin sẽ còn tiếp ; câu "chưa thử" thực chất là bế tắc ; không có tín hiệu người hỏi đã bỏ đi |
+| 5 | A / E1 | FN | Người hỏi báo lệnh không phản hồi ; người giúp đáp kiểu "ừ thì… chúc may mắn" rồi hội thoại tắt | 0.00 | Lời kết thúc khéo ("chúc may mắn") không có trong từ điển T2 ; nhịp trả lời nhanh trước đó lấn át |
+| 6 | A / E2 | FP | Khách cảm ơn nhân viên CSKH kèm emoji, nhân viên chúc vui ; khách nhắn thêm một câu trong vài phút | 0.93 | Trên CSKH "cảm ơn + emoji" thường là kết thúc thật (prevalence 33%) ; khách hay bổ sung một câu cuối |
+| 7 | A / E2 | FP | Nhân viên hướng dẫn kết nối máy in, khách đáp "để tôi kiểm tra" ; khách quay lại sau 25 giờ | 0.93 | Ranh giới Δ = 48h cứng: quay lại ở giờ thứ 25 vẫn tính "không tắt" ; với app, đây vẫn là một lần im khá lâu |
+| 8 | B / H1 | FP (nhóm B) | Bình luận kể chuyện buồn cười, dùng từ tục viết tắt như thán từ, không nhắm ai | 0.99 | Từ tục là đặc trưng mạnh nhất của TF-IDF ; mô hình không biết từ đó có đối tượng hay không |
+| 9 | B / H1 | FP (nhóm B) | Gọi tên bạn kèm biệt danh trêu + từ tục + mặt cười | 0.96 | Đùa thân mật giữa người quen ; một câu đơn lẻ không đủ để phân biệt với công kích (3.5) |
+| 10 | B / H1 | FP (nhóm A) | Bình luận gọi cả một nhóm người là "ngu học" nhưng được gán nhãn sạch | 0.91 | Nhiều khả năng nhãn sai ; một phần FP là nhiễu nhãn (16/100) |
+| 11 | B / H1 | FP (nhóm A) | Bình luận không dấu dịch một thành ngữ nước ngoài có ẩn ý tục để chê một người ; nhãn sạch | 0.83 | Xúc phạm gián tiếp, người gán nhãn có thể bỏ sót ; không dấu làm khó cả người lẫn mô hình |
+| 12 | B / H1 | FP (nhóm D) | Người hỏi tự nhận "hỏi ngu" và "chấp nhận bị chửi" khi hỏi một câu khoa học | 0.88 | Từ "ngu", "chửi" tự nói về mình (tự giễu) ; mô hình chỉ bắt từ khóa, không biết đối tượng |
+| 13 | B / H1 | FP (nhóm D) | Phàn nàn mạng chậm "như điên" | 0.83 | Từ "điên" mô tả sự vật, không nhắm người ; lỗi rõ của mô hình túi từ |
+| 14 | B / H1 | FP (nhóm C) | Gửi tên một người kèm nhận xét bài viết "đọc hại não" và từ tục viết tắt | 0.88 | Vùng xám: chê nội dung hay xúc phạm người? Người đọc cũng không chắc |
+
+**Rút ra:** Head A sai nhiều nhất ở **lời kết thúc ngầm** — cảm ơn mà chưa xong (FP), hoặc bỏ đi mà không chào (FN) ; đặc trưng bề mặt không đọc được ý định. Head B sai nhiều nhất ở **đối tượng của từ tục** — cảm thán, tự giễu, trêu bạn hay công kích — cộng thêm nhiễu nhãn ViHSD.
 
 **E4 — Nguồn gốc lỗi.**
 
@@ -397,6 +424,7 @@ Cả hai fit trên toàn bộ train theo đúng giao thức CV (`final_models.py
 - [x] C7 23/11: cập nhật Head B và T3–T5 vào R1/R2/R8/R9; phân biệt OOF/CV và giới hạn calibration/chuyển miền. Duyệt chéo phần B hiện có tại `C7_REVIEW_B.md`; bản B7 cuối vẫn chờ B bàn giao.
 - [x] Đóng băng cấu hình tại commit `5df9dc1` ; pin `requirements.lock.txt` (23/11).
 - [x] 23/11: A8 — mở test, điền R4 + paired bootstrap ; chạy lại A9 trên test (3.4b).
-- [ ] A duyệt `reports/h1_fp_audit.csv`, viết ≥ 10 ví dụ lỗi bằng lời.
+- [x] 24/11: viết 14 ví dụ lỗi bằng lời (E3b) ; trả lời B7 điểm 1 (tiêu chí chọn mô hình chốt) và 3 (giảm câu khẳng định nguyên nhân).
+- [ ] A duyệt tay lại phân loại `reports/h1_fp_audit.csv` (nhóm A–E).
 - [ ] Hình: reliability diagram, learning curve, SHAP summary, đường cong survival mẫu.
 - [ ] 27/11: duyệt chéo theo checklist `01_*` §5.
