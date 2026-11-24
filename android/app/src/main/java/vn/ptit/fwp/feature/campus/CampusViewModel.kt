@@ -55,7 +55,10 @@ data class CampusUiState(
     val commentsCursor: String? = null,
     val commentsHasMore: Boolean = false,
     val commentsLoading: Boolean = false,
-    val sendingComment: Boolean = false
+    val sendingComment: Boolean = false,
+    val communities: List<vn.ptit.fwp.core.data.remote.CommunityDto> = emptyList(),
+    /** Đang xem cộng đồng nào ; null = mọi bài. */
+    val community: String? = null
 )
 
 class CampusViewModel(private val container: AppContainer) : ViewModel() {
@@ -72,6 +75,28 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
     init {
         refresh()
         loadSettings()
+        loadCommunities()
+    }
+
+    fun loadCommunities() {
+        viewModelScope.launch {
+            runCatching { repository.communities() }.onSuccess { list -> _state.update { it.copy(communities = list) } }
+        }
+    }
+
+    fun toggleJoin(id: String) {
+        val joined = _state.value.communities.firstOrNull { it.id == id }?.joined ?: return
+        viewModelScope.launch {
+            runCatching { repository.setJoined(id, !joined) }
+                .onSuccess { list -> _state.update { it.copy(communities = list, message = if (joined) "Đã rời cộng đồng." else "Đã tham gia cộng đồng.") } }
+                .onFailure { error -> _state.update { it.copy(message = humanError(error)) } }
+        }
+    }
+
+    fun selectCommunity(id: String?) {
+        if (_state.value.community == id) return
+        _state.update { it.copy(community = id, posts = emptyList(), cursor = null, hasMore = false) }
+        refresh()
     }
 
     fun loadSettings() {
@@ -120,7 +145,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
             )
         }
         feedJob = viewModelScope.launch {
-            runCatching { repository.feed(tab.api) }
+            runCatching { repository.feed(tab.api, community = _state.value.community) }
                 .onSuccess { page ->
                     if (!feedGeneration.isCurrent(generation)) return@onSuccess
                     _state.update {
@@ -168,7 +193,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
         val generation = feedGeneration.snapshot()
         _state.update { it.copy(loadingMore = true) }
         viewModelScope.launch {
-            runCatching { repository.feed(tab.api, cursor) }
+            runCatching { repository.feed(tab.api, cursor, _state.value.community) }
                 .onSuccess { page ->
                     if (!feedGeneration.isCurrent(generation) || _state.value.tab != tab) return@onSuccess
                     _state.update {
@@ -340,7 +365,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
     ) {
         if (_state.value.creating) return
         if (mode == CampusAnonymousMode.DISCOVERABLE && _state.value.settings?.discoveryEnabled != true) {
-            _state.update { it.copy(message = "Hãy bật khám phá tác giả trong cài đặt Campus trước khi đăng.") }
+            _state.update { it.copy(message = "Hãy bật khám phá tác giả trong cài đặt Sân trường trước khi đăng.") }
             return
         }
         if (content.isBlank() && images.isEmpty()) {
@@ -350,7 +375,9 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
         _state.update { it.copy(creating = true) }
         viewModelScope.launch {
             runCatching {
-                repository.createPost(content, category.api, mode.api, images)
+                // Đăng vào cộng đồng đang xem nếu đã tham gia.
+                val community = _state.value.community?.takeIf { id -> _state.value.communities.any { it.id == id && it.joined } }
+                repository.createPost(content, category.api, mode.api, images, community)
             }.onSuccess { created ->
                 if (_state.value.tab == CampusTab.FOR_YOU) {
                     _state.update {
@@ -360,7 +387,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
                     _state.update { it.copy(creating = false) }
                 }
                 _state.update {
-                    it.copy(message = "Đã đăng bài ẩn danh lên Campus Feed.")
+                    it.copy(message = "Đã đăng bài ẩn danh lên Sân trường.")
                 }
                 onCreated()
                 refresh()

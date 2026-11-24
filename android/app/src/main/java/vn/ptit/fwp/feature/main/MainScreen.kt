@@ -49,7 +49,7 @@ private data class MainTab(val label: String, val icon: ImageVector)
 private val tabs = listOf(
     MainTab("Hôm nay", Icons.Rounded.LocalFireDepartment),
     MainTab("Khám phá", Icons.Rounded.Explore),
-    MainTab("Campus", Icons.Rounded.School),
+    MainTab("Sân trường", Icons.Rounded.School),
     // Match và Chat gộp một tab: danh sách match chính là danh sách cuộc trò chuyện.
     MainTab("Match", Icons.Rounded.Forum),
     MainTab("Tôi", Icons.Rounded.Person)

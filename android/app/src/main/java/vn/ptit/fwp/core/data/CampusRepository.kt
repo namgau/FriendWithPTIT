@@ -31,9 +31,14 @@ class CampusRepository(
     suspend fun updateSettings(request: UpdateCampusSettingsRequest) =
         withAuth { api, authorization -> api.updateSettings(authorization, request) }
 
-    suspend fun feed(tab: String, cursor: String? = null): CampusFeedPage =
+    suspend fun communities() = withAuth { api, authorization -> api.communities(authorization).items }
+    suspend fun setJoined(id: String, joined: Boolean) = withAuth { api, authorization ->
+        (if (joined) api.joinCommunity(authorization, id) else api.leaveCommunity(authorization, id)).items
+    }
+
+    suspend fun feed(tab: String, cursor: String? = null, community: String? = null): CampusFeedPage =
         withAuth { api, authorization ->
-            val response = if (tab == "mine") api.mine(authorization, cursor) else api.feed(authorization, tab, cursor)
+            val response = if (tab == "mine") api.mine(authorization, cursor) else api.feed(authorization, tab, cursor, community = community)
             CampusFeedPage(
                 items = response.items.map { it.toDomain(apiFactory) },
                 hasMore = response.hasMore,
@@ -45,7 +50,8 @@ class CampusRepository(
         content: String,
         category: String,
         anonymousMode: String,
-        images: List<PickedCampusImage>
+        images: List<PickedCampusImage>,
+        community: String? = null
     ): CampusPost = withAuth { api, authorization ->
         val response = api.createPost(
             authorization,
@@ -53,6 +59,7 @@ class CampusRepository(
                 content = content.trim().ifBlank { null },
                 category = category,
                 anonymousMode = anonymousMode,
+                community = community,
                 images = images.map {
                     CreateCampusImageRequest(
                         dataUrl = it.dataUrl,

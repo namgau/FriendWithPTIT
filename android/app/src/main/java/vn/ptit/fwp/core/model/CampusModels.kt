@@ -81,7 +81,8 @@ data class CampusPost(
     val author: CampusAuthorBadge,
     val media: List<CampusMedia> = emptyList(),
     val counts: CampusCounts = CampusCounts(),
-    val viewer: CampusViewerState = CampusViewerState()
+    val viewer: CampusViewerState = CampusViewerState(),
+    val community: String? = null
 )
 
 data class CampusFeedPage(
@@ -132,6 +133,7 @@ fun CampusPostDto.toDomain(api: CampusApiFactory): CampusPost = CampusPost(
     category = CampusCategory.fromApi(category),
     anonymousMode = CampusAnonymousMode.fromApi(anonymousMode),
     campus = campus.orEmpty(),
+    community = community,
     createdAt = parseCampusTime(createdAt),
     editedAt = editedAt?.let(::parseCampusTime),
     author = CampusAuthorBadge(

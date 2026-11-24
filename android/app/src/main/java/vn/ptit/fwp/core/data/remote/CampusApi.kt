@@ -120,8 +120,12 @@ data class CampusPostDto(
     val author: CampusAuthorBadgeDto,
     val media: List<CampusMediaDto> = emptyList(),
     val counts: CampusCountsDto = CampusCountsDto(),
-    val viewer: CampusViewerDto = CampusViewerDto()
+    val viewer: CampusViewerDto = CampusViewerDto(),
+    val community: String? = null
 )
+
+data class CommunityDto(val id: String, val name: String, val description: String, val memberCount: Int, val joined: Boolean)
+data class CommunitiesDto(val items: List<CommunityDto>)
 
 data class CampusFeedDto(
     val items: List<CampusPostDto> = emptyList(),
@@ -139,7 +143,8 @@ data class CreateCampusPostRequest(
     val content: String?,
     val category: String,
     val anonymousMode: String,
-    val images: List<CreateCampusImageRequest> = emptyList()
+    val images: List<CreateCampusImageRequest> = emptyList(),
+    val community: String? = null
 )
 data class UpdateCampusPostRequest(val content: String, val category: String)
 
@@ -279,8 +284,15 @@ interface CampusApi {
         @Header("Authorization") authorization: String,
         @Query("tab") tab: String,
         @Query("cursor") cursor: String? = null,
-        @Query("limit") limit: Int = 10
+        @Query("limit") limit: Int = 10,
+        @Query("community") community: String? = null
     ): CampusFeedDto
+    @GET("campus/communities")
+    suspend fun communities(@Header("Authorization") authorization: String): CommunitiesDto
+    @POST("campus/communities/{id}/join")
+    suspend fun joinCommunity(@Header("Authorization") authorization: String, @Path("id") id: String): CommunitiesDto
+    @DELETE("campus/communities/{id}/join")
+    suspend fun leaveCommunity(@Header("Authorization") authorization: String, @Path("id") id: String): CommunitiesDto
 
     @GET("campus/posts/mine")
     suspend fun mine(@Header("Authorization") authorization: String, @Query("cursor") cursor: String? = null, @Query("limit") limit: Int = 10): CampusFeedDto

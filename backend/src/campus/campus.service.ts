@@ -121,6 +121,9 @@ export class CampusService {
     if (query.category) {
       qb.andWhere('post.category = :category', { category: query.category });
     }
+    if (query.community) {
+      qb.andWhere('post.community = :community', { community: query.community });
+    }
     if (query.campus?.trim()) {
       qb.andWhere('post.campus = :campus', { campus: query.campus.trim() });
     }
@@ -221,6 +224,7 @@ export class CampusService {
           discoverToken: discoverable ? randomUUID() : null,
           content,
           category: dto.category,
+          community: dto.community ?? null,
           anonymousMode: dto.anonymousMode,
           // Campus is only public when the author explicitly allowed it.
           campus:

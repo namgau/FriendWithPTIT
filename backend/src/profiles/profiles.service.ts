@@ -8,7 +8,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { In, Repository } from 'typeorm';
 import { Block, Profile, QuestionAnswer, Swipe } from '../database/entities';
 import { CampusMediaStorage } from '../campus/campus-media.storage';
-import { questionMatch } from '../questions/questions.bank';
+import { QUESTION_BY_ID, questionMatch } from '../questions/questions.bank';
 import {
   compatibilityScore,
   distanceKm,
@@ -21,6 +21,11 @@ import {
   NearbyQueryDto,
   UpdateProfileDto,
 } from './profile.dto';
+
+interface QuestionInfo {
+  match: { percent: number; common: number } | null;
+  answers: Array<{ question: string; answer: string }>;
+}
 
 @Injectable()
 export class ProfilesService {
@@ -90,15 +95,24 @@ export class ProfilesService {
       .getCount()) > 0;
   }
 
-  /** userId → { percent, common } cho các ứng viên ; rỗng khi không có repo câu trả lời (unit test). */
+  /** userId → % hợp gu + các câu người đó đã trả lời ; rỗng khi không có repo câu trả lời (unit test). */
   private async questionMatches(viewerId: string, userIds: string[]) {
-    const result = new Map<string, { percent: number; common: number } | null>();
+    const result = new Map<string, QuestionInfo>();
     if (!this.answers || !userIds.length) return result;
     const rows = await this.answers.find({ where: { userId: In([viewerId, ...userIds]) } });
     const by = new Map<string, QuestionAnswer[]>();
     for (const row of rows) by.set(row.userId, [...(by.get(row.userId) ?? []), row]);
     const mine = by.get(viewerId) ?? [];
-    for (const id of userIds) result.set(id, questionMatch(mine, by.get(id) ?? []));
+    for (const id of userIds) {
+      const theirs = by.get(id) ?? [];
+      result.set(id, {
+        match: questionMatch(mine, theirs),
+        answers: theirs.flatMap((a) => {
+          const q = QUESTION_BY_ID.get(a.questionId);
+          return q && q.options[a.answer] ? [{ question: q.text, answer: q.options[a.answer] }] : [];
+        }),
+      });
+    }
     return result;
   }
 
@@ -349,7 +363,7 @@ export class ProfilesService {
       viewer,
       profile.userId === userId ? undefined : compatibilityScore(viewer, profile),
     );
-    const qm = profile.userId === userId ? new Map() : await this.questionMatches(userId, [profile.userId]);
+    const qm = profile.userId === userId ? new Map<string, QuestionInfo>() : await this.questionMatches(userId, [profile.userId]);
     return {
       ...view,
       ...this.questionFields(qm, profile.userId),
@@ -392,10 +406,10 @@ export class ProfilesService {
     return result;
   }
 
-  private questionFields(qm: Map<string, { percent: number; common: number } | null>, userId: string) {
-    if (!qm.has(userId)) return {};
-    const match = qm.get(userId);
-    return { questionMatch: match?.percent ?? null, commonQuestions: match?.common ?? 0 };
+  private questionFields(qm: Map<string, QuestionInfo>, userId: string) {
+    const info = qm.get(userId);
+    if (!info) return {};
+    return { questionMatch: info.match?.percent ?? null, commonQuestions: info.match?.common ?? 0, answers: info.answers };
   }
 
   private isComplete(profile: Profile): boolean {

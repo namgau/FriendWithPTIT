@@ -400,6 +400,10 @@ export class CampusPost {
   @Column({ length: 24, default: 'GENERAL' })
   category: CampusCategory;
 
+  /** Cộng đồng chứa bài (id trong campus/communities.ts) ; null = bảng tin chung. */
+  @Column({ type: 'varchar', length: 32, nullable: true })
+  community: string | null;
+
   @Column({ name: 'anonymous_mode', length: 24, default: 'FULLY_ANONYMOUS' })
   anonymousMode: CampusAnonymousMode;
 
@@ -657,6 +661,22 @@ export class CampusCommentReport {
   createdAt: Date;
 }
 
+@Entity('campus_community_members')
+@Index(['userId', 'communityId'], { unique: true })
+export class CampusCommunityMember {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ name: 'user_id' })
+  userId: string;
+
+  @Column({ name: 'community_id', length: 32 })
+  communityId: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+}
+
 /** One answer per (user, question) for the fun questions (OkCupid-style). */
 @Entity('question_answers')
 @Index(['userId', 'questionId'], { unique: true })
@@ -700,4 +720,5 @@ export const ENTITIES = [
   CampusPostReport,
   CampusCommentReport,
   QuestionAnswer,
+  CampusCommunityMember,
 ];

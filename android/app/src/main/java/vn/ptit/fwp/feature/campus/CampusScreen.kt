@@ -145,7 +145,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Campus Feed", style = MaterialTheme.typography.headlineSmall)
+                    Text("Sân trường", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         "Ẩn danh, thật lòng, đúng chuyện",
                         style = MaterialTheme.typography.bodySmall,
@@ -153,10 +153,10 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                     )
                 }
                 IconButton(onClick = { viewModel.loadSettings(); settingsOpen = true }) {
-                    Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Campus")
+                    Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Sân trường")
                 }
                 IconButton(onClick = { viewModel.refresh(); viewModel.loadSettings() }) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới Campus Feed")
+                    Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới Sân trường")
                 }
             }
 
@@ -174,18 +174,66 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                     )
                 }
             }
-            Text(
-                "Following/Interested chưa mở vì chưa có subscription. Tạm thời dùng “Đã lưu” để theo dõi bài viết.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
+            if (state.communities.isNotEmpty()) {
+                Text(
+                    "Cộng đồng",
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 6.dp)
+                )
+                LazyRow(
+                    Modifier.fillMaxWidth(),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    item {
+                        FwpChip(text = "Tất cả", selected = state.community == null, onClick = { viewModel.selectCommunity(null) })
+                    }
+                    items(state.communities, key = { it.id }) { c ->
+                        val selected = state.community == c.id
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = if (selected) PtitRed.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) PtitRed else MaterialTheme.colorScheme.outline),
+                            modifier = Modifier.width(190.dp).clickable { viewModel.selectCommunity(if (selected) null else c.id) }
+                        ) {
+                            Column(Modifier.padding(12.dp)) {
+                                Text(c.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+                                Text(c.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, minLines = 2)
+                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
+                                    Text("${c.memberCount} thành viên", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
+                                    Surface(
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (c.joined) MaterialTheme.colorScheme.surfaceVariant else PtitRed,
+                                        modifier = Modifier.clickable { viewModel.toggleJoin(c.id) }
+                                    ) {
+                                        Text(
+                                            if (c.joined) "Đã tham gia" else "Tham gia",
+                                            style = MaterialTheme.typography.labelSmall,
+                                            color = if (c.joined) MaterialTheme.colorScheme.onSurface else androidx.compose.ui.graphics.Color.White,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                state.communities.firstOrNull { it.id == state.community }?.let { c ->
+                    Text(
+                        if (c.joined) "Bài bạn đăng lúc này sẽ vào ${c.name}." else "Tham gia ${c.name} để đăng bài vào đây.",
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+                    )
+                }
+                Spacer(Modifier.height(6.dp))
+            }
 
             when {
                 !state.configured -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
-                    title = "Campus Feed cần backend",
-                    subtitle = "Truyền -PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/ khi build Android và chạy NestJS + PostgreSQL. App không dùng dữ liệu mock cho Campus Feed.",
+                    title = "Sân trường cần backend",
+                    subtitle = "Truyền -PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/ khi build Android và chạy NestJS + PostgreSQL. App không dùng dữ liệu mock cho Sân trường.",
                     modifier = Modifier
                         .weight(1f)
                         .align(Alignment.CenterHorizontally)
@@ -198,7 +246,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 }
                 state.error != null && state.posts.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
-                    title = "Chưa tải được Campus Feed",
+                    title = "Chưa tải được Sân trường",
                     subtitle = state.error ?: "",
                     modifier = Modifier.weight(1f),
                     actionLabel = "Thử lại",
@@ -271,7 +319,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             containerColor = PtitRed,
             contentColor = MaterialTheme.colorScheme.onPrimary
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Đăng bài Campus")
+            Icon(Icons.Rounded.Add, contentDescription = "Đăng bài lên Sân trường")
         }
 
         SnackbarHost(
@@ -290,7 +338,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             onSubmit = { content, category, mode, images ->
                 viewModel.createPost(content, category, mode, images) {
                     composerOpen = false
-                    scope.launch { snackbar.showSnackbar("Đã đăng bài ẩn danh lên Campus Feed.") }
+                    scope.launch { snackbar.showSnackbar("Đã đăng bài ẩn danh lên Sân trường.") }
                 }
             }
         )
@@ -375,7 +423,7 @@ private fun CampusSettingsSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
-            Text("Riêng tư Campus", style = MaterialTheme.typography.headlineSmall)
+            Text("Riêng tư Sân trường", style = MaterialTheme.typography.headlineSmall)
             Text("Cài đặt được lưu trên backend. Tắt khám phá sẽ thu hồi các liên kết tác giả hiện có.", style = MaterialTheme.typography.bodySmall)
             if (state.settingsLoading) {
                 CircularProgressIndicator(Modifier.padding(16.dp).size(24.dp))
@@ -517,6 +565,10 @@ private fun CampusPostCard(
                 }
             }
 
+            post.community?.let { id ->
+                Spacer(Modifier.height(8.dp))
+                Text("Trong cộng đồng ${communityName(id)}", style = MaterialTheme.typography.labelMedium, color = PtitRed)
+            }
             if (post.content.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
                 Text(post.content, style = MaterialTheme.typography.bodyLarge)
@@ -579,7 +631,7 @@ private fun CampusPostCard(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Xóa bài viết?") },
-            text = { Text("Bài viết sẽ biến mất khỏi Campus Feed và ảnh kèm theo sẽ bị xóa khỏi dev storage.") },
+            text = { Text("Bài viết sẽ biến mất khỏi Sân trường và ảnh kèm theo sẽ bị xóa khỏi dev storage.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
@@ -1203,4 +1255,17 @@ private fun formatCampusTime(value: Long): String {
         delta < 7 * 86_400_000L -> "${delta / 86_400_000} ngày trước"
         else -> SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).format(Date(value))
     }
+}
+
+/** Tên hiển thị của cộng đồng (khớp backend campus/communities.ts). */
+private fun communityName(id: String): String = when (id) {
+    "code" -> "CLB Lập trình"
+    "study" -> "Ôn thi cuối kỳ"
+    "music" -> "Hội mê nhạc"
+    "cats" -> "Hội con sen"
+    "food" -> "Ăn gì quanh trường"
+    "sport" -> "Thể thao PTIT"
+    "game" -> "Game thủ"
+    "photo" -> "Nhiếp ảnh"
+    else -> id
 }

@@ -118,7 +118,9 @@ data class Profile(
     val questionMatch: Int? = null,
     val commonQuestions: Int = 0,
     /** Ảnh bìa (banner), URL tuyệt đối. */
-    val coverPhoto: String? = null
+    val coverPhoto: String? = null,
+    /** Câu hỏi hợp gu người này đã trả lời: (câu hỏi, câu trả lời). */
+    val answers: List<Pair<String, String>> = emptyList()
 ) {
     val displayGpa: String
         get() = if (showGpa) String.format(java.util.Locale.US, "%.2f", gpa) else "Tầng ${gpaTier.label}"

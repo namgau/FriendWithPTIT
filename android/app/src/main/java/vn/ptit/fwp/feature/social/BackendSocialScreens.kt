@@ -59,8 +59,7 @@ fun BackendDiscoverScreen(identity: PresentationIdentity, onOpenChat: (String) -
                 top != null -> key(top.id) { SwipeCard(
                     ranked = RankedProfile(top.displayProfile(), top.compatibility ?: 0, top.rankingReasons.orEmpty(), "FwP"),
                     me = null, busy = state.busy || state.loading, modifier = Modifier.fillMaxSize(),
-                    onLike = { vm.swipe(SwipeAction.LIKE) }, onPass = { vm.swipe(SwipeAction.PASS) }, onSuperLike = { vm.swipe(SwipeAction.SUPER_LIKE) },
-                    onOpenProfile = { onOpenProfile(top.id) }
+                    onLike = { vm.swipe(SwipeAction.LIKE) }, onPass = { vm.swipe(SwipeAction.PASS) }, onSuperLike = { vm.swipe(SwipeAction.SUPER_LIKE) }
                 ) }
                 state.loading -> CircularProgressIndicator()
                 state.offset < state.total -> TextButton(onClick = vm::more) { Text("Tải thêm hồ sơ") }

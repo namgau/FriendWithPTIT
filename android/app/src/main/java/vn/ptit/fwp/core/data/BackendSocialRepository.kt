@@ -103,7 +103,8 @@ internal fun SocialProfileDto.displayProfile(masked: Boolean = anonymous): Profi
         photoUrl = if (hidden) null else photos?.firstOrNull()?.let(::backendAbsoluteUrl),
         photos = if (hidden) emptyList() else photos.orEmpty().map(::backendAbsoluteUrl),
         questionMatch = if (hidden) null else questionMatch, commonQuestions = if (hidden) 0 else commonQuestions ?: 0,
-        coverPhoto = if (hidden) null else coverPhoto?.let(::backendAbsoluteUrl)
+        coverPhoto = if (hidden) null else coverPhoto?.let(::backendAbsoluteUrl),
+        answers = if (hidden) emptyList() else answers.orEmpty().map { it.question to it.answer }
     )
 }
 internal fun SocialMatchDto.displayProfile(): Profile = other.displayProfile(anonymous)

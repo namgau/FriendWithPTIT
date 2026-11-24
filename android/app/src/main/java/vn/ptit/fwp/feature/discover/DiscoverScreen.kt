@@ -432,6 +432,35 @@ internal fun SwipeCard(
                         Text(profile.bio, style = MaterialTheme.typography.bodyMedium)
                         Spacer(Modifier.height(14.dp))
                     }
+                    // Ảnh và câu trả lời xen kẽ, thứ tự ngẫu nhiên nhưng cố định theo hồ sơ.
+                    val blocks = remember(profile.id, profile.photos, profile.answers) {
+                        (profile.photos.drop(1).map { DetailBlock.Photo(it) } + profile.answers.take(5).map { DetailBlock.Answer(it.first, it.second) })
+                            .shuffled(kotlin.random.Random(profile.id.hashCode()))
+                    }
+                    blocks.forEach { block ->
+                        when (block) {
+                            is DetailBlock.Photo -> ProfilePhoto(
+                                profile = profile.copy(photoUrl = block.url),
+                                modifier = Modifier.fillMaxWidth().aspectRatio(0.8f),
+                                blurLevel = 0.45f,
+                                shape = RoundedCornerShape(12.dp),
+                                showAnonymousHint = false,
+                                showAnonBadge = false
+                            )
+                            is DetailBlock.Answer -> Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(Modifier.padding(16.dp)) {
+                                    Text(block.question, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(block.answer, style = MaterialTheme.typography.titleLarge)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
                     DetailTitle("Thông tin")
                     InfoLine("Trường", profile.school.substringBefore(" – ").ifBlank { profile.school })
                     InfoLine("Cơ sở", profile.campus)
@@ -456,35 +485,15 @@ internal fun SwipeCard(
                         }
                         Spacer(Modifier.height(14.dp))
                     }
-                    if (ranked.reasons.isNotEmpty()) {
-                        DetailTitle("Vì sao gợi ý")
-                        Text(ranked.reasons.joinToString(" · "), style = MaterialTheme.typography.bodySmall)
-                        Spacer(Modifier.height(14.dp))
-                    }
                     profile.questionMatch?.let { percent ->
-                        DetailTitle("Câu hỏi hợp gu")
                         Text(
-                            "Hợp $percent% trên ${profile.commonQuestions} câu cả hai cùng trả lời.",
-                            style = MaterialTheme.typography.bodySmall
+                            "Hợp gu $percent% trên ${profile.commonQuestions} câu hỏi cả hai cùng trả lời.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        Spacer(Modifier.height(14.dp))
-                    }
-                    profile.photos.drop(1).forEach { photo ->
-                        ProfilePhoto(
-                            profile = profile.copy(photoUrl = photo),
-                            modifier = Modifier.fillMaxWidth().aspectRatio(0.8f),
-                            blurLevel = 0.45f,
-                            shape = RoundedCornerShape(12.dp),
-                            showAnonymousHint = false,
-                            showAnonBadge = false
-                        )
-                        Spacer(Modifier.height(10.dp))
-                    }
-                    if (onOpenProfile != null) {
-                        androidx.compose.material3.TextButton(onClick = onOpenProfile) { Text("Mở trang hồ sơ") }
                     }
                     // Chừa chỗ cho 3 nút nổi.
-                    Spacer(Modifier.height(88.dp))
+                    Spacer(Modifier.height(96.dp))
                 }
             }
         }
@@ -498,6 +507,11 @@ internal fun SwipeCard(
             CircleAction(Icons.Rounded.Favorite, Color(0xFFD81B60), actionsEnabled, 60, onLike)
         }
     }
+}
+
+private sealed interface DetailBlock {
+    data class Photo(val url: String) : DetailBlock
+    data class Answer(val question: String, val answer: String) : DetailBlock
 }
 
 @Composable
