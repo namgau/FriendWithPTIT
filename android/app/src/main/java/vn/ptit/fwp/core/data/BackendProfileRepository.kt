@@ -17,6 +17,12 @@ class MissingBackendProfileException : IllegalStateException("Không tìm thấy
 class ProfileConflictException : IllegalStateException("Hồ sơ trên server khác với bản đang sửa. Hãy kiểm tra lại trước khi tiếp tục; bản sửa vẫn được giữ trên màn hình.")
 class ProfileSavePendingException : IllegalStateException("Chưa xác nhận được kết quả lưu. Bản sửa vẫn được giữ; hãy kiểm tra lại khi có mạng.")
 
+sealed interface CoverChange {
+    data object Keep : CoverChange
+    data object Remove : CoverChange
+    data class Upload(val image: String) : CoverChange
+}
+
 class BackendProfileRepository(private val sessions: BackendSessionManager) {
     private data class PendingSave(
         val session: BackendSession,
@@ -87,8 +93,13 @@ class BackendProfileRepository(private val sessions: BackendSessionManager) {
      * Đưa danh sách ảnh trên server về `keep` (đường dẫn đã có, giữ thứ tự) rồi tải thêm
      * `newImages` (data URL). Trả hồ sơ mới nhất để đọc lại profileComplete.
      */
-    suspend fun syncPhotos(keep: List<String>, newImages: List<String>): RemoteProfileDto =
+    suspend fun syncPhotos(keep: List<String>, newImages: List<String>, cover: CoverChange = CoverChange.Keep): RemoteProfileDto =
         sessions.withAuthLease { api, authorization, lease ->
+            when (cover) {
+                CoverChange.Keep -> Unit
+                CoverChange.Remove -> api.removeCover(authorization)
+                is CoverChange.Upload -> api.setCover(authorization, vn.ptit.fwp.core.data.remote.AddPhotoRequest(cover.image))
+            }
             var current = api.myProfile(authorization)
             sessions.requireCurrent(lease)
             for (index in current.photos.orEmpty().indices.reversed()) {
@@ -171,7 +182,8 @@ fun RemoteProfileDto.toLocalProfile(): Profile = Profile(
     verified = verified, isDemo = false, showGpa = showGpaPublic, showLocation = showLocationPublic,
     mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS),
     photoUrl = photos?.firstOrNull()?.let(::backendAbsoluteUrl),
-    photos = photos.orEmpty().map(::backendAbsoluteUrl)
+    photos = photos.orEmpty().map(::backendAbsoluteUrl),
+    coverPhoto = coverPhoto?.let(::backendAbsoluteUrl)
 )
 
 fun RemoteProfileDto.toDraft(email: String): MyProfileDraft = MyProfileDraft(
@@ -180,7 +192,8 @@ fun RemoteProfileDto.toDraft(email: String): MyProfileDraft = MyProfileDraft(
     alumni = alumni, gpa = gpa ?: 0.0, bio = bio, interests = interests.orEmpty().toSet(), avatarSeed = avatarSeed,
     showGpa = showGpaPublic, showLocation = showLocationPublic,
     mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS), email = email,
-    photos = photos.orEmpty()
+    photos = photos.orEmpty(),
+    coverPhoto = coverPhoto
 )
 
 fun MyProfileDraft.toBackendUpdate() = UpdateRemoteProfileRequest(

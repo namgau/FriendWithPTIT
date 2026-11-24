@@ -57,7 +57,8 @@ data class RemoteProfileDto(
     val showGpaPublic: Boolean = true,
     val showLocationPublic: Boolean = true,
     val updatedAt: String? = null,
-    val photos: List<String>? = null
+    val photos: List<String>? = null,
+    val coverPhoto: String? = null
 )
 
 data class UpdateRemoteProfileRequest(
@@ -227,6 +228,10 @@ interface CampusApi {
     suspend fun answerQuestion(@Header("Authorization") auth: String, @Path("id") id: String, @Body request: AnswerQuestionRequest): FunQuestionsDto
     @POST("profiles/me/photos")
     suspend fun addPhoto(@Header("Authorization") auth: String, @Body request: AddPhotoRequest): RemoteProfileDto
+    @PUT("profiles/me/cover")
+    suspend fun setCover(@Header("Authorization") auth: String, @Body request: AddPhotoRequest): RemoteProfileDto
+    @DELETE("profiles/me/cover")
+    suspend fun removeCover(@Header("Authorization") auth: String): RemoteProfileDto
     @DELETE("profiles/me/photos/{index}")
     suspend fun removePhoto(@Header("Authorization") auth: String, @Path("index") index: Int): RemoteProfileDto
     @GET("matches")

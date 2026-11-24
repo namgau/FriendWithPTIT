@@ -116,7 +116,9 @@ data class Profile(
     val photos: List<String> = listOfNotNull(photoUrl),
     /** % hợp gu từ câu hỏi ; null khi chưa đủ 3 câu chung. */
     val questionMatch: Int? = null,
-    val commonQuestions: Int = 0
+    val commonQuestions: Int = 0,
+    /** Ảnh bìa (banner), URL tuyệt đối. */
+    val coverPhoto: String? = null
 ) {
     val displayGpa: String
         get() = if (showGpa) String.format(java.util.Locale.US, "%.2f", gpa) else "Tầng ${gpaTier.label}"
@@ -257,7 +259,9 @@ data class MyProfileDraft(
     val email: String = "",
     val photoUrl: String? = null,
     /** Đường dẫn ảnh thô: `content://` mới chọn, hoặc đường dẫn/URL backend đã có. */
-    val photos: List<String> = listOfNotNull(photoUrl)
+    val photos: List<String> = listOfNotNull(photoUrl),
+    /** Ảnh bìa thô (`content://` mới chọn hoặc đường dẫn backend) ; null = không có. */
+    val coverPhoto: String? = null
 )
 
 /** Khóa = năm nhập học ; PTIT mới có tới khóa 2026. */

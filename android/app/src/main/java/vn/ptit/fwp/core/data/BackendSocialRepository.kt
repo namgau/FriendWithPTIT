@@ -102,7 +102,8 @@ internal fun SocialProfileDto.displayProfile(masked: Boolean = anonymous): Profi
         mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS),
         photoUrl = if (hidden) null else photos?.firstOrNull()?.let(::backendAbsoluteUrl),
         photos = if (hidden) emptyList() else photos.orEmpty().map(::backendAbsoluteUrl),
-        questionMatch = if (hidden) null else questionMatch, commonQuestions = if (hidden) 0 else commonQuestions ?: 0
+        questionMatch = if (hidden) null else questionMatch, commonQuestions = if (hidden) 0 else commonQuestions ?: 0,
+        coverPhoto = if (hidden) null else coverPhoto?.let(::backendAbsoluteUrl)
     )
 }
 internal fun SocialMatchDto.displayProfile(): Profile = other.displayProfile(anonymous)

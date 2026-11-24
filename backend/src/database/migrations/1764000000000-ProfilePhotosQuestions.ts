@@ -6,6 +6,7 @@ export class ProfilePhotosQuestions1764000000000 implements MigrationInterface {
 
   async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "photos" text array NOT NULL DEFAULT '{}'`);
+    await queryRunner.query(`ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "cover_photo" text`);
     await queryRunner.query(`CREATE TABLE IF NOT EXISTS "question_answers" (
       "id" uuid NOT NULL DEFAULT gen_random_uuid(),
       "user_id" character varying NOT NULL,
@@ -20,6 +21,7 @@ export class ProfilePhotosQuestions1764000000000 implements MigrationInterface {
 
   async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(`DROP TABLE IF EXISTS "question_answers"`);
+    await queryRunner.query(`ALTER TABLE "profiles" DROP COLUMN IF EXISTS "cover_photo"`);
     await queryRunner.query(`ALTER TABLE "profiles" DROP COLUMN IF EXISTS "photos"`);
   }
 }

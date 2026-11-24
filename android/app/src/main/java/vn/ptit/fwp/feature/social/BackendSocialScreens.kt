@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
 import vn.ptit.fwp.core.data.*
 import vn.ptit.fwp.core.design.*
@@ -142,6 +143,13 @@ fun BackendProfileDetailScreen(identity: PresentationIdentity, profileId: String
         if (dto != null) {
             val profile = dto.displayProfile()
             Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(18.dp)) {
+                profile.coverPhoto?.let { cover ->
+                    coil3.compose.AsyncImage(model = cover, contentDescription = "Ảnh bìa",
+                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
+                        modifier = Modifier.fillMaxWidth().height(140.dp)
+                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)))
+                    Spacer(Modifier.height(10.dp))
+                }
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(profile.photos.ifEmpty { listOf("") }) { photo ->
                         ProfilePhoto(profile.copy(photoUrl = photo.ifBlank { null }), modifier = Modifier.width(260.dp).height(330.dp), blurLevel = 0.86f,

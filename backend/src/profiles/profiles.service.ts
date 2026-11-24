@@ -65,12 +65,28 @@ export class ProfilesService {
     return toProfileView(saved);
   }
 
+  async setCover(userId: string, image: string | null): Promise<ProfileView> {
+    const profile = await this.ensureProfile(userId);
+    const previous = profile.coverPhoto;
+    if (image === null) {
+      profile.coverPhoto = null;
+    } else {
+      if (!this.media) throw new BadRequestException('Photo storage unavailable');
+      profile.coverPhoto = ProfilesService.PHOTO_PREFIX + (await this.media.saveDataUrl(image)).storageKey;
+    }
+    const saved = await this.profiles.save(profile);
+    if (previous?.startsWith(ProfilesService.PHOTO_PREFIX)) {
+      await this.media?.remove(previous.slice(ProfilesService.PHOTO_PREFIX.length)).catch(() => undefined);
+    }
+    return toProfileView(saved);
+  }
+
   /** Only files that are currently someone's profile photo are served without a signature. */
   async isPublicPhoto(file: string): Promise<boolean> {
     const path = ProfilesService.PHOTO_PREFIX + file;
     return (await this.profiles
       .createQueryBuilder('p')
-      .where(':path = ANY(p.photos)', { path })
+      .where(':path = ANY(p.photos) OR p.cover_photo = :path', { path })
       .getCount()) > 0;
   }
 

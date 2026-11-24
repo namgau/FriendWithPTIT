@@ -52,26 +52,26 @@ export function seedPhotos(key: string, _gender: string, seed: number): string[]
 }
 
 const SEED_PROFILES: SeedProfile[] = [
-  { key: 'p01', nickname: 'Mèo Lười', fullName: 'Nguyễn Minh Anh', age: 20, gender: 'FEMALE', faculty: 'Công nghệ Thông tin', major: 'Kỹ thuật Phần mềm', year: '2024', gpa: 3.72, bio: 'Mình mê code, cà phê và những buổi chiều nhiều nắng. Đang học cách làm một app tử tế và nuôi thêm một chú mèo nữa.', interests: ['Cà phê', 'Lập trình', 'Indie', 'Mèo', 'Xem phim'], seed: 1, mode: 'DATING' },
-  { key: 'p02', nickname: 'Huy Bóng Rổ', fullName: 'Trần Gia Huy', age: 21, gender: 'MALE', faculty: 'An toàn Thông tin', major: 'An toàn Thông tin', year: '2023', gpa: 3.41, bio: 'Chơi bóng rổ mỗi tối, thích tìm hiểu bảo mật và đi cà phê với bạn bè. Người mới quen sẽ thấy mình ít nói, quen rồi thì rất nhiều chuyện.', interests: ['Bóng rổ', 'Cà phê', 'Bảo mật', 'Du lịch'], seed: 2, mode: 'FRIENDS' },
-  { key: 'p03', nickname: 'Nắng Sớm', fullName: 'Lê Thảo Linh', age: 19, gender: 'FEMALE', faculty: 'Đa phương tiện', major: 'Thiết kế Đồ họa', year: '2025', gpa: 3.18, bio: 'Chụp ảnh, nghe nhạc và sưu tầm board game. Mình tin một cuộc trò chuyện hay bắt đầu từ một câu hỏi thật lòng.', interests: ['Chụp ảnh', 'Âm nhạc', 'Mèo', 'Board game'], seed: 3, mode: 'DATING' },
-  { key: 'p04', nickname: 'Long Guitar', fullName: 'Phạm Đức Long', age: 23, gender: 'MALE', faculty: 'Viễn thông', major: 'Kỹ thuật Viễn thông', year: '2021', gpa: 3.55, bio: 'Đã tốt nghiệp, đang làm về hạ tầng mạng. Cuối tuần thường chạy bộ ở Hồ Tây rồi ôm guitar đến tối.', interests: ['Chạy bộ', 'Guitar', 'Cà phê', 'Khởi nghiệp'], seed: 4, mode: 'STUDY', alumni: true },
-  { key: 'p05', nickname: 'Mai Sách', fullName: 'Hoàng Ngọc Mai', age: 20, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Marketing', year: '2024', gpa: 3.66, bio: 'Đọc sách, tập yoga và hay ghi chú mọi thứ. Mình thích những người có gu riêng nhưng vẫn biết lắng nghe.', interests: ['Sách', 'Cà phê', 'Yoga', 'Nhiếp ảnh'], seed: 5, mode: 'DATING' },
-  { key: 'p06', nickname: 'Nam Game', fullName: 'Đỗ Hoàng Nam', age: 22, gender: 'MALE', faculty: 'Công nghệ Thông tin', major: 'Hệ thống Thông tin', year: '2022', gpa: 2.98, bio: 'Game thủ cuối tuần, fan bóng đá và phim khoa học viễn tưởng. Đang tìm người cùng leo rank hoặc cùng xem phim.', interests: ['Game', 'Bóng đá', 'Xem phim', 'Công nghệ'], seed: 6, mode: 'FRIENDS', campus: CAMPUS_HCM },
-  { key: 'p07', nickname: 'Vy Vẽ', fullName: 'Nguyễn Khánh Vy', age: 21, gender: 'FEMALE', faculty: 'Đa phương tiện', major: 'Truyền thông Đa phương tiện', year: '2023', gpa: 3.83, bio: 'Vẽ linh tinh, nghe indie và đi triển lãm. Mình thích những buổi hẹn không cần kịch bản, chỉ cần thấy vui.', interests: ['Thiết kế', 'Vẽ', 'Indie', 'Mèo'], seed: 7, mode: 'DATING' },
-  { key: 'p08', nickname: 'Kiệt CTF', fullName: 'Bùi Tuấn Kiệt', age: 20, gender: 'MALE', faculty: 'An toàn Thông tin', major: 'An toàn Thông tin', year: '2024', gpa: 3.29, bio: 'Mê CTF, thích đọc write-up và uống cà phê sữa đá. Có thể ngồi im cả buổi nếu đang debug.', interests: ['CTF', 'Lập trình', 'Cà phê', 'Board game'], seed: 8, mode: 'STUDY' },
-  { key: 'p09', nickname: 'Chi Lang Thang', fullName: 'Phan Lan Chi', age: 22, gender: 'FEMALE', faculty: 'Viễn thông', major: 'Truyền thông và Mạng máy tính', year: '2022', gpa: 3.05, bio: 'Thích đi đây đó, chụp ảnh và nấu ăn cho bạn bè. Mình tin mỗi người đều có một câu chuyện hay để kể.', interests: ['Du lịch', 'Chụp ảnh', 'Âm nhạc', 'Nấu ăn'], seed: 9, mode: 'DATING' },
-  { key: 'p10', nickname: 'Dũng Bóng Rổ', fullName: 'Ngô Quang Dũng', age: 19, gender: 'MALE', faculty: 'Kinh tế', major: 'Thương mại Điện tử', year: '2025', gpa: 2.72, bio: 'Bóng rổ, game và đồ ăn ngon. Học không giỏi nhất nhưng luôn cố gắng. Rất vui được làm quen.', interests: ['Bóng rổ', 'Game', 'Cà phê', 'Xem phim'], seed: 10, mode: 'FRIENDS', campus: CAMPUS_HCM },
-  { key: 'p11', nickname: 'My Code', fullName: 'Trần Hà My', age: 20, gender: 'FEMALE', faculty: 'Công nghệ Thông tin', major: 'Khoa học Máy tính', year: '2024', gpa: 3.62, bio: 'Học AI, chạy bộ và đọc sách. Đang tìm một người bạn học nghiêm túc nhưng vẫn biết đùa.', interests: ['Lập trình', 'Sách', 'Cà phê', 'Chạy bộ'], seed: 11, mode: 'STUDY' },
-  { key: 'p12', nickname: 'Trâm Màu', fullName: 'Lý Bảo Trâm', age: 21, gender: 'FEMALE', faculty: 'Đa phương tiện', major: 'Thiết kế Đồ họa', year: '2023', gpa: 3.37, bio: 'Làm visual, vẽ minh họa và nuôi mèo. Thích board game và những cuộc trò chuyện dài không mục đích.', interests: ['Vẽ', 'Thiết kế', 'Board game', 'Mèo'], seed: 12, mode: 'DATING' },
-  { key: 'p13', nickname: 'Anh Bảo Mật', fullName: 'Vũ Việt Anh', age: 23, gender: 'MALE', faculty: 'An toàn Thông tin', major: 'An toàn Thông tin', year: '2021', gpa: 3.91, bio: 'Alumni, làm bảo mật. Thích guitar và cà phê, sẵn sàng chia sẻ kinh nghiệm nghề cho các bạn sinh viên.', interests: ['Bảo mật', 'CTF', 'Guitar', 'Cà phê'], seed: 13, mode: 'STUDY', alumni: true },
-  { key: 'p14', nickname: 'Trang Kpop', fullName: 'Đỗ Thu Trang', age: 19, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Kế toán', year: '2025', gpa: 2.45, bio: 'K-pop, nhảy và trà sữa. Học chưa giỏi nhưng đang cố mỗi ngày. Tìm bạn cùng đi nhảy hoặc đi ăn.', interests: ['K-pop', 'Nhảy', 'Chụp ảnh', 'Trà sữa'], seed: 14, mode: 'FRIENDS' },
-  { key: 'p15', nickname: 'Anh Chạy Bộ', fullName: 'Nguyễn Đức Anh', age: 22, gender: 'MALE', faculty: 'Viễn thông', major: 'Kỹ thuật Điện tử', year: '2022', gpa: 3.48, bio: 'Chạy bộ mỗi sáng, thích bóng đá và du lịch bụi. Đang học cách chụp ảnh đẹp hơn.', interests: ['Chạy bộ', 'Bóng đá', 'Du lịch', 'Nhiếp ảnh'], seed: 15, mode: 'DATING', campus: CAMPUS_HCM },
-  { key: 'p16', nickname: 'Thảo AI', fullName: 'Lê Phương Thảo', age: 20, gender: 'FEMALE', faculty: 'Công nghệ Thông tin', major: 'Khoa học Máy tính', year: '2024', gpa: 3.78, bio: 'Làm AI, đọc sách và uống cà phê. Thích thảo luận về mô hình học máy và những ý tưởng kỳ lạ.', interests: ['AI', 'Lập trình', 'Sách', 'Cà phê'], seed: 16, mode: 'STUDY' },
-  { key: 'p17', nickname: 'Bảo Phim', fullName: 'Trần Quốc Bảo', age: 21, gender: 'MALE', faculty: 'Đa phương tiện', major: 'Truyền thông Đa phương tiện', year: '2023', gpa: 2.89, bio: 'Mê phim, nghe nhạc và làm thiết kế. Có một danh sách phim dài hơn cả học kỳ, cần người xem cùng.', interests: ['Xem phim', 'Âm nhạc', 'Thiết kế', 'Board game'], seed: 17, mode: 'FRIENDS' },
-  { key: 'p18', nickname: 'Linh Nấu Ăn', fullName: 'Phạm Diệu Linh', age: 22, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Quản trị Kinh doanh', year: '2022', gpa: 3.24, bio: 'Yoga, nấu ăn và đi cà phê. Thích những buổi tối ấm áp với bạn bè và một nồi lẩu nhỏ.', interests: ['Yoga', 'Nấu ăn', 'Cà phê', 'Du lịch'], seed: 18, mode: 'DATING' },
-  { key: 'p19', nickname: 'Hiếu Code', fullName: 'Lâm Trung Hiếu', age: 20, gender: 'MALE', faculty: 'Công nghệ Thông tin', major: 'Kỹ thuật Phần mềm', year: '2024', gpa: 3.12, bio: 'Code, game và cà phê. Đang tập chạy bộ để bớt thức khuya. Rất thích làm quen với người mới.', interests: ['Lập trình', 'Game', 'Cà phê', 'Bóng rổ'], seed: 19, mode: 'FRIENDS' },
-  { key: 'p20', nickname: 'Ngọc Guitar', fullName: 'Nguyễn Bích Ngọc', age: 21, gender: 'FEMALE', faculty: 'Viễn thông', major: 'Kỹ thuật Viễn thông', year: '2023', gpa: 3.57, bio: 'Guitar, sách và chạy bộ. Mình thích những người kiên nhẫn và biết giữ lời hứa.', interests: ['Âm nhạc', 'Guitar', 'Sách', 'Chạy bộ'], seed: 20, mode: 'STUDY' },
+  { key: 'p01', nickname: 'Lộ I I', fullName: 'Nguyễn Minh Anh', age: 20, gender: 'FEMALE', faculty: 'Công nghệ Thông tin', major: 'Kỹ thuật Phần mềm', year: '2024', gpa: 3.72, bio: 'Mình mê code, cà phê và những buổi chiều nhiều nắng. Đang học cách làm một app tử tế và nuôi thêm một chú mèo nữa.', interests: ['Cà phê', 'Lập trình', 'Indie', 'Mèo', 'Xem phim'], seed: 1, mode: 'DATING' },
+  { key: 'p02', nickname: 'Bộ PC', fullName: 'Trần Gia Huy', age: 21, gender: 'MALE', faculty: 'An toàn Thông tin', major: 'An toàn Thông tin', year: '2023', gpa: 3.41, bio: 'Chơi bóng rổ mỗi tối, thích tìm hiểu bảo mật và đi cà phê với bạn bè. Người mới quen sẽ thấy mình ít nói, quen rồi thì rất nhiều chuyện.', interests: ['Bóng rổ', 'Cà phê', 'Bảo mật', 'Du lịch'], seed: 2, mode: 'FRIENDS' },
+  { key: 'p03', nickname: 'Bộ Bikini', fullName: 'Lê Thảo Linh', age: 19, gender: 'FEMALE', faculty: 'Đa phương tiện', major: 'Thiết kế Đồ họa', year: '2025', gpa: 3.18, bio: 'Chụp ảnh, nghe nhạc và sưu tầm board game. Mình tin một cuộc trò chuyện hay bắt đầu từ một câu hỏi thật lòng.', interests: ['Chụp ảnh', 'Âm nhạc', 'Mèo', 'Board game'], seed: 3, mode: 'DATING' },
+  { key: 'p04', nickname: 'Tộ Ti Ti', fullName: 'Phạm Đức Long', age: 23, gender: 'MALE', faculty: 'Viễn thông', major: 'Kỹ thuật Viễn thông', year: '2021', gpa: 3.55, bio: 'Đã tốt nghiệp, đang làm về hạ tầng mạng. Cuối tuần thường chạy bộ ở Hồ Tây rồi ôm guitar đến tối.', interests: ['Chạy bộ', 'Guitar', 'Cà phê', 'Khởi nghiệp'], seed: 4, mode: 'STUDY', alumni: true },
+  { key: 'p05', nickname: 'Hộ Ly Ly', fullName: 'Hoàng Ngọc Mai', age: 20, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Marketing', year: '2024', gpa: 3.66, bio: 'Đọc sách, tập yoga và hay ghi chú mọi thứ. Mình thích những người có gu riêng nhưng vẫn biết lắng nghe.', interests: ['Sách', 'Cà phê', 'Yoga', 'Nhiếp ảnh'], seed: 5, mode: 'DATING' },
+  { key: 'p06', nickname: 'Bộ Bàn Phím', fullName: 'Đỗ Hoàng Nam', age: 22, gender: 'MALE', faculty: 'Công nghệ Thông tin', major: 'Hệ thống Thông tin', year: '2022', gpa: 2.98, bio: 'Game thủ cuối tuần, fan bóng đá và phim khoa học viễn tưởng. Đang tìm người cùng leo rank hoặc cùng xem phim.', interests: ['Game', 'Bóng đá', 'Xem phim', 'Công nghệ'], seed: 6, mode: 'FRIENDS', campus: CAMPUS_HCM },
+  { key: 'p07', nickname: 'Lọ Mi Mi', fullName: 'Nguyễn Khánh Vy', age: 21, gender: 'FEMALE', faculty: 'Đa phương tiện', major: 'Truyền thông Đa phương tiện', year: '2023', gpa: 3.83, bio: 'Vẽ linh tinh, nghe indie và đi triển lãm. Mình thích những buổi hẹn không cần kịch bản, chỉ cần thấy vui.', interests: ['Thiết kế', 'Vẽ', 'Indie', 'Mèo'], seed: 7, mode: 'DATING' },
+  { key: 'p08', nickname: 'Gộ Hắc Cơ', fullName: 'Bùi Tuấn Kiệt', age: 20, gender: 'MALE', faculty: 'An toàn Thông tin', major: 'An toàn Thông tin', year: '2024', gpa: 3.29, bio: 'Mê CTF, thích đọc write-up và uống cà phê sữa đá. Có thể ngồi im cả buổi nếu đang debug.', interests: ['CTF', 'Lập trình', 'Cà phê', 'Board game'], seed: 8, mode: 'STUDY' },
+  { key: 'p09', nickname: 'Xộ Lang Thang', fullName: 'Phan Lan Chi', age: 22, gender: 'FEMALE', faculty: 'Viễn thông', major: 'Truyền thông và Mạng máy tính', year: '2022', gpa: 3.05, bio: 'Thích đi đây đó, chụp ảnh và nấu ăn cho bạn bè. Mình tin mỗi người đều có một câu chuyện hay để kể.', interests: ['Du lịch', 'Chụp ảnh', 'Âm nhạc', 'Nấu ăn'], seed: 9, mode: 'DATING' },
+  { key: 'p10', nickname: 'Rộ Bóng Rổ', fullName: 'Ngô Quang Dũng', age: 19, gender: 'MALE', faculty: 'Kinh tế', major: 'Thương mại Điện tử', year: '2025', gpa: 2.72, bio: 'Bóng rổ, game và đồ ăn ngon. Học không giỏi nhất nhưng luôn cố gắng. Rất vui được làm quen.', interests: ['Bóng rổ', 'Game', 'Cà phê', 'Xem phim'], seed: 10, mode: 'FRIENDS', campus: CAMPUS_HCM },
+  { key: 'p11', nickname: 'Cộ Code Code', fullName: 'Trần Hà My', age: 20, gender: 'FEMALE', faculty: 'Công nghệ Thông tin', major: 'Khoa học Máy tính', year: '2024', gpa: 3.62, bio: 'Học AI, chạy bộ và đọc sách. Đang tìm một người bạn học nghiêm túc nhưng vẫn biết đùa.', interests: ['Lập trình', 'Sách', 'Cà phê', 'Chạy bộ'], seed: 11, mode: 'STUDY' },
+  { key: 'p12', nickname: 'Bộ Màu Nước', fullName: 'Lý Bảo Trâm', age: 21, gender: 'FEMALE', faculty: 'Đa phương tiện', major: 'Thiết kế Đồ họa', year: '2023', gpa: 3.37, bio: 'Làm visual, vẽ minh họa và nuôi mèo. Thích board game và những cuộc trò chuyện dài không mục đích.', interests: ['Vẽ', 'Thiết kế', 'Board game', 'Mèo'], seed: 12, mode: 'DATING' },
+  { key: 'p13', nickname: 'Lộ Mật Khẩu', fullName: 'Vũ Việt Anh', age: 23, gender: 'MALE', faculty: 'An toàn Thông tin', major: 'An toàn Thông tin', year: '2021', gpa: 3.91, bio: 'Alumni, làm bảo mật. Thích guitar và cà phê, sẵn sàng chia sẻ kinh nghiệm nghề cho các bạn sinh viên.', interests: ['Bảo mật', 'CTF', 'Guitar', 'Cà phê'], seed: 13, mode: 'STUDY', alumni: true },
+  { key: 'p14', nickname: 'Tộ Kpop Pop', fullName: 'Đỗ Thu Trang', age: 19, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Kế toán', year: '2025', gpa: 2.45, bio: 'K-pop, nhảy và trà sữa. Học chưa giỏi nhưng đang cố mỗi ngày. Tìm bạn cùng đi nhảy hoặc đi ăn.', interests: ['K-pop', 'Nhảy', 'Chụp ảnh', 'Trà sữa'], seed: 14, mode: 'FRIENDS' },
+  { key: 'p15', nickname: 'Hộ Chạy Bộ', fullName: 'Nguyễn Đức Anh', age: 22, gender: 'MALE', faculty: 'Viễn thông', major: 'Kỹ thuật Điện tử', year: '2022', gpa: 3.48, bio: 'Chạy bộ mỗi sáng, thích bóng đá và du lịch bụi. Đang học cách chụp ảnh đẹp hơn.', interests: ['Chạy bộ', 'Bóng đá', 'Du lịch', 'Nhiếp ảnh'], seed: 15, mode: 'DATING', campus: CAMPUS_HCM },
+  { key: 'p16', nickname: 'Bộ GPU', fullName: 'Lê Phương Thảo', age: 20, gender: 'FEMALE', faculty: 'Công nghệ Thông tin', major: 'Khoa học Máy tính', year: '2024', gpa: 3.78, bio: 'Làm AI, đọc sách và uống cà phê. Thích thảo luận về mô hình học máy và những ý tưởng kỳ lạ.', interests: ['AI', 'Lập trình', 'Sách', 'Cà phê'], seed: 16, mode: 'STUDY' },
+  { key: 'p17', nickname: 'Bộ Phim Lậu', fullName: 'Trần Quốc Bảo', age: 21, gender: 'MALE', faculty: 'Đa phương tiện', major: 'Truyền thông Đa phương tiện', year: '2023', gpa: 2.89, bio: 'Mê phim, nghe nhạc và làm thiết kế. Có một danh sách phim dài hơn cả học kỳ, cần người xem cùng.', interests: ['Xem phim', 'Âm nhạc', 'Thiết kế', 'Board game'], seed: 17, mode: 'FRIENDS' },
+  { key: 'p18', nickname: 'Lộ Nồi Lẩu', fullName: 'Phạm Diệu Linh', age: 22, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Quản trị Kinh doanh', year: '2022', gpa: 3.24, bio: 'Yoga, nấu ăn và đi cà phê. Thích những buổi tối ấm áp với bạn bè và một nồi lẩu nhỏ.', interests: ['Yoga', 'Nấu ăn', 'Cà phê', 'Du lịch'], seed: 18, mode: 'DATING' },
+  { key: 'p19', nickname: 'Hộ Debug', fullName: 'Lâm Trung Hiếu', age: 20, gender: 'MALE', faculty: 'Công nghệ Thông tin', major: 'Kỹ thuật Phần mềm', year: '2024', gpa: 3.12, bio: 'Code, game và cà phê. Đang tập chạy bộ để bớt thức khuya. Rất thích làm quen với người mới.', interests: ['Lập trình', 'Game', 'Cà phê', 'Bóng rổ'], seed: 19, mode: 'FRIENDS' },
+  { key: 'p20', nickname: 'Ngộ Guitar Tar', fullName: 'Nguyễn Bích Ngọc', age: 21, gender: 'FEMALE', faculty: 'Viễn thông', major: 'Kỹ thuật Viễn thông', year: '2023', gpa: 3.57, bio: 'Guitar, sách và chạy bộ. Mình thích những người kiên nhẫn và biết giữ lời hứa.', interests: ['Âm nhạc', 'Guitar', 'Sách', 'Chạy bộ'], seed: 20, mode: 'STUDY' },
 ];
 
 @Injectable()
@@ -162,7 +162,7 @@ export class SeedService implements OnApplicationBootstrap {
         42,
         'AT_RISK',
         [
-          [demoUser.id, 'Chào Nắng Sớm, ảnh cậu chụp đẹp thật.', 4 * 1440],
+          [demoUser.id, 'Chào Bộ Bikini, ảnh cậu chụp đẹp thật.', 4 * 1440],
           [thaoLinh.userId, 'Cảm ơn cậu, mình chụp lúc đi cà phê.', 4 * 1440 - 30],
           [demoUser.id, 'Cậu thích chụp thể loại gì?', 4 * 1440 - 45],
           [thaoLinh.userId, 'Mình thích chân dung với cảnh đời thường.', 4 * 1440 - 60],
@@ -210,8 +210,9 @@ export class SeedService implements OnApplicationBootstrap {
       const cohort = /^[DK](\d\d)$/.exec(existing.academicYear);
       if (cohort) existing.academicYear = existing.academicYear.startsWith('K') ? '2024' : `20${cohort[1]}`;
       const oldSeedPhotos = (existing.photos ?? []).some((p) => p.includes('randomuser.me'));
-      if ((existing.photos ?? []).length && !oldSeedPhotos && !cohort) return existing;
+      if ((existing.photos ?? []).length && !oldSeedPhotos && !cohort && existing.coverPhoto) return existing;
       if (!(existing.photos ?? []).length || oldSeedPhotos) existing.photos = seedPhotos('demo', 'OTHER', 21);
+      existing.coverPhoto ??= 'https://picsum.photos/seed/fwp-demo-cover/1200/500';
       return this.profiles.save(existing);
     }
     const profile =
@@ -222,6 +223,7 @@ export class SeedService implements OnApplicationBootstrap {
       });
     Object.assign(profile, {
       photos: seedPhotos('demo', 'OTHER', 21),
+      coverPhoto: 'https://picsum.photos/seed/fwp-demo-cover/1200/500',
       nickname: 'Bạn',
       fullName: 'Sinh viên PTIT',
       age: 20,
@@ -277,6 +279,7 @@ export class SeedService implements OnApplicationBootstrap {
       interests: spec.interests,
       avatarSeed: spec.seed,
       photos: seedPhotos(spec.key, spec.gender, spec.seed),
+      coverPhoto: `https://picsum.photos/seed/fwp-${spec.key}-cover/1200/500`,
       mode: spec.mode,
       lat,
       lng,
@@ -354,14 +357,14 @@ export class SeedService implements OnApplicationBootstrap {
         userId: demo.id,
         kind: 'MATCH',
         title: 'Bạn có match mới',
-        body: 'Mèo Lười đã thích bạn. Ảnh vẫn được ẩn danh nhé!',
+        body: 'Lộ I I đã thích bạn. Ảnh vẫn được ẩn danh nhé!',
         read: false,
         createdAt: new Date(now - 2 * 86_400_000),
       }),
       this.notifications.create({
         userId: demo.id,
         kind: 'MESSAGE',
-        title: 'Tin nhắn mới từ Mèo Lười',
+        title: 'Tin nhắn mới từ Lộ I I',
         body: 'Cậu cũng thích indie à? Có nghe Vũ. chưa?',
         read: false,
         createdAt: new Date(now - 5 * 60_000),
@@ -390,8 +393,10 @@ export class SeedService implements OnApplicationBootstrap {
    * chấp nhận mọi đáp án trừ một, cho % hợp gu trải khoảng 60–100. `force` ghi đè (tài khoản seed).
    */
   private async ensureAnswers(userId: string, seed: number, force = false): Promise<void> {
-    if (await this.answers.count({ where: { userId } })) {
-      if (!force) return;
+    const stored = await this.answers.find({ where: { userId } });
+    if (stored.length) {
+      const current = stored.some((a) => QUESTION_BANK.some((q) => q.id === a.questionId));
+      if (current && !force) return;
       await this.answers.delete({ userId });
     }
     const rows = QUESTION_BANK.flatMap((q, i) => {

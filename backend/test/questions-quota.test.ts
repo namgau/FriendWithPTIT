@@ -6,10 +6,10 @@ import { startOfVietnamDay } from '../src/social/social.service';
 const a = (questionId: string, answer: number, acceptable: number[]) => ({ questionId, answer, acceptable });
 
 test('question match needs 3 common questions and is the geometric mean of both sides', () => {
-  assert.equal(questionMatch([a('x', 0, [0]), a('y', 0, [0])], [a('x', 0, [0]), a('y', 0, [0])]), null);
-  const mine = [a('x', 0, [0]), a('y', 1, [1]), a('z', 2, [2, 3])];
-  const theirs = [a('x', 0, [0, 1]), a('y', 0, [0, 1]), a('z', 3, [3]), a('w', 1, [1])];
-  // I accept 2/3 of their answers (x, z) ; they accept 2/3 of mine (x, y).
+  assert.equal(questionMatch([a('horror', 0, [0]), a('weird', 0, [0])], [a('horror', 0, [0]), a('weird', 0, [0])]), null);
+  const mine = [a('horror', 0, [0]), a('messy', 1, [1]), a('promises', 2, [2, 3])];
+  const theirs = [a('horror', 0, [0, 1]), a('messy', 0, [0, 1]), a('promises', 3, [3]), a('weird', 1, [1]), a('dropped', 0, [0])];
+  // I accept 2/3 (horror, promises) ; they accept 2/3 (horror, messy) ; unknown ids are ignored.
   assert.deepEqual(questionMatch(mine, theirs), { percent: 67, common: 3 });
 });
 

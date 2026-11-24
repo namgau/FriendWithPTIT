@@ -110,6 +110,10 @@ fun ProfileScreen(
                             )
                         )
                 )
+                me.coverPhoto?.let { cover ->
+                    AsyncImage(model = cover, contentDescription = "Ảnh bìa", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)))))
+                }
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
@@ -150,15 +154,13 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = Color.White
                             )
-                            Spacer(Modifier.width(5.dp))
-                            Text("${me.age}", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.8f))
                             if (me.verified) {
                                 Spacer(Modifier.width(4.dp))
                                 VerifiedMark()
                             }
                         }
                         Text(
-                            "${me.academicYear} · ${me.major}",
+                            "${vn.ptit.fwp.core.model.ageCohortLabel(me.age, me.academicYear)} · ${me.major}",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.82f)
                         )
@@ -237,13 +239,12 @@ fun ProfileScreen(
                         InfoRow(
                             Icons.Rounded.Star,
                             "GPA",
-                            if (me.showGpa) "${formatGpa(me.gpa)} / 4.00" else "Ẩn số cụ thể · Tầng ${me.gpaTier.label}"
+                            if (me.showGpa) "${formatGpa(me.gpa)} / 4.00" else "Đang ẩn"
                         )
                     }
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GpaBadge(me.gpaTier)
                     if (me.alumni) {
                         Surface(shape = RoundedCornerShape(8.dp), color = PtitRedSoft) {
                             Text(

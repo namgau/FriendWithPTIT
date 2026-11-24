@@ -12,7 +12,8 @@ data class SocialProfileDto(
     val compatibility: Int? = null, val likedAt: String? = null, val superLike: Boolean = false,
     val rankingReasons: List<String>? = null,
     // Nullable: Gson bỏ qua giá trị mặc định Kotlin khi server cũ không gửi trường.
-    val photos: List<String>? = null, val questionMatch: Int? = null, val commonQuestions: Int? = null
+    val photos: List<String>? = null, val questionMatch: Int? = null, val commonQuestions: Int? = null,
+    val coverPhoto: String? = null
 )
 data class SocialProfilesDto(val total: Int, val items: List<SocialProfileDto>)
 data class SocialSwipeRequest(val targetUserId: String, val action: String)

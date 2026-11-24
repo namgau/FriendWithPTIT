@@ -22,6 +22,7 @@ export interface ProfileView {
   interests: string[];
   avatarSeed: number;
   photos: string[];
+  coverPhoto: string | null;
   mode: string;
   distanceKm: number;
   verified: boolean;
@@ -55,6 +56,7 @@ export function toAnonymousProfileView(matchId: string): ProfileView {
     interests: [],
     avatarSeed: maskedAvatarSeed(matchId),
     photos: [],
+    coverPhoto: null,
     mode: '',
     distanceKm: 0,
     verified: false,
@@ -91,6 +93,7 @@ export function toProfileView(
     interests: profile.interests ?? [],
     avatarSeed: profile.avatarSeed,
     photos: profile.photos ?? [],
+    coverPhoto: profile.coverPhoto ?? null,
     mode: profile.mode,
     distanceKm: distance,
     verified: profile.verified,

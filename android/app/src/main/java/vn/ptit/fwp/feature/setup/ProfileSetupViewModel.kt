@@ -104,6 +104,8 @@ class ProfileSetupViewModel(
         copy(photos = next, photoUrl = next.firstOrNull())
     }
 
+    fun setCover(uri: String?) = updateDraft { copy(coverPhoto = uri) }
+
     fun removePhoto(index: Int) = updateDraft {
         val next = photos.filterIndexed { i, _ -> i != index }
         copy(photos = next, photoUrl = next.firstOrNull())
@@ -179,9 +181,16 @@ class ProfileSetupViewModel(
                     original = container.backendProfile.save(original ?: throw IllegalStateException("Hãy tải lại hồ sơ trước khi lưu."), draft)
                     val local = draft.photos.filter { it.startsWith("content://") || it.startsWith("file://") }
                     val images = local.map { vn.ptit.fwp.core.util.encodeImageDataUrl(container.appContext, it) }
-                    val saved = container.backendProfile.syncPhotos(keep = draft.photos - local.toSet(), newImages = images)
+                    val isLocal = { p: String -> p.startsWith("content://") || p.startsWith("file://") }
+                    val cover = when {
+                        draft.coverPhoto == null && original?.coverPhoto != null -> vn.ptit.fwp.core.data.CoverChange.Remove
+                        draft.coverPhoto != null && isLocal(draft.coverPhoto) ->
+                            vn.ptit.fwp.core.data.CoverChange.Upload(vn.ptit.fwp.core.util.encodeImageDataUrl(container.appContext, draft.coverPhoto))
+                        else -> vn.ptit.fwp.core.data.CoverChange.Keep
+                    }
+                    val saved = container.backendProfile.syncPhotos(keep = draft.photos - local.toSet(), newImages = images, cover = cover)
                     original = saved
-                    _state.update { it.copy(draft = it.draft.copy(photos = saved.photos.orEmpty())) }
+                    _state.update { it.copy(draft = it.draft.copy(photos = saved.photos.orEmpty(), coverPhoto = saved.coverPhoto)) }
                     if (!saved.profileComplete) throw IllegalStateException("Backend chưa xác nhận hồ sơ hoàn chỉnh. Hãy kiểm tra các trường bắt buộc và ảnh (ít nhất 3).")
                 } else {
                     container.repository.saveMyProfile(draft)

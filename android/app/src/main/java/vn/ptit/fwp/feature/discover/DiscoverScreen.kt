@@ -438,7 +438,7 @@ internal fun SwipeCard(
                     InfoLine("Khoa", profile.faculty)
                     InfoLine("Ngành", profile.major)
                     InfoLine("Tuổi - khóa", vn.ptit.fwp.core.model.ageCohortLabel(profile.age, profile.academicYear))
-                    if (showGpa) InfoLine("GPA", String.format(java.util.Locale.US, "%.2f · %s", profile.gpa, profile.gpaTier.label))
+                    if (showGpa) InfoLine("GPA", String.format(java.util.Locale.US, "%.2f", profile.gpa))
                     Spacer(Modifier.height(14.dp))
                     if (profile.interests.isNotEmpty()) {
                         DetailTitle("Sở thích")

@@ -103,6 +103,13 @@ fun ProfileSetupScreen(
         if (uris.isNotEmpty()) viewModel.addPhotos(uris.map { it.toString() })
     }
 
+    val coverPicker = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            viewModel.setCover(uri.toString())
+        }
+    }
+
     LaunchedEffect(state.done) {
         if (state.done) onDone()
     }
@@ -130,7 +137,8 @@ fun ProfileSetupScreen(
                 return@Column
             }
             when (state.step) {
-                0 -> BasicStep(state, viewModel, onPickPhoto = { photoPicker.launch(arrayOf("image/*")) })
+                0 -> BasicStep(state, viewModel, onPickPhoto = { photoPicker.launch(arrayOf("image/*")) },
+                    onPickCover = { coverPicker.launch(arrayOf("image/*")) })
                 1 -> {
                     AcademicStep(state, viewModel, gpaText) { value ->
                         gpaText = value
@@ -191,13 +199,51 @@ fun ProfileSetupScreen(
 private fun BasicStep(
     state: SetupUiState,
     viewModel: ProfileSetupViewModel,
-    onPickPhoto: () -> Unit
+    onPickPhoto: () -> Unit,
+    onPickCover: () -> Unit
 ) {
     SectionHeader(
         title = "Bạn xuất hiện thế nào?",
         subtitle = "Nickname và vài dòng giới thiệu là thứ đầu tiên người khác thấy."
     )
     Spacer(Modifier.height(18.dp))
+    Text("Ảnh bìa", style = MaterialTheme.typography.titleSmall)
+    Text("Ảnh ngang hiện ở đầu trang hồ sơ (không bắt buộc).", style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Spacer(Modifier.height(8.dp))
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .aspectRatio(2.4f)
+            .clip(RoundedCornerShape(12.dp))
+            .background(PtitRedSoft)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(12.dp))
+            .clickable(onClick = onPickCover),
+        contentAlignment = Alignment.Center
+    ) {
+        val cover = state.draft.coverPhoto
+        if (cover != null) {
+            AsyncImage(
+                model = vn.ptit.fwp.core.data.remote.backendAbsoluteUrl(cover),
+                contentDescription = "Ảnh bìa",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+            Box(
+                Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(6.dp)
+                    .size(26.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .clickable { viewModel.setCover(null) },
+                contentAlignment = Alignment.Center
+            ) { Icon(Icons.Rounded.Close, "Xóa ảnh bìa", tint = Color.White, modifier = Modifier.size(16.dp)) }
+        } else {
+            Icon(Icons.Rounded.AddAPhoto, "Thêm ảnh bìa", tint = PtitRed)
+        }
+    }
+    Spacer(Modifier.height(16.dp))
     Text(
         "Ảnh của bạn (${state.draft.photos.size}/$MAX_PROFILE_PHOTOS)",
         style = MaterialTheme.typography.titleSmall

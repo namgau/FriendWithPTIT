@@ -46,6 +46,16 @@ export class ProfilesController {
     return this.profiles.addPhoto(user.userId, dto.image);
   }
 
+  @Put('me/cover')
+  setCover(@CurrentUser() user: RequestUser, @Body() dto: AddPhotoDto) {
+    return this.profiles.setCover(user.userId, dto.image);
+  }
+
+  @Delete('me/cover')
+  removeCover(@CurrentUser() user: RequestUser) {
+    return this.profiles.setCover(user.userId, null);
+  }
+
   @Delete('me/photos/:index')
   removePhoto(@CurrentUser() user: RequestUser, @Param('index', ParseIntPipe) index: number) {
     return this.profiles.removePhoto(user.userId, index);

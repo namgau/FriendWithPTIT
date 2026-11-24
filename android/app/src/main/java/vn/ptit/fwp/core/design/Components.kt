@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -338,7 +339,7 @@ fun GpaBadge(
     ) {
         Text(
             text = when {
-                gpa != null && gpa > 0 -> "GPA " + String.format(java.util.Locale.US, "%.2f", gpa) + " · " + tier.label
+                gpa != null && gpa > 0 -> "GPA " + String.format(java.util.Locale.US, "%.2f", gpa)
                 compact -> tier.label
                 else -> "Tầng ${tier.label}"
             },
@@ -504,6 +505,8 @@ fun FwpTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Màn ngoài Scaffold chính bị thanh trạng thái đè ; nếu cha đã đệm thì inset đã bị tiêu thụ, không đệm đôi.
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

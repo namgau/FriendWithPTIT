@@ -108,6 +108,10 @@ export class Profile {
   @Column({ type: 'text', array: true, default: () => "'{}'" })
   photos: string[];
 
+  /** Ảnh bìa (banner) ; cùng quy ước đường dẫn với photos. */
+  @Column({ name: 'cover_photo', type: 'text', nullable: true })
+  coverPhoto: string | null;
+
   @Column({ length: 16, default: 'FRIENDS' })
   mode: ConnectionMode;
 

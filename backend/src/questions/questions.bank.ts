@@ -4,20 +4,26 @@ export interface FunQuestion {
   options: string[];
 }
 
-/** Câu hỏi vui kiểu OkCupid ; id cố định vì câu trả lời lưu theo id. */
+/**
+ * Câu hỏi ghép đôi dịch từ các câu hỏi công khai nổi tiếng của OkCupid (OkTrends, "The best
+ * questions for a first date", 2011, và các câu hỏi match phổ biến). id cố định vì câu trả lời lưu theo id.
+ */
 export const QUESTION_BANK: FunQuestion[] = [
-  { id: 'sunday', text: 'Sáng chủ nhật lý tưởng của bạn là…', options: ['Ngủ tới trưa', 'Cà phê một mình', 'Đi chơi với bạn bè', 'Chạy bộ / tập thể thao'] },
-  { id: 'milktea', text: 'Trà sữa của bạn?', options: ['Full topping', 'Ít topping', 'Không topping', 'Không uống trà sữa'] },
-  { id: 'deadline', text: 'Deadline còn 1 ngày, bạn đang…', options: ['Xong từ tuần trước', 'Đang làm nốt', 'Mới bắt đầu', 'Deadline là gì?'] },
-  { id: 'pet', text: 'Mèo hay chó?', options: ['Mèo', 'Chó', 'Cả hai', 'Không nuôi gì'] },
-  { id: 'firstdate', text: 'Buổi gặp đầu tiên nên là…', options: ['Cà phê', 'Đi dạo', 'Xem phim', 'Học nhóm ở thư viện'] },
-  { id: 'contact', text: 'Nhắn tin hay gọi điện?', options: ['Nhắn tin', 'Gọi điện', 'Voice message', 'Gặp luôn cho nhanh'] },
-  { id: 'owl', text: 'Bạn là cú đêm hay chim sớm?', options: ['Cú đêm', 'Chim sớm', 'Tùy hôm'] },
-  { id: 'travel', text: 'Đi du lịch kiểu nào?', options: ['Lên lịch từng giờ', 'Đi đâu tính đó', 'Ở nhà là nhất'] },
-  { id: 'bill', text: 'Đi ăn cùng nhau thì trả tiền thế nào?', options: ['Chia đôi', 'Ai rủ người đó trả', 'Thay phiên nhau', 'Tùy hôm'] },
-  { id: 'unread', text: 'Số tin nhắn chưa đọc trong máy bạn?', options: ['0', 'Dưới 10', 'Vài chục', 'Hàng trăm'] },
-  { id: 'latefood', text: 'Đói lúc 11 giờ đêm, bạn chọn…', options: ['Bánh mì', 'Mì cay', 'Xôi', 'Nhịn cho đẹp dáng'] },
-  { id: 'zodiac', text: 'Bạn có tin cung hoàng đạo không?', options: ['Tin', 'Đọc cho vui', 'Không tin'] },
+  { id: 'horror', text: 'Bạn có thích phim kinh dị không?', options: ['Có', 'Không'] },
+  { id: 'travel_alone', text: 'Bạn đã từng đi du lịch một mình ở nước khác chưa?', options: ['Rồi', 'Chưa'] },
+  { id: 'sailboat', text: 'Bỏ hết mọi thứ để ra sống trên một chiếc thuyền buồm, nghe có vui không?', options: ['Vui chứ', 'Không đâu'] },
+  { id: 'sun_earth', text: 'Cái nào lớn hơn: Mặt Trời hay Trái Đất?', options: ['Mặt Trời', 'Trái Đất'] },
+  { id: 'grammar', text: 'Lỗi chính tả, ngữ pháp có làm bạn khó chịu không?', options: ['Rất khó chịu', 'Hơi hơi', 'Không để ý'] },
+  { id: 'messy', text: 'Bạn bừa bộn cỡ nào?', options: ['Rất gọn gàng', 'Bình thường', 'Khá bừa', 'Bãi chiến trường'] },
+  { id: 'promises', text: 'Bạn giữ lời hứa thường xuyên tới đâu?', options: ['Luôn luôn', 'Phần lớn', 'Thỉnh thoảng', 'Hiếm khi'] },
+  { id: 'astrology', text: 'Cung hoàng đạo có quan trọng khi chọn người yêu không?', options: ['Có', 'Đọc cho vui', 'Không'] },
+  { id: 'jealousy', text: 'Ghen một chút có lành mạnh trong tình yêu không?', options: ['Có', 'Không'] },
+  { id: 'weird', text: 'Bạn muốn mình bình thường hay kỳ quặc?', options: ['Bình thường', 'Kỳ quặc'] },
+  { id: 'politics', text: 'Bạn có thích bàn chuyện thời sự, chính trị không?', options: ['Rất thích', 'Thỉnh thoảng', 'Tránh xa'] },
+  { id: 'smoke', text: 'Bạn có hút thuốc không?', options: ['Không', 'Thỉnh thoảng', 'Có'] },
+  { id: 'children', text: 'Sau này bạn có muốn có con không?', options: ['Có', 'Chưa chắc', 'Không'] },
+  { id: 'first_date_bill', text: 'Buổi hẹn đầu, ai nên trả tiền?', options: ['Người rủ', 'Chia đôi', 'Ai cũng được'] },
+  { id: 'reply_time', text: 'Người ấy trả lời tin nhắn sau bao lâu thì bạn thấy ổn?', options: ['Vài phút', 'Vài giờ', 'Trong ngày', 'Lúc nào cũng được'] },
 ];
 
 export const QUESTION_BY_ID = new Map(QUESTION_BANK.map((q) => [q.id, q]));
@@ -39,8 +45,9 @@ export function questionMatch(
   mine: AnswerLike[],
   theirs: AnswerLike[],
 ): { percent: number; common: number } | null {
-  const other = new Map(theirs.map((a) => [a.questionId, a]));
-  const pairs = mine.flatMap((a) => (other.has(a.questionId) ? [[a, other.get(a.questionId)!] as const] : []));
+  // Chỉ tính câu còn trong bộ hiện tại (câu trả lời cho câu đã bỏ vẫn nằm trong DB).
+  const other = new Map(theirs.filter((a) => QUESTION_BY_ID.has(a.questionId)).map((a) => [a.questionId, a]));
+  const pairs = mine.filter((a) => QUESTION_BY_ID.has(a.questionId)).flatMap((a) => (other.has(a.questionId) ? [[a, other.get(a.questionId)!] as const] : []));
   if (pairs.length < MIN_COMMON_QUESTIONS) return null;
   const okMine = pairs.filter(([m, t]) => m.acceptable.includes(t.answer)).length / pairs.length;
   const okTheirs = pairs.filter(([m, t]) => t.acceptable.includes(m.answer)).length / pairs.length;
