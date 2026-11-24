@@ -1,9 +1,13 @@
+import { CommunitiesController } from './communities.controller';
+import { CommunitiesService } from './communities.service';
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import {
   Block,
   CampusAuthor,
   CampusCommentReport,
+  CampusCommunityMember,
+  CampusCommunity,
   CampusPost,
   CampusPostBookmark,
   CampusPostComment,
@@ -37,11 +41,14 @@ import { CampusStore } from './campus.store';
       CampusCommentReport,
       Profile,
       Block,
+      CampusCommunityMember,
+      CampusCommunity,
     ]),
     SocialModule,
   ],
-  controllers: [CampusController, CampusModerationController, CampusMediaController],
+  controllers: [CampusController, CampusModerationController, CampusMediaController, CommunitiesController],
   providers: [
+    CommunitiesService,
     CampusService,
     CampusStore,
     CampusMediaStorage,

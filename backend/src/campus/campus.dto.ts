@@ -72,6 +72,11 @@ export class CreateCampusPostDto {
   anonymousMode: (typeof CAMPUS_ANONYMOUS_MODES)[number];
 
   @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  community?: string;
+
+  @IsOptional()
   @IsArray()
   @ArrayMaxSize(4)
   @ValidateNested({ each: true })
@@ -87,6 +92,11 @@ export class ListCampusQueryDto {
   @IsOptional()
   @IsIn(CAMPUS_CATEGORIES)
   category?: (typeof CAMPUS_CATEGORIES)[number];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(40)
+  community?: string;
 
   @IsOptional()
   @IsString()

@@ -5,7 +5,7 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 internal fun campusError(error: Throwable): String = when {
-    error is IllegalStateException -> error.message ?: "Campus Feed chưa được cấu hình."
+    error is IllegalStateException -> error.message ?: "Trang chủ chưa được cấu hình."
     error is HttpException -> when (error.code()) {
         400 -> "Dữ liệu chưa hợp lệ. Hãy kiểm tra nội dung và ảnh."
         401 -> "Phiên backend không hợp lệ. Hãy đăng nhập lại."
@@ -20,7 +20,7 @@ internal fun campusError(error: Throwable): String = when {
         }
         else -> "Backend trả lỗi ${error.code()}. Vui lòng thử lại."
     }
-    else -> "Không kết nối được Campus Feed. Kiểm tra backend và FWP_BACKEND_BASE_URL."
+    else -> "Không kết nối được Trang chủ. Kiểm tra backend và FWP_BACKEND_BASE_URL."
 }
 
 internal fun retryAfterSeconds(value: String?, nowMillis: Long = System.currentTimeMillis()): Long? {

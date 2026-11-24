@@ -10,11 +10,23 @@ data class SocialProfileDto(
     val mode: String = "", val distanceKm: Double = 0.0, val verified: Boolean = false,
     val showGpaPublic: Boolean = false, val showLocationPublic: Boolean = false,
     val compatibility: Int? = null, val likedAt: String? = null, val superLike: Boolean = false,
-    val rankingReasons: List<String>? = null
+    val rankingReasons: List<String>? = null,
+    // Nullable: Gson bỏ qua giá trị mặc định Kotlin khi server cũ không gửi trường.
+    val photos: List<String>? = null, val questionMatch: Int? = null, val commonQuestions: Int? = null,
+    val coverPhoto: String? = null,
+    val answers: List<ProfileAnswerDto>? = null,
+    val about: Map<String, String>? = null, val languages: List<String>? = null
 )
+data class ProfileAnswerDto(val question: String, val answer: String)
 data class SocialProfilesDto(val total: Int, val items: List<SocialProfileDto>)
 data class SocialSwipeRequest(val targetUserId: String, val action: String)
-data class SocialSwipeDto(val matched: Boolean, val match: SocialMatchDto? = null)
+data class SocialSwipeDto(val matched: Boolean, val match: SocialMatchDto? = null, val remainingToday: Int? = null)
+data class SwipeQuotaDto(val limit: Int, val used: Int, val remaining: Int, val unlimited: Boolean = false)
+data class FunQuestionDto(val id: String, val text: String, val options: List<String>,
+    val myAnswer: Int? = null, val myAcceptable: List<Int>? = null, val myText: String? = null)
+data class FunQuestionsDto(val answered: Int, val items: List<FunQuestionDto>)
+data class AnswerQuestionRequest(val answer: Int, val acceptable: List<Int>, val text: String? = null)
+data class AddPhotoRequest(val image: String)
 data class SocialMatchesDto(val total: Int, val items: List<SocialMatchDto>)
 data class SocialMatchDto(
     val id: String, val anonymous: Boolean, val other: SocialProfileDto,

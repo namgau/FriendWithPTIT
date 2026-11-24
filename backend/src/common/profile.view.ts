@@ -21,11 +21,18 @@ export interface ProfileView {
   bio: string;
   interests: string[];
   avatarSeed: number;
+  photos: string[];
+  coverPhoto: string | null;
+  about: Record<string, string>;
+  languages: string[];
   mode: string;
   distanceKm: number;
   verified: boolean;
   profileComplete: boolean;
   compatibility?: number;
+  /** % hợp câu hỏi vui (null khi < 3 câu chung). */
+  questionMatch?: number | null;
+  commonQuestions?: number;
   showGpaPublic: boolean;
   showLocationPublic: boolean;
 }
@@ -50,6 +57,10 @@ export function toAnonymousProfileView(matchId: string): ProfileView {
     bio: '',
     interests: [],
     avatarSeed: maskedAvatarSeed(matchId),
+    photos: [],
+    coverPhoto: null,
+    about: {},
+    languages: [],
     mode: '',
     distanceKm: 0,
     verified: false,
@@ -85,6 +96,10 @@ export function toProfileView(
     bio: profile.bio,
     interests: profile.interests ?? [],
     avatarSeed: profile.avatarSeed,
+    photos: profile.photos ?? [],
+    coverPhoto: profile.coverPhoto ?? null,
+    about: profile.about ?? {},
+    languages: profile.languages ?? [],
     mode: profile.mode,
     distanceKm: distance,
     verified: profile.verified,

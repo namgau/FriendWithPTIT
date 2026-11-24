@@ -1,5 +1,7 @@
 package vn.ptit.fwp.feature.discover
 
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -120,7 +122,9 @@ fun DiscoverScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FwpLogo(size = 38.dp, withWordmark = true, modifier = Modifier.weight(1f))
-                DemoModeBadge(onClick = { }, modifier = Modifier.padding(end = 4.dp))
+                IconButton(onClick = viewModel::undo, enabled = state.canUndo) {
+                    Icon(Icons.Rounded.Undo, contentDescription = "Hoàn tác")
+                }
                 BadgedBox(
                     badge = {
                         if (unreadNotifications > 0) {
@@ -188,7 +192,7 @@ fun DiscoverScreen(
                 Modifier
                     .weight(1f)
                     .fillMaxWidth()
-                    .padding(horizontal = 18.dp)
+                    .padding(start = 14.dp, end = 14.dp, bottom = 12.dp)
             ) {
                 if (state.loading) {
                     androidx.compose.material3.CircularProgressIndicator(
@@ -219,7 +223,7 @@ fun DiscoverScreen(
                             )
                         } else {
                             Surface(
-                                shape = RoundedCornerShape(28.dp),
+                                shape = RoundedCornerShape(20.dp),
                                 color = MaterialTheme.colorScheme.surfaceVariant,
                                 modifier = Modifier
                                     .fillMaxSize()
@@ -234,58 +238,13 @@ fun DiscoverScreen(
                 }
             }
 
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 34.dp, vertical = 12.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                CircleAction(
-                    icon = Icons.Rounded.Undo,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    enabled = state.canUndo,
-                    size = 50,
-                    onClick = viewModel::undo
-                )
-                CircleAction(
-                    icon = Icons.Rounded.Close,
-                    tint = PtitRed,
-                    enabled = state.deck.isNotEmpty() && !state.busy,
-                    size = 64,
-                    onClick = { viewModel.swipe(SwipeAction.PASS) }
-                )
-                CircleAction(
-                    icon = Icons.Rounded.Star,
-                    tint = Color(0xFF1565C0),
-                    enabled = state.deck.isNotEmpty() && !state.busy,
-                    size = 52,
-                    onClick = { viewModel.swipe(SwipeAction.SUPER_LIKE) }
-                )
-                CircleAction(
-                    icon = Icons.Rounded.Favorite,
-                    tint = Color(0xFFD81B60),
-                    enabled = state.deck.isNotEmpty() && !state.busy,
-                    size = 64,
-                    onClick = { viewModel.swipe(SwipeAction.LIKE) }
-                )
-            }
-            Text(
-                "Vuốt trái để bỏ qua · Vuốt phải để thích",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = 10.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
         }
 
         SnackbarHost(
             hostState = snackbar,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(horizontal = 16.dp, vertical = 112.dp)
+                .padding(horizontal = 16.dp, vertical = 96.dp)
         )
 
         celebration?.let { data ->
@@ -322,25 +281,52 @@ fun DiscoverScreen(
     }
 }
 
+/**
+ * Thẻ hồ sơ: ảnh bìa chiếm trọn thẻ ; kéo lên trong thẻ để xem tiểu sử, thông tin, sở thích
+ * và các ảnh còn lại. Ba nút tròn (bỏ qua / super like / thích) nổi cố định ở đáy thẻ.
+ */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
 @Composable
 internal fun SwipeCard(
     ranked: RankedProfile,
     me: Profile?,
     busy: Boolean,
     modifier: Modifier = Modifier,
+    actionsEnabled: Boolean = !busy,
     onLike: () -> Unit,
     onPass: () -> Unit,
-    onSuperLike: () -> Unit
+    onSuperLike: () -> Unit,
+    onOpenProfile: (() -> Unit)? = null
 ) {
     val profile = ranked.profile
-    val offsetX = remember(profile.id) { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    val offsetX = remember(profile.id) { Animatable(0f) }
+    val offsetY = remember(profile.id) { Animatable(0f) }
+    // Thẻ mới phóng nhẹ từ phía sau lên (lò xo), như thẻ dưới cùng của chồng thẻ.
+    val enter = remember(profile.id) { Animatable(0.93f) }
+    LaunchedEffect(profile.id) { enter.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 300f)) }
+    /** Nút bấm cũng cho thẻ bay ra theo hướng như khi kéo. */
+    fun fly(dx: Float, dy: Float, then: () -> Unit) {
+        scope.launch {
+            launch { offsetY.animateTo(dy, tween(260)) }
+            offsetX.animateTo(dx, tween(260))
+            then()
+            offsetX.snapTo(0f); offsetY.snapTo(0f)
+        }
+    }
+    val scroll = rememberScrollState()
     val shared = me?.interests?.intersect(profile.interests.toSet())?.toList().orEmpty()
+    val showGpa = profile.isDemo || profile.showGpa
+    val shape = RoundedCornerShape(20.dp)
 
-    Box(
+    androidx.compose.foundation.layout.BoxWithConstraints(
         modifier = modifier
-            .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-            .graphicsLayer { rotationZ = offsetX.value / 55f }
+            .offset { IntOffset(offsetX.value.roundToInt(), offsetY.value.roundToInt()) }
+            .graphicsLayer {
+                rotationZ = offsetX.value / 55f
+                scaleX = enter.value; scaleY = enter.value
+                alpha = ((enter.value - 0.93f) / 0.07f).coerceIn(0.4f, 1f)
+            }
             .pointerInput(profile.id, busy) {
                 if (busy) return@pointerInput
                 detectHorizontalDragGestures(
@@ -369,159 +355,226 @@ internal fun SwipeCard(
                 )
             }
     ) {
-        Surface(
-            shape = RoundedCornerShape(30.dp),
-            shadowElevation = 18.dp,
-            modifier = Modifier.fillMaxSize()
-        ) {
-            Box(Modifier.fillMaxSize()) {
-                ProfilePhoto(
-                    profile = profile,
-                    modifier = Modifier.fillMaxSize(),
-                    blurLevel = 0.82f,
-                    revealed = false,
-                    shape = RoundedCornerShape(30.dp),
-                    showAnonymousHint = false
-                )
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                0f to Color.Black.copy(alpha = 0.18f),
-                                0.48f to Color.Transparent,
-                                1f to Color.Black.copy(alpha = 0.86f)
-                            )
-                        )
-                )
-                Row(
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .padding(14.dp),
-                    horizontalArrangement = Arrangement.spacedBy(7.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = RoundedCornerShape(50),
-                        color = modeColor(profile.mode)
-                    ) {
-                        Text(
-                            profile.mode.label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                        )
-                    }
-                    if (profile.alumni) {
-                        Surface(shape = RoundedCornerShape(50), color = PtitGold) {
-                            Text(
-                                "Alumni",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = Color(0xFF4A3800),
-                                modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
-                            )
-                        }
-                    }
-                }
-                if (profile.isDemo) CompatibilityOrb(
-                    score = ranked.score,
-                    orbSize = 84.dp,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                ) else Surface(
-                    shape = RoundedCornerShape(18.dp), color = PtitRed,
-                    modifier = Modifier.align(Alignment.TopEnd).padding(12.dp)
-                ) { Text("${ranked.score}% · Backend", color = Color.White, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(12.dp)) }
-
-                Column(
-                    Modifier
-                        .align(Alignment.BottomStart)
-                        .fillMaxWidth()
-                        .padding(20.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            profile.nickname,
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = Color.White,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Spacer(Modifier.width(6.dp))
-                        Text(
-                            "${profile.age}",
-                            style = MaterialTheme.typography.titleLarge,
-                            color = Color.White.copy(alpha = 0.85f)
-                        )
-                        if (profile.verified) {
-                            Spacer(Modifier.width(6.dp))
-                            VerifiedMark()
-                        }
-                    }
-                    Spacer(Modifier.height(5.dp))
-                    Text(
-                        "${profile.academicYear} · ${profile.major.ifBlank { profile.faculty }}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color.White.copy(alpha = 0.82f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+        val cardHeight = maxHeight
+        Surface(shape = shape, shadowElevation = 12.dp, modifier = Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize().verticalScroll(scroll)) {
+                Box(Modifier.fillMaxWidth().height(cardHeight)) {
+                    ProfilePhoto(
+                        profile = profile,
+                        modifier = Modifier.fillMaxSize(),
+                        blurLevel = 0.45f,
+                        revealed = false,
+                        shape = RoundedCornerShape(0.dp),
+                        showAnonymousHint = false,
+                        showAnonBadge = false
                     )
-                    Spacer(Modifier.height(7.dp))
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        if (profile.isDemo || profile.showGpa) GpaBadge(profile.gpaTier, compact = true)
-                        Spacer(Modifier.width(7.dp))
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .background(
+                                Brush.verticalGradient(
+                                    0f to Color.Black.copy(alpha = 0.18f),
+                                    0.45f to Color.Transparent,
+                                    1f to Color.Black.copy(alpha = 0.88f)
+                                )
+                            )
+                    )
+                    val headerAlpha = (1f - scroll.value / 360f).coerceIn(0f, 1f)
+                    Row(
+                        Modifier.align(Alignment.TopStart).padding(12.dp).graphicsLayer { alpha = headerAlpha },
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Pill(profile.mode.label, modeColor(profile.mode), Color.White)
+                        if (profile.alumni) Pill("Alumni", PtitGold, Color(0xFF4A3800))
+                    }
+                    CompatibilityOrb(
+                        score = ranked.score,
+                        orbSize = 78.dp,
+                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).graphicsLayer { alpha = headerAlpha }
+                    )
+                    Column(
+                        Modifier
+                            .align(Alignment.BottomStart)
+                            .fillMaxWidth()
+                            .padding(start = 18.dp, end = 18.dp, bottom = 96.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                profile.nickname,
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = Color.White,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            if (profile.verified) {
+                                Spacer(Modifier.width(6.dp))
+                                VerifiedMark()
+                            }
+                        }
+                        Spacer(Modifier.height(4.dp))
                         Text(
-                            profile.school.substringBefore(" – ").ifBlank { profile.school },
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.72f),
+                            listOf(vn.ptit.fwp.core.model.ageCohortLabel(profile.age, profile.academicYear), profile.gender.label,
+                                profile.major.ifBlank { profile.faculty }).filter { it.isNotBlank() }.joinToString(" · "),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.White.copy(alpha = 0.85f),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
-                        Spacer(Modifier.width(7.dp))
-                        Text(
-                            if (profile.isDemo || profile.showLocation) formatDistance(profile.distanceKm) else "Khoảng cách ẩn",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = PtitGold
-                        )
-                    }
-                    if (profile.bio.isNotBlank()) {
-                        Spacer(Modifier.height(10.dp))
-                        Text(
-                            profile.bio,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = Color.White.copy(alpha = 0.9f),
-                            maxLines = 3,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                    Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ranked.reasons.take(2).forEach { reason ->
-                            Surface(
-                                shape = RoundedCornerShape(50),
-                                color = Color.White.copy(alpha = 0.16f)
-                            ) {
-                                Text(
-                                    reason,
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = Color.White,
-                                    modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
-                                )
+                        Spacer(Modifier.height(7.dp))
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (showGpa) {
+                                GpaBadge(profile.gpaTier, compact = true, gpa = profile.gpa)
+                                Spacer(Modifier.width(7.dp))
+                            }
+                            Text(
+                                if (profile.isDemo || profile.showLocation) formatDistance(profile.distanceKm) else "Khoảng cách ẩn",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = PtitGold
+                            )
+                            profile.questionMatch?.let {
+                                Spacer(Modifier.width(7.dp))
+                                Text("· Hợp gu $it%", style = MaterialTheme.typography.labelSmall, color = PtitGold)
                             }
                         }
                     }
-                    if (shared.isNotEmpty()) {
-                        Spacer(Modifier.height(8.dp))
+                }
+                Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
+                    if (profile.bio.isNotBlank()) {
+                        DetailTitle("Giới thiệu")
+                        Text(profile.bio, style = MaterialTheme.typography.bodyMedium)
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    // Ảnh và câu trả lời xen kẽ, thứ tự ngẫu nhiên nhưng cố định theo hồ sơ.
+                    val blocks = remember(profile.id, profile.photos, profile.answers) {
+                        (profile.photos.drop(1).map { DetailBlock.Photo(it) } + profile.answers.take(5).map { DetailBlock.Answer(it.first, it.second) })
+                            .shuffled(kotlin.random.Random(profile.id.hashCode()))
+                    }
+                    blocks.forEach { block ->
+                        when (block) {
+                            is DetailBlock.Photo -> ProfilePhoto(
+                                profile = profile.copy(photoUrl = block.url),
+                                modifier = Modifier.fillMaxWidth().aspectRatio(0.8f),
+                                blurLevel = 0.45f,
+                                shape = RoundedCornerShape(12.dp),
+                                showAnonymousHint = false,
+                                showAnonBadge = false
+                            )
+                            is DetailBlock.Answer -> Surface(
+                                shape = RoundedCornerShape(12.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(Modifier.padding(16.dp)) {
+                                    Text(block.question, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(block.answer, style = MaterialTheme.typography.titleLarge)
+                                }
+                            }
+                        }
+                        Spacer(Modifier.height(12.dp))
+                    }
+                    DetailTitle("Thông tin")
+                    InfoLine("Trường", profile.school.substringBefore(" – ").ifBlank { profile.school })
+                    InfoLine("Cơ sở", profile.campus)
+                    InfoLine("Khoa", profile.faculty)
+                    InfoLine("Ngành", profile.major)
+                    InfoLine("Tuổi - khóa", vn.ptit.fwp.core.model.ageCohortLabel(profile.age, profile.academicYear))
+                    InfoLine("Giới tính", profile.gender.label)
+                    if (showGpa) InfoLine("GPA", String.format(java.util.Locale.US, "%.2f", profile.gpa))
+                    Spacer(Modifier.height(14.dp))
+                    vn.ptit.fwp.core.design.AboutChips(profile.about, profile.languages)
+                    if (profile.interests.isNotEmpty()) {
+                        DetailTitle("Sở thích")
+                        androidx.compose.foundation.layout.FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            profile.interests.forEach { interest ->
+                                Pill(
+                                    interest,
+                                    if (interest in shared) PtitRed else MaterialTheme.colorScheme.surfaceVariant,
+                                    if (interest in shared) Color.White else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    profile.questionMatch?.let { percent ->
                         Text(
-                            "Chung: ${shared.take(4).joinToString(" · ")}",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = PtitGold
+                            "Hợp gu $percent% trên ${profile.commonQuestions} câu hỏi cả hai cùng trả lời.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    // Chừa chỗ cho 3 nút nổi.
+                    Spacer(Modifier.height(96.dp))
                 }
             }
         }
+        Row(
+            Modifier.align(Alignment.BottomCenter).padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(22.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            CircleAction(Icons.Rounded.Close, PtitRed, actionsEnabled, 54, profile.id, 0) { fly(-1400f, 0f, onPass) }
+            CircleAction(Icons.Rounded.Star, PtitGold, actionsEnabled, 44, profile.id, 1) { fly(0f, -2200f, onSuperLike) }
+            CircleAction(Icons.Rounded.Favorite, Color(0xFFD81B60), actionsEnabled, 54, profile.id, 2) { fly(1400f, 0f, onLike) }
+        }
+        // Dấu "THÍCH" / "BỎ QUA" hiện rõ dần theo độ kéo.
+        val drag = offsetX.value
+        if (drag != 0f) {
+            val stampAlpha = (kotlin.math.abs(drag) / 280f).coerceIn(0f, 1f)
+            val liking = drag > 0
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Transparent,
+                border = androidx.compose.foundation.BorderStroke(3.dp, if (liking) Color(0xFF2E7D32) else PtitRed),
+                modifier = Modifier
+                    .align(if (liking) Alignment.TopStart else Alignment.TopEnd)
+                    .padding(top = 56.dp, start = 24.dp, end = 24.dp)
+                    .graphicsLayer { alpha = stampAlpha; rotationZ = if (liking) -14f else 14f }
+            ) {
+                Text(
+                    if (liking) "THÍCH" else "BỎ QUA",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (liking) Color(0xFF2E7D32) else PtitRed,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
+        }
+    }
+}
+
+private sealed interface DetailBlock {
+    data class Photo(val url: String) : DetailBlock
+    data class Answer(val question: String, val answer: String) : DetailBlock
+}
+
+@Composable
+private fun Pill(text: String, background: Color, content: Color) {
+    Surface(shape = RoundedCornerShape(8.dp), color = background) {
+        Text(
+            text,
+            style = MaterialTheme.typography.labelSmall,
+            color = content,
+            modifier = Modifier.padding(horizontal = 9.dp, vertical = 5.dp)
+        )
+    }
+}
+
+@Composable
+private fun DetailTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.titleSmall, color = PtitRed, modifier = Modifier.padding(bottom = 4.dp))
+}
+
+@Composable
+private fun InfoLine(label: String, value: String) {
+    if (value.isBlank()) return
+    Row(Modifier.fillMaxWidth().padding(vertical = 3.dp)) {
+        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.width(72.dp))
+        Text(value, style = MaterialTheme.typography.bodySmall)
     }
 }
 
@@ -531,23 +584,46 @@ private fun CircleAction(
     tint: Color,
     enabled: Boolean,
     size: Int,
+    cardKey: String = "",
+    order: Int = 0,
     onClick: () -> Unit
 ) {
+    // Mỗi thẻ mới: 3 nút bật lên lần lượt (lệch 60ms) ; bấm thì icon xoay nhẹ và nảy.
+    val pop = remember(cardKey) { Animatable(0.4f) }
+    LaunchedEffect(cardKey) {
+        kotlinx.coroutines.delay(order * 60L)
+        pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 400f))
+    }
+    val spin = remember { Animatable(0f) }
+    val iconScope = rememberCoroutineScope()
+    // Nhún khi bấm: phản hồi tức thì ~120ms.
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val press by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.88f else 1f,
+        androidx.compose.animation.core.spring(dampingRatio = 0.5f, stiffness = 800f), label = "press")
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = if (enabled) 10.dp else 0.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = if (enabled) 8.dp else 0.dp,
         modifier = Modifier
             .size(size.dp)
-            .clickable(enabled = enabled, onClick = onClick)
+            .graphicsLayer { scaleX = press * pop.value; scaleY = press * pop.value }
+            .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), enabled = enabled) {
+                iconScope.launch { spin.snapTo(0f); spin.animateTo(1f, tween(380)) }
+                onClick()
+            }
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 icon,
                 contentDescription = null,
                 tint = if (enabled) tint else tint.copy(alpha = 0.34f),
-                modifier = Modifier.size((size * 0.42f).dp)
+                modifier = Modifier.size((size * 0.44f).dp).graphicsLayer {
+                    val t = spin.value
+                    rotationZ = kotlin.math.sin(t * Math.PI.toFloat() * 2) * 18f
+                    val bump = 1f + kotlin.math.sin(t * Math.PI.toFloat()) * 0.3f
+                    scaleX = bump; scaleY = bump
+                }
             )
         }
     }

@@ -41,6 +41,7 @@ export interface CampusPostView {
   id: string;
   content: string;
   category: string;
+  community: string | null;
   anonymousMode: string;
   campus: string;
   createdAt: Date;
@@ -149,6 +150,7 @@ export function toCampusPostView(
     id: post.id,
     content: post.content,
     category: post.category,
+    community: post.community ?? null,
     anonymousMode: post.anonymousMode,
     // Legacy rows may still hold a campus; only publish it with consent.
     campus: post.author?.showCampus ? post.campus : '',

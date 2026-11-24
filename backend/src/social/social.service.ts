@@ -1,8 +1,11 @@
 import {
   BadRequestException,
   ConflictException,
+  HttpException,
+  HttpStatus,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { IsNull, Repository } from 'typeorm';
@@ -14,6 +17,7 @@ import {
   Profile,
   Report,
   Swipe,
+  User,
 } from '../database/entities';
 import {
   MASKED_ID_PREFIX,
@@ -30,6 +34,18 @@ export interface SwipeOptions {
   anonymous?: boolean;
 }
 
+/** Lượt quẹt mỗi ngày (giờ Việt Nam) ; đổi bằng env DAILY_SWIPE_LIMIT. */
+export function dailySwipeLimit(): number {
+  const n = Number.parseInt(process.env.DAILY_SWIPE_LIMIT ?? '', 10);
+  return Number.isFinite(n) && n > 0 ? n : 10;
+}
+
+/** 00:00 hôm nay theo giờ Việt Nam (UTC+7), dạng Date UTC. */
+export function startOfVietnamDay(now = Date.now()): Date {
+  const offset = 7 * 3_600_000;
+  return new Date(Math.floor((now + offset) / 86_400_000) * 86_400_000 - offset);
+}
+
 @Injectable()
 export class SocialService {
   constructor(
@@ -41,9 +57,29 @@ export class SocialService {
     private readonly notifications: Repository<Notification>,
     @InjectRepository(Block) private readonly blocks: Repository<Block>,
     @InjectRepository(Report) private readonly reports: Repository<Report>,
+    @Optional() @InjectRepository(User) private readonly users?: Repository<User>,
   ) {}
 
+  async swipeQuota(userId: string) {
+    // Tài khoản demo (demo@ptit.edu.vn và các tài khoản seed) không bị giới hạn để trình diễn.
+    if ((await this.users?.findOne({ where: { id: userId } }))?.isDemo) {
+      return { limit: 0, used: 0, remaining: 0, unlimited: true };
+    }
+    const limit = dailySwipeLimit();
+    const since = startOfVietnamDay().getTime();
+    const used = (await this.swipes.find({ where: { fromUserId: userId } }))
+      .filter((s) => !s.anonymous && s.createdAt && new Date(s.createdAt).getTime() >= since).length;
+    return { limit, used, remaining: Math.max(0, limit - used), unlimited: false };
+  }
+
   async swipe(userId: string, dto: SwipeDto, options: SwipeOptions = {}) {
+    const result = await this.swipeInner(userId, dto, options);
+    if (options.anonymous) return result;
+    const quota = await this.swipeQuota(userId);
+    return quota.unlimited ? result : { ...result, remainingToday: quota.remaining };
+  }
+
+  private async swipeInner(userId: string, dto: SwipeDto, options: SwipeOptions = {}) {
     if (userId === dto.targetUserId) {
       throw new BadRequestException('You cannot swipe yourself');
     }
@@ -77,6 +113,13 @@ export class SocialService {
           throw new ConflictException('This conversation cannot be reused anonymously');
         }
       }
+    }
+    const quota = !existingSwipe && !viaCampus ? await this.swipeQuota(userId) : null;
+    if (quota && !quota.unlimited && quota.remaining <= 0) {
+      throw new HttpException(
+        { statusCode: 429, code: 'DAILY_SWIPE_LIMIT', message: `Bạn đã dùng hết ${dailySwipeLimit()} lượt quẹt hôm nay` },
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
     if (existingSwipe) {
       // Duplicate swipes are idempotent. The anonymous origin is sticky: a

@@ -1,5 +1,6 @@
 package vn.ptit.fwp.feature.campus
 
+import androidx.compose.material.icons.rounded.Groups
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -126,6 +127,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var composerOpen by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
+    var communitiesOpen by remember { mutableStateOf(false) }
     var editingPost by remember { mutableStateOf<CampusPost?>(null) }
     var resolvingMatch by remember(identity) { mutableStateOf(false) }
     var matchError by remember(identity) { mutableStateOf<String?>(null) }
@@ -145,7 +147,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Campus Feed", style = MaterialTheme.typography.headlineSmall)
+                    Text("Trang chủ", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         "Ẩn danh, thật lòng, đúng chuyện",
                         style = MaterialTheme.typography.bodySmall,
@@ -153,10 +155,10 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                     )
                 }
                 IconButton(onClick = { viewModel.loadSettings(); settingsOpen = true }) {
-                    Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Campus")
+                    Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Trang chủ")
                 }
                 IconButton(onClick = { viewModel.refresh(); viewModel.loadSettings() }) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới Campus Feed")
+                    Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới Trang chủ")
                 }
             }
 
@@ -174,18 +176,35 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                     )
                 }
             }
-            Text(
-                "Following/Interested chưa mở vì chưa có subscription. Tạm thời dùng “Đã lưu” để theo dõi bài viết.",
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
-            )
+            val joinedCommunities = state.communities.filter { it.joined }
+            LazyRow(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item { FwpChip(text = "Mọi bài", selected = state.community == null, onClick = { viewModel.selectCommunity(null) }) }
+                items(joinedCommunities, key = { it.id }) { c ->
+                    FwpChip(text = c.name, selected = state.community == c.id, onClick = { viewModel.selectCommunity(c.id) })
+                }
+                item {
+                    FwpChip(text = "Cộng đồng…", selected = false, leadingIcon = Icons.Rounded.Groups, onClick = { communitiesOpen = true })
+                }
+            }
+            state.communities.firstOrNull { it.id == state.community }?.let { c ->
+                Text(
+                    if (c.joined) "Bài bạn đăng lúc này sẽ vào ${c.name}." else "Tham gia ${c.name} để đăng bài vào đây.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
+                )
+            }
 
             when {
                 !state.configured -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
-                    title = "Campus Feed cần backend",
-                    subtitle = "Truyền -PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/ khi build Android và chạy NestJS + PostgreSQL. App không dùng dữ liệu mock cho Campus Feed.",
+                    title = "Trang chủ cần backend",
+                    subtitle = "Truyền -PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/ khi build Android và chạy NestJS + PostgreSQL. App không dùng dữ liệu mock cho Trang chủ.",
                     modifier = Modifier
                         .weight(1f)
                         .align(Alignment.CenterHorizontally)
@@ -198,7 +217,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 }
                 state.error != null && state.posts.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
-                    title = "Chưa tải được Campus Feed",
+                    title = "Chưa tải được Trang chủ",
                     subtitle = state.error ?: "",
                     modifier = Modifier.weight(1f),
                     actionLabel = "Thử lại",
@@ -239,7 +258,8 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                             onEdit = { editingPost = post },
                             onRefreshMedia = viewModel::refresh,
                             onDelete = { viewModel.deletePost(post) },
-                            onReport = { reason -> viewModel.report(post, reason) }
+                            onReport = { reason -> viewModel.report(post, reason) },
+                            communityLabel = { id -> state.communities.firstOrNull { it.id == id }?.name ?: "khác" }
                         )
                     }
                     item {
@@ -271,7 +291,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             containerColor = PtitRed,
             contentColor = MaterialTheme.colorScheme.onPrimary
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Đăng bài Campus")
+            Icon(Icons.Rounded.Add, contentDescription = "Đăng bài lên Trang chủ")
         }
 
         SnackbarHost(
@@ -282,6 +302,21 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
         )
     }
 
+    if (communitiesOpen) {
+        CommunitiesSheet(
+            communities = state.communities,
+            onDismiss = { communitiesOpen = false },
+            onToggleJoin = viewModel::toggleJoin,
+            onCreate = viewModel::createCommunity,
+            onJoinByCode = viewModel::joinByCode,
+            onOpenRequests = viewModel::openRequests,
+            onOpenFeed = { id -> communitiesOpen = false; viewModel.selectCommunity(id) }
+        )
+    }
+    state.requestsFor?.let { c ->
+        CommunityRequestsSheet(c, state.requests, onDismiss = viewModel::closeRequests, onDecide = viewModel::decide)
+    }
+
     if (composerOpen) {
         CampusComposerSheet(
             creating = state.creating,
@@ -290,7 +325,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             onSubmit = { content, category, mode, images ->
                 viewModel.createPost(content, category, mode, images) {
                     composerOpen = false
-                    scope.launch { snackbar.showSnackbar("Đã đăng bài ẩn danh lên Campus Feed.") }
+                    scope.launch { snackbar.showSnackbar("Đã đăng bài ẩn danh lên Trang chủ.") }
                 }
             }
         )
@@ -375,8 +410,8 @@ private fun CampusSettingsSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
-            Text("Riêng tư Campus", style = MaterialTheme.typography.headlineSmall)
-            Text("Cài đặt được lưu trên backend. Tắt khám phá sẽ thu hồi các liên kết tác giả hiện có.", style = MaterialTheme.typography.bodySmall)
+            Text("Riêng tư Trang chủ", style = MaterialTheme.typography.headlineSmall)
+            Text("Tắt “Cho phép khám phá tác giả” thì người khác không còn mở được hồ sơ của bạn từ bài đăng cũ.", style = MaterialTheme.typography.bodySmall)
             if (state.settingsLoading) {
                 CircularProgressIndicator(Modifier.padding(16.dp).size(24.dp))
             } else if (state.settings == null) {
@@ -423,21 +458,22 @@ private fun CampusPostCard(
     onEdit: () -> Unit,
     onRefreshMedia: () -> Unit,
     onDelete: () -> Unit,
-    onReport: (String) -> Unit
+    onReport: (String) -> Unit,
+    communityLabel: (String) -> String = { it }
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var showReport by remember { mutableStateOf(false) }
     var showDelete by remember { mutableStateOf(false) }
 
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DemoPortrait(
+                vn.ptit.fwp.core.design.AnimalAvatar(
                     seed = post.author.avatarSeed,
                     modifier = Modifier
                         .size(42.dp)
@@ -517,6 +553,10 @@ private fun CampusPostCard(
                 }
             }
 
+            post.community?.let { id ->
+                Spacer(Modifier.height(8.dp))
+                Text("Trong cộng đồng ${communityLabel(id)}", style = MaterialTheme.typography.labelMedium, color = PtitRed)
+            }
             if (post.content.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
                 Text(post.content, style = MaterialTheme.typography.bodyLarge)
@@ -579,7 +619,7 @@ private fun CampusPostCard(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Xóa bài viết?") },
-            text = { Text("Bài viết sẽ biến mất khỏi Campus Feed và ảnh kèm theo sẽ bị xóa khỏi dev storage.") },
+            text = { Text("Bài viết sẽ biến mất khỏi Trang chủ và ảnh kèm theo sẽ bị xóa khỏi dev storage.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
@@ -984,7 +1024,7 @@ private fun CampusCommentsSheet(
                 ) {
                     items(comments, key = { it.id }) { comment ->
                         Row(verticalAlignment = Alignment.Top) {
-                            DemoPortrait(
+                            vn.ptit.fwp.core.design.AnimalAvatar(
                                 seed = comment.avatarSeed,
                                 modifier = Modifier.size(32.dp).clip(CircleShape)
                             )
@@ -1104,7 +1144,7 @@ private fun CampusAuthorSheet(
                 }
                 return@Column
             }
-            DemoPortrait(
+            vn.ptit.fwp.core.design.AnimalAvatar(
                 seed = author.avatarSeed,
                 modifier = Modifier
                     .size(104.dp)
@@ -1204,3 +1244,4 @@ private fun formatCampusTime(value: Long): String {
         else -> SimpleDateFormat("dd/MM/yyyy", Locale("vi", "VN")).format(Date(value))
     }
 }
+

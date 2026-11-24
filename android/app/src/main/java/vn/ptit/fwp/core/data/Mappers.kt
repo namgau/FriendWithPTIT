@@ -42,7 +42,9 @@ fun ProfileEntity.toDomain(): Profile = Profile(
     mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.DATING),
     likedYou = likedYou,
     blocked = blocked,
-    photoUrl = photoUrl
+    // Room chỉ lưu ảnh bìa ; hồ sơ mẫu dựng lại đủ bộ ảnh từ seed.
+    photoUrl = photoUrl ?: if (isDemo && id != "me") DemoSeed.photosFor(id, runCatching { Gender.valueOf(gender) }.getOrDefault(Gender.OTHER), avatarSeed).first() else null,
+    photos = if (isDemo && id != "me") DemoSeed.photosFor(id, runCatching { Gender.valueOf(gender) }.getOrDefault(Gender.OTHER), avatarSeed) else listOfNotNull(photoUrl)
 )
 
 fun Profile.toEntity(): ProfileEntity = ProfileEntity(

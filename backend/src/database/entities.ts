@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   OneToOne,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -103,6 +104,22 @@ export class Profile {
 
   @Column({ name: 'avatar_seed', type: 'int', default: 1 })
   avatarSeed: number;
+
+  /** Absolute URLs (seed) or `/profiles/photos/<file>` paths (uploads); first is the cover. */
+  @Column({ type: 'text', array: true, default: () => "'{}'" })
+  photos: string[];
+
+  /** "Thêm về tôi": smoking, drinking, heightCm, pets, religion... (giá trị chuỗi). */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  about: Record<string, string>;
+
+  /** Ngôn ngữ nói được. */
+  @Column({ type: 'text', array: true, default: () => "'{}'" })
+  languages: string[];
+
+  /** Ảnh bìa (banner) ; cùng quy ước đường dẫn với photos. */
+  @Column({ name: 'cover_photo', type: 'text', nullable: true })
+  coverPhoto: string | null;
 
   @Column({ length: 16, default: 'FRIENDS' })
   mode: ConnectionMode;
@@ -392,6 +409,10 @@ export class CampusPost {
   @Column({ length: 24, default: 'GENERAL' })
   category: CampusCategory;
 
+  /** Cộng đồng chứa bài (id trong campus/communities.ts) ; null = bảng tin chung. */
+  @Column({ type: 'varchar', length: 40, nullable: true })
+  community: string | null;
+
   @Column({ name: 'anonymous_mode', length: 24, default: 'FULLY_ANONYMOUS' })
   anonymousMode: CampusAnonymousMode;
 
@@ -649,6 +670,83 @@ export class CampusCommentReport {
   createdAt: Date;
 }
 
+/** Cộng đồng trong Trang chủ: có sẵn (ownerUserId null) hoặc do người dùng tạo. */
+@Entity('campus_communities')
+export class CampusCommunity {
+  @PrimaryColumn({ length: 40 })
+  id: string;
+
+  @Index({ unique: true })
+  @Column({ length: 60 })
+  name: string;
+
+  @Column({ length: 200, default: '' })
+  description: string;
+
+  @Column({ name: 'owner_user_id', type: 'varchar', nullable: true })
+  ownerUserId: string | null;
+
+  /** Ẩn: không hiện công khai, chỉ vào được bằng mã mời. */
+  @Column({ default: false })
+  hidden: boolean;
+
+  /** Chủ cộng đồng phải duyệt người xin vào. */
+  @Column({ name: 'requires_approval', default: false })
+  requiresApproval: boolean;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+}
+
+@Entity('campus_community_members')
+@Index(['userId', 'communityId'], { unique: true })
+export class CampusCommunityMember {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Column({ name: 'user_id' })
+  userId: string;
+
+  @Column({ name: 'community_id', length: 40 })
+  communityId: string;
+
+  /** MEMBER hoặc PENDING (chờ chủ cộng đồng duyệt). */
+  @Column({ length: 16, default: 'MEMBER' })
+  status: string;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+}
+
+/** One answer per (user, question) for the fun questions (OkCupid-style). */
+@Entity('question_answers')
+@Index(['userId', 'questionId'], { unique: true })
+export class QuestionAnswer {
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
+
+  @Index()
+  @Column({ name: 'user_id' })
+  userId: string;
+
+  @Column({ name: 'question_id', length: 32 })
+  questionId: string;
+
+  @Column({ type: 'int' })
+  answer: number;
+
+  /** Câu trả lời tự viết (answer = -1) ; không tính vào % hợp gu. */
+  @Column({ name: 'custom_text', type: 'varchar', length: 200, nullable: true })
+  customText: string | null;
+
+  /** Answers this user would accept from someone else (always includes their own). */
+  @Column({ type: 'int', array: true, default: () => "'{}'" })
+  acceptable: number[];
+
+  @UpdateDateColumn({ name: 'updated_at' })
+  updatedAt: Date;
+}
+
 export const ENTITIES = [
   User,
   Profile,
@@ -666,4 +764,7 @@ export const ENTITIES = [
   CampusPostBookmark,
   CampusPostReport,
   CampusCommentReport,
+  QuestionAnswer,
+  CampusCommunityMember,
+  CampusCommunity,
 ];

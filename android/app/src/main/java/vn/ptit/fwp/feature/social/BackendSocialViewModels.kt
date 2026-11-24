@@ -44,7 +44,8 @@ abstract class BackendScopedViewModel(container: AppContainer, val identity: Pre
 data class BackendDiscoverState(
     val loading: Boolean = true, val busy: Boolean = false, val error: String? = null,
     val profiles: List<SocialProfileDto> = emptyList(), val filters: DiscoveryFilters = DiscoveryFilters(),
-    val total: Int = 0, val offset: Int = 0, val match: SocialMatchDto? = null, val notice: String? = null
+    val total: Int = 0, val offset: Int = 0, val match: SocialMatchDto? = null, val notice: String? = null,
+    val quota: SwipeQuotaDto? = null
 )
 class BackendDiscoverViewModel(container: AppContainer, identity: PresentationIdentity) : BackendScopedViewModel(container, identity) {
     private val mutable = MutableStateFlow(BackendDiscoverState())
@@ -57,7 +58,11 @@ class BackendDiscoverViewModel(container: AppContainer, identity: PresentationId
         refreshJob?.cancel()
         mutable.update { it.copy(loading = true, error = null, profiles = emptyList(), filters = filters, offset = 0) }
         refreshJob = viewModelScope.launch {
-            try { val page = api.discover(0, filters); if (valid) mutable.update { it.copy(loading = false, profiles = page.items, total = page.total, offset = page.items.size) } }
+            try {
+                val page = api.discover(0, filters)
+                val quota = runCatching { api.swipeQuota() }.getOrNull()
+                if (valid) mutable.update { it.copy(loading = false, profiles = page.items, total = page.total, offset = page.items.size, quota = quota ?: it.quota) }
+            }
             catch (e: CancellationException) { throw e }
             catch (e: Exception) { if (valid) mutable.update { it.copy(loading = false, error = socialError(e)) } }
         }
@@ -81,11 +86,18 @@ class BackendDiscoverViewModel(container: AppContainer, identity: PresentationId
                 val result = api.swipe(profile.userId, action)
                 if (valid) {
                     // Discover excludes ordinary swipes server-side, so refetch from offset zero.
-                    mutable.update { it.copy(busy = false, match = result.match, notice = if (result.matched) "Hai bạn đã match." else if (action == SwipeAction.PASS) "Đã bỏ qua hồ sơ." else "Đã gửi lượt thích. Chờ người ấy thích lại.") }
+                    mutable.update { it.copy(busy = false, match = result.match,
+                        quota = it.quota?.let { q -> result.remainingToday?.let { r -> q.copy(remaining = r, used = q.limit - r) } ?: q },
+                        // Chỉ bật hộp thoại khi match ; bỏ qua / thích không làm gián đoạn việc lướt.
+                        notice = if (result.matched) "Hai bạn đã match." else null) }
                     refresh()
                 }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
+                if (valid && e is HttpException && e.code() == 429) {
+                    mutable.update { it.copy(busy = false, quota = it.quota?.copy(remaining = 0) ?: SwipeQuotaDto(10, 10, 0)) }
+                    return@launch
+                }
                 if (valid) { mutable.update { it.copy(busy = false, error = socialError(e)) }; if (e is HttpException && e.code() == 404) refresh() }
             }
         }

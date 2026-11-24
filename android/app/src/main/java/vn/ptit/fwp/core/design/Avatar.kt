@@ -165,6 +165,9 @@ fun ProfilePhoto(
                     .matchParentSize()
                     .blur(blurRadius)
             )
+        } else if (profile.id == "masked") {
+            // Match ẩn danh chưa lộ diện: con vật thay cho chân dung, không làm mờ.
+            AnimalAvatar(seed = profile.avatarSeed, modifier = Modifier.matchParentSize())
         } else {
             DemoPortrait(
                 seed = profile.avatarSeed,
@@ -192,7 +195,8 @@ fun ProfilePhoto(
                     )
                 )
         )
-        if (!revealed) {
+        // Không có nhãn thì không vẽ cả nền pill (trước đây để lại một vệt xám rỗng).
+        if (!revealed && showAnonBadge) {
             Row(
                 Modifier
                     .align(Alignment.TopStart)

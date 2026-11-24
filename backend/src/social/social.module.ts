@@ -8,6 +8,7 @@ import {
   Profile,
   Report,
   Swipe,
+  User,
 } from '../database/entities';
 import { SocialController } from './social.controller';
 import { SocialService } from './social.service';
@@ -15,6 +16,7 @@ import { SocialService } from './social.service';
 @Module({
   imports: [
     TypeOrmModule.forFeature([
+      User,
       Swipe,
       Match,
       Profile,

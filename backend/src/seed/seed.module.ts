@@ -5,6 +5,7 @@ import {
   Message,
   Notification,
   Profile,
+  QuestionAnswer,
   Swipe,
   User,
 } from '../database/entities';
@@ -19,6 +20,7 @@ import { SeedService } from './seed.service';
       Match,
       Message,
       Notification,
+      QuestionAnswer,
     ]),
   ],
   providers: [SeedService],

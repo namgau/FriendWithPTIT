@@ -53,7 +53,7 @@ fun BackendChatScreen(identity: PresentationIdentity, matchId: String, onBack: (
             list.animateScrollToItem((list.layoutInfo.totalItemsCount - 1).coerceAtLeast(0))
     }
     Column(Modifier.fillMaxSize().statusBarsPadding().navigationBarsPadding().imePadding()) {
-        FwpTopBar(title = state.match?.displayProfile()?.nickname ?: "Trò chuyện", subtitle = if (state.match?.anonymous == true) "Ẩn danh · Backend" else "Backend",
+        FwpTopBar(title = state.match?.displayProfile()?.nickname ?: "Trò chuyện", subtitle = if (state.match?.anonymous == true) "Ẩn danh" else null,
             onBack = onBack, actions = {
                 IconButton(onClick = vm::refresh) { Icon(Icons.Rounded.Refresh, "Làm mới") }
                 Box {

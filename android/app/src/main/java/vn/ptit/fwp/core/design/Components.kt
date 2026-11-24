@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import androidx.compose.material.icons.rounded.Notifications
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material.icons.rounded.Verified
+import androidx.compose.material3.minimumInteractiveComponentSize
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -98,19 +100,13 @@ fun FwpLogo(
         }
         if (withWordmark) {
             Spacer(Modifier.width(10.dp))
-            Column {
-                Text(
-                    "Friend With PTIT",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold,
-                    color = if (onDark) PtitWhite else MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    "FwP · Gió tầng nào, mây tầng đấy",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (onDark) PtitWhite.copy(alpha = 0.72f) else PtitMuted
-                )
-            }
+            Text(
+                "Friend With PTIT",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+                color = if (onDark) PtitWhite else MaterialTheme.colorScheme.onBackground
+            )
         }
     }
 }
@@ -280,6 +276,8 @@ fun FwpChip(
 ) {
     Surface(
         modifier = modifier
+            // Vùng chạm 48dp dù chip chỉ cao ~36dp.
+            .minimumInteractiveComponentSize()
             .clip(RoundedCornerShape(50))
             .clickable(onClick = onClick),
         shape = RoundedCornerShape(50),
@@ -326,7 +324,9 @@ fun ModeChip(mode: ConnectionMode, selected: Boolean, onClick: () -> Unit) {
 fun GpaBadge(
     tier: GpaTier,
     modifier: Modifier = Modifier,
-    compact: Boolean = false
+    compact: Boolean = false,
+    /** Điểm thật khi người đó công khai GPA ; null thì chỉ hiện tầng. */
+    gpa: Double? = null
 ) {
     val color = when (tier) {
         GpaTier.EXCELLENT -> Color(0xFF1565C0)
@@ -341,7 +341,11 @@ fun GpaBadge(
         border = BorderStroke(1.dp, color.copy(alpha = 0.22f))
     ) {
         Text(
-            text = if (compact) tier.label else "Tầng ${tier.label}",
+            text = when {
+                gpa != null && gpa > 0 -> "GPA " + String.format(java.util.Locale.US, "%.2f", gpa)
+                compact -> tier.label
+                else -> "Tầng ${tier.label}"
+            },
             style = MaterialTheme.typography.labelMedium,
             color = color,
             modifier = Modifier.padding(horizontal = if (compact) 7.dp else 9.dp, vertical = 4.dp)
@@ -504,6 +508,8 @@ fun FwpTopBar(
     Row(
         modifier = modifier
             .fillMaxWidth()
+            // Màn ngoài Scaffold chính bị thanh trạng thái đè ; nếu cha đã đệm thì inset đã bị tiêu thụ, không đệm đôi.
+            .statusBarsPadding()
             .padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {

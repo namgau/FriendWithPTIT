@@ -2,10 +2,13 @@ import {
   BadRequestException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Block, Profile, Swipe } from '../database/entities';
+import { In, Repository } from 'typeorm';
+import { Block, Profile, QuestionAnswer, Swipe } from '../database/entities';
+import { CampusMediaStorage } from '../campus/campus-media.storage';
+import { QUESTION_BY_ID, questionMatch } from '../questions/questions.bank';
 import {
   compatibilityScore,
   distanceKm,
@@ -14,10 +17,16 @@ import {
 import { isUuid } from '../common/anonymity';
 import { ProfileView, toProfileView } from '../common/profile.view';
 import {
+  ABOUT_KEYS,
   DiscoverQueryDto,
   NearbyQueryDto,
   UpdateProfileDto,
 } from './profile.dto';
+
+interface QuestionInfo {
+  match: { percent: number; common: number } | null;
+  answers: Array<{ question: string; answer: string }>;
+}
 
 @Injectable()
 export class ProfilesService {
@@ -25,7 +34,89 @@ export class ProfilesService {
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     @InjectRepository(Swipe) private readonly swipes: Repository<Swipe>,
     @InjectRepository(Block) private readonly blocks: Repository<Block>,
+    @Optional() @InjectRepository(QuestionAnswer)
+    private readonly answers?: Repository<QuestionAnswer>,
+    @Optional() private readonly media?: CampusMediaStorage,
   ) {}
+
+  static readonly MIN_PHOTOS = 3;
+  static readonly MAX_PHOTOS = 6;
+  static readonly PHOTO_PREFIX = '/profiles/photos/';
+
+  async addPhoto(userId: string, image: string): Promise<ProfileView> {
+    if (!this.media) throw new BadRequestException('Photo storage unavailable');
+    const profile = await this.ensureProfile(userId);
+    if ((profile.photos ?? []).length >= ProfilesService.MAX_PHOTOS) {
+      throw new BadRequestException(`At most ${ProfilesService.MAX_PHOTOS} photos`);
+    }
+    const stored = await this.media.saveDataUrl(image);
+    profile.photos = [...(profile.photos ?? []), ProfilesService.PHOTO_PREFIX + stored.storageKey];
+    profile.profileComplete = this.isComplete(profile);
+    return toProfileView(await this.profiles.save(profile));
+  }
+
+  async removePhoto(userId: string, index: number): Promise<ProfileView> {
+    const profile = await this.ensureProfile(userId);
+    const photos = [...(profile.photos ?? [])];
+    if (!Number.isInteger(index) || index < 0 || index >= photos.length) {
+      throw new NotFoundException('Photo not found');
+    }
+    const [removed] = photos.splice(index, 1);
+    profile.photos = photos;
+    profile.profileComplete = this.isComplete(profile);
+    const saved = await this.profiles.save(profile);
+    if (removed.startsWith(ProfilesService.PHOTO_PREFIX)) {
+      await this.media?.remove(removed.slice(ProfilesService.PHOTO_PREFIX.length)).catch(() => undefined);
+    }
+    return toProfileView(saved);
+  }
+
+  async setCover(userId: string, image: string | null): Promise<ProfileView> {
+    const profile = await this.ensureProfile(userId);
+    const previous = profile.coverPhoto;
+    if (image === null) {
+      profile.coverPhoto = null;
+    } else {
+      if (!this.media) throw new BadRequestException('Photo storage unavailable');
+      profile.coverPhoto = ProfilesService.PHOTO_PREFIX + (await this.media.saveDataUrl(image)).storageKey;
+    }
+    const saved = await this.profiles.save(profile);
+    if (previous?.startsWith(ProfilesService.PHOTO_PREFIX)) {
+      await this.media?.remove(previous.slice(ProfilesService.PHOTO_PREFIX.length)).catch(() => undefined);
+    }
+    return toProfileView(saved);
+  }
+
+  /** Only files that are currently someone's profile photo are served without a signature. */
+  async isPublicPhoto(file: string): Promise<boolean> {
+    const path = ProfilesService.PHOTO_PREFIX + file;
+    return (await this.profiles
+      .createQueryBuilder('p')
+      .where(':path = ANY(p.photos) OR p.cover_photo = :path', { path })
+      .getCount()) > 0;
+  }
+
+  /** userId → % hợp gu + các câu người đó đã trả lời ; rỗng khi không có repo câu trả lời (unit test). */
+  private async questionMatches(viewerId: string, userIds: string[]) {
+    const result = new Map<string, QuestionInfo>();
+    if (!this.answers || !userIds.length) return result;
+    const rows = await this.answers.find({ where: { userId: In([viewerId, ...userIds]) } });
+    const by = new Map<string, QuestionAnswer[]>();
+    for (const row of rows) by.set(row.userId, [...(by.get(row.userId) ?? []), row]);
+    const mine = by.get(viewerId) ?? [];
+    for (const id of userIds) {
+      const theirs = by.get(id) ?? [];
+      result.set(id, {
+        match: questionMatch(mine, theirs),
+        answers: theirs.flatMap((a) => {
+          const q = QUESTION_BY_ID.get(a.questionId);
+          const answer = a.answer === -1 ? a.customText : q?.options[a.answer];
+          return q && answer ? [{ question: q.text, answer }] : [];
+        }),
+      });
+    }
+    return result;
+  }
 
   async own(userId: string): Promise<ProfileView> {
     const profile = await this.ensureProfile(userId);
@@ -53,6 +144,8 @@ export class ProfilesService {
       'mode',
       'showGpaPublic',
       'showLocationPublic',
+      'about',
+      'languages',
     ];
     for (const key of allowed) {
       if (dto[key] !== undefined) {
@@ -62,6 +155,13 @@ export class ProfilesService {
     if (dto.interests) {
       profile.interests = Array.from(
         new Set(dto.interests.map((item) => item.trim()).filter(Boolean)),
+      );
+    }
+    if (dto.about) {
+      profile.about = Object.fromEntries(
+        Object.entries(dto.about)
+          .filter(([k, v]) => (ABOUT_KEYS as readonly string[]).includes(k) && typeof v === 'string' && v.trim())
+          .map(([k, v]) => [k, String(v).trim().slice(0, 40)]),
       );
     }
     if (dto.gpa !== undefined && dto.gpaTier === undefined) {
@@ -157,12 +257,14 @@ export class ProfilesService {
       return a.candidate.id < b.candidate.id ? -1 : a.candidate.id > b.candidate.id ? 1 : 0;
     });
 
+    const page = scored.slice(offset, offset + limit);
+    const qm = await this.questionMatches(userId, page.map((item) => item.candidate.userId));
     return {
       total: scored.length,
-      items: scored
-        .slice(offset, offset + limit)
+      items: page
         .map((item) => ({
           ...toProfileView(item.candidate, viewer, item.compatibility),
+          ...this.questionFields(qm, item.candidate.userId),
           // Only expose public, truthful factors of the default ranking; never infer
           // hidden GPA/location from the tie breakers.
           rankingReasons: sort === 'compatibility' ? [
@@ -260,11 +362,10 @@ export class ProfilesService {
       where: [{ id: profileId }, { userId: profileId }],
     });
     if (!profile) throw new NotFoundException('Profile not found');
-    const excluded = await this.excludedUserIds(userId);
-    if (
-      profile.userId !== userId &&
-      excluded.has(profile.userId)
-    ) {
+    // Chỉ chặn hai chiều mới ẩn hồ sơ ; người đã quẹt/đã match vẫn xem được trang hồ sơ.
+    const blocks = await this.blocks.find({ where: [{ blockerId: userId }, { blockedId: userId }] });
+    const blocked = new Set(blocks.map((b) => (b.blockerId === userId ? b.blockedId : b.blockerId)));
+    if (profile.userId !== userId && blocked.has(profile.userId)) {
       throw new NotFoundException('Profile not found');
     }
     const view = toProfileView(
@@ -272,8 +373,10 @@ export class ProfilesService {
       viewer,
       profile.userId === userId ? undefined : compatibilityScore(viewer, profile),
     );
+    const qm = profile.userId === userId ? new Map<string, QuestionInfo>() : await this.questionMatches(userId, [profile.userId]);
     return {
       ...view,
+      ...this.questionFields(qm, profile.userId),
       lat: profile.showLocationPublic ? profile.lat : undefined,
       lng: profile.showLocationPublic ? profile.lng : undefined,
     };
@@ -313,6 +416,12 @@ export class ProfilesService {
     return result;
   }
 
+  private questionFields(qm: Map<string, QuestionInfo>, userId: string) {
+    const info = qm.get(userId);
+    if (!info) return {};
+    return { questionMatch: info.match?.percent ?? null, commonQuestions: info.match?.common ?? 0, answers: info.answers };
+  }
+
   private isComplete(profile: Profile): boolean {
     const interests = (profile.interests ?? []).filter(
       (item) => normaliseInterest(item).length > 0,
@@ -324,7 +433,8 @@ export class ProfilesService {
         profile.school?.trim() &&
         profile.faculty?.trim() &&
         profile.mode &&
-        interests.length >= 3,
+        interests.length >= 3 &&
+        (profile.photos ?? []).length >= ProfilesService.MIN_PHOTOS,
     );
   }
 

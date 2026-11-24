@@ -56,7 +56,11 @@ data class RemoteProfileDto(
     val profileComplete: Boolean = false,
     val showGpaPublic: Boolean = true,
     val showLocationPublic: Boolean = true,
-    val updatedAt: String? = null
+    val updatedAt: String? = null,
+    val photos: List<String>? = null,
+    val coverPhoto: String? = null,
+    val about: Map<String, String>? = null,
+    val languages: List<String>? = null
 )
 
 data class UpdateRemoteProfileRequest(
@@ -77,7 +81,9 @@ data class UpdateRemoteProfileRequest(
     val avatarSeed: Int? = null,
     val mode: String? = null,
     val showGpaPublic: Boolean? = null,
-    val showLocationPublic: Boolean? = null
+    val showLocationPublic: Boolean? = null,
+    val about: Map<String, String>? = null,
+    val languages: List<String>? = null
 )
 
 data class CampusAuthorBadgeDto(
@@ -118,8 +124,19 @@ data class CampusPostDto(
     val author: CampusAuthorBadgeDto,
     val media: List<CampusMediaDto> = emptyList(),
     val counts: CampusCountsDto = CampusCountsDto(),
-    val viewer: CampusViewerDto = CampusViewerDto()
+    val viewer: CampusViewerDto = CampusViewerDto(),
+    val community: String? = null
 )
+
+data class CommunityDto(val id: String, val name: String, val description: String, val memberCount: Int, val joined: Boolean,
+    val pending: Boolean = false, val isOwner: Boolean = false, val requiresApproval: Boolean = false, val pendingCount: Int = 0,
+    val hidden: Boolean = false, val inviteCode: String? = null)
+data class CreateCommunityRequest(val name: String, val description: String, val requiresApproval: Boolean, val hidden: Boolean = false)
+data class JoinByCodeRequest(val code: String)
+data class CommunityRequestDto(val userId: String, val nickname: String, val avatarSeed: Int)
+data class CommunityRequestsDto(val items: List<CommunityRequestDto>)
+data class DecideRequestBody(val approve: Boolean)
+data class CommunitiesDto(val items: List<CommunityDto>)
 
 data class CampusFeedDto(
     val items: List<CampusPostDto> = emptyList(),
@@ -137,7 +154,8 @@ data class CreateCampusPostRequest(
     val content: String?,
     val category: String,
     val anonymousMode: String,
-    val images: List<CreateCampusImageRequest> = emptyList()
+    val images: List<CreateCampusImageRequest> = emptyList(),
+    val community: String? = null
 )
 data class UpdateCampusPostRequest(val content: String, val category: String)
 
@@ -218,6 +236,20 @@ interface CampusApi {
     suspend fun socialProfile(@Header("Authorization") auth: String, @Path("id") id: String): SocialProfileDto
     @POST("swipes")
     suspend fun swipe(@Header("Authorization") auth: String, @Body request: SocialSwipeRequest): SocialSwipeDto
+    @GET("swipes/quota")
+    suspend fun swipeQuota(@Header("Authorization") auth: String): SwipeQuotaDto
+    @GET("questions")
+    suspend fun questions(@Header("Authorization") auth: String): FunQuestionsDto
+    @PUT("questions/{id}")
+    suspend fun answerQuestion(@Header("Authorization") auth: String, @Path("id") id: String, @Body request: AnswerQuestionRequest): FunQuestionsDto
+    @POST("profiles/me/photos")
+    suspend fun addPhoto(@Header("Authorization") auth: String, @Body request: AddPhotoRequest): RemoteProfileDto
+    @PUT("profiles/me/cover")
+    suspend fun setCover(@Header("Authorization") auth: String, @Body request: AddPhotoRequest): RemoteProfileDto
+    @DELETE("profiles/me/cover")
+    suspend fun removeCover(@Header("Authorization") auth: String): RemoteProfileDto
+    @DELETE("profiles/me/photos/{index}")
+    suspend fun removePhoto(@Header("Authorization") auth: String, @Path("index") index: Int): RemoteProfileDto
     @GET("matches")
     suspend fun matches(@Header("Authorization") auth: String): SocialMatchesDto
     @GET("matches/{id}")
@@ -263,8 +295,24 @@ interface CampusApi {
         @Header("Authorization") authorization: String,
         @Query("tab") tab: String,
         @Query("cursor") cursor: String? = null,
-        @Query("limit") limit: Int = 10
+        @Query("limit") limit: Int = 10,
+        @Query("community") community: String? = null
     ): CampusFeedDto
+    @GET("campus/communities")
+    suspend fun communities(@Header("Authorization") authorization: String): CommunitiesDto
+    @POST("campus/communities")
+    suspend fun createCommunity(@Header("Authorization") authorization: String, @Body request: CreateCommunityRequest): CommunitiesDto
+    @POST("campus/communities/join-by-code")
+    suspend fun joinCommunityByCode(@Header("Authorization") authorization: String, @Body body: JoinByCodeRequest): CommunitiesDto
+    @GET("campus/communities/{id}/requests")
+    suspend fun communityRequests(@Header("Authorization") authorization: String, @Path("id") id: String): CommunityRequestsDto
+    @POST("campus/communities/{id}/requests/{userId}")
+    suspend fun decideCommunityRequest(@Header("Authorization") authorization: String, @Path("id") id: String,
+        @Path("userId") userId: String, @Body body: DecideRequestBody): CommunityRequestsDto
+    @POST("campus/communities/{id}/join")
+    suspend fun joinCommunity(@Header("Authorization") authorization: String, @Path("id") id: String): CommunitiesDto
+    @DELETE("campus/communities/{id}/join")
+    suspend fun leaveCommunity(@Header("Authorization") authorization: String, @Path("id") id: String): CommunitiesDto
 
     @GET("campus/posts/mine")
     suspend fun mine(@Header("Authorization") authorization: String, @Query("cursor") cursor: String? = null, @Query("limit") limit: Int = 10): CampusFeedDto
@@ -380,10 +428,13 @@ class CampusApiFactory(
             .create(CampusApi::class.java)
     } else null
 
-    fun absoluteUrl(path: String): String = when {
-        path.isBlank() -> ""
-        path.startsWith("http://") || path.startsWith("https://") -> path
-        path.startsWith("/") -> root + path
-        else -> "$root/$path"
-    }
+    fun absoluteUrl(path: String): String = backendAbsoluteUrl(path, root)
+}
+
+/** Đường dẫn ảnh backend (`/profiles/photos/…`) → URL tuyệt đối ; URL http(s)/content giữ nguyên. */
+fun backendAbsoluteUrl(path: String, root: String = BuildConfig.BACKEND_BASE_URL.trim().trimEnd('/')): String = when {
+    path.isBlank() -> ""
+    path.startsWith("http://") || path.startsWith("https://") || path.startsWith("content://") || path.startsWith("file://") -> path
+    path.startsWith("/") -> root + path
+    else -> "$root/$path"
 }

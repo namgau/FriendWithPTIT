@@ -51,6 +51,7 @@ import vn.ptit.fwp.core.design.GpaBadge
 import vn.ptit.fwp.core.design.InfoRow
 import vn.ptit.fwp.core.design.PtitGold
 import vn.ptit.fwp.core.design.PtitRed
+import vn.ptit.fwp.core.design.PtitRedDeep
 import vn.ptit.fwp.core.design.PtitRedSoft
 import vn.ptit.fwp.core.design.SecondaryButton
 import vn.ptit.fwp.core.design.SectionHeader
@@ -67,7 +68,8 @@ import androidx.compose.ui.layout.ContentScale
 fun ProfileScreen(
     onEditProfile: () -> Unit,
     onSettings: () -> Unit,
-    onOpenMatches: () -> Unit
+    onOpenMatches: () -> Unit,
+    onOpenQuestions: () -> Unit = {}
 ) {
     val container = appContainer()
     val settings by container.settingsStore.settings.collectAsState(initial = AppSettings())
@@ -104,12 +106,12 @@ fun ProfileScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(PtitRed, Color(0xFF8E1B1B), Color(0xFF5C1010))
-                            )
-                        )
+                        .background(PtitRedDeep)
                 )
+                me.coverPhoto?.let { cover ->
+                    AsyncImage(model = cover, contentDescription = "Ảnh bìa", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
+                    Box(Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.6f)))))
+                }
                 Box(
                     Modifier
                         .align(Alignment.TopEnd)
@@ -150,15 +152,13 @@ fun ProfileScreen(
                                 style = MaterialTheme.typography.headlineSmall,
                                 color = Color.White
                             )
-                            Spacer(Modifier.width(5.dp))
-                            Text("${me.age}", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(alpha = 0.8f))
                             if (me.verified) {
                                 Spacer(Modifier.width(4.dp))
                                 VerifiedMark()
                             }
                         }
                         Text(
-                            "${me.academicYear} · ${me.major}",
+                            "${vn.ptit.fwp.core.model.ageCohortLabel(me.age, me.academicYear)} · ${me.major}",
                             style = MaterialTheme.typography.bodySmall,
                             color = Color.White.copy(alpha = 0.82f)
                         )
@@ -172,9 +172,9 @@ fun ProfileScreen(
                                     modifier = Modifier.padding(horizontal = 9.dp, vertical = 4.dp)
                                 )
                             }
-                            Surface(shape = RoundedCornerShape(50), color = PtitGold) {
+                            if (!state.backendProfile) Surface(shape = RoundedCornerShape(50), color = PtitGold) {
                                 Text(
-                                    if (state.backendProfile) "BACKEND" else "DEMO",
+                                    "DEMO",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = Color(0xFF4A3800),
                                     fontWeight = FontWeight.Bold,
@@ -237,13 +237,12 @@ fun ProfileScreen(
                         InfoRow(
                             Icons.Rounded.Star,
                             "GPA",
-                            if (me.showGpa) "${formatGpa(me.gpa)} / 4.00" else "Ẩn số cụ thể · Tầng ${me.gpaTier.label}"
+                            if (me.showGpa) "${formatGpa(me.gpa)} / 4.00" else "Đang ẩn"
                         )
                     }
                 }
                 Spacer(Modifier.height(14.dp))
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    GpaBadge(me.gpaTier)
                     if (me.alumni) {
                         Surface(shape = RoundedCornerShape(8.dp), color = PtitRedSoft) {
                             Text(
@@ -296,6 +295,23 @@ fun ProfileScreen(
                         }
                     }
                 }
+                if (state.backendProfile) {
+                    Spacer(Modifier.height(18.dp))
+                    vn.ptit.fwp.core.design.AboutChips(me.about, me.languages)
+                    if (me.photos.size > 1) {
+                        Spacer(Modifier.height(22.dp))
+                        SectionHeader(title = "Ảnh của bạn")
+                        Spacer(Modifier.height(9.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(me.photos) { photo ->
+                                AsyncImage(model = photo, contentDescription = null, contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(width = 110.dp, height = 140.dp).clip(RoundedCornerShape(12.dp)))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(22.dp))
+                    MyAnswersSection(identity, onOpenQuestions)
+                }
                 Spacer(Modifier.height(22.dp))
                 if (!state.backendProfile) SectionHeader(title = "Huy hiệu", subtitle = "Những cột mốc nhỏ trên hành trình kết nối.")
                 Spacer(Modifier.height(10.dp))
@@ -316,7 +332,7 @@ fun ProfileScreen(
         item {
             Column(Modifier.padding(horizontal = 18.dp)) {
                 Spacer(Modifier.height(22.dp))
-                Surface(
+                if (!state.backendProfile) Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = PtitGold.copy(alpha = 0.12f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, PtitGold.copy(alpha = 0.3f)),
@@ -389,3 +405,29 @@ private fun AchievementCard(achievement: Achievement) {
 }
 
 private fun Modifier.offsetProfileCard(): Modifier = this.padding(top = 0.dp)
+
+/** Các câu hỏi hợp gu mình đã trả lời, hiển thị như người khác sẽ thấy trên thẻ của mình. */
+@Composable
+private fun MyAnswersSection(identity: vn.ptit.fwp.core.data.PresentationIdentity, onOpenQuestions: () -> Unit) {
+    val container = vn.ptit.fwp.core.util.appContainer()
+    val vm = vn.ptit.fwp.core.util.fwpViewModel(key = "my-answers:$identity") { vn.ptit.fwp.feature.social.BackendQuestionsViewModel(container, identity) }
+    val state by vm.state.collectAsState()
+    val answered = state.items.filter { it.myAnswer != null }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Câu hỏi hợp gu", style = MaterialTheme.typography.titleMedium)
+            Text("Đã trả lời ${answered.size}/${state.items.size} · hiện xen kẽ với ảnh trên thẻ của bạn",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        TextButton(onClick = onOpenQuestions) { Text("Trả lời thêm") }
+    }
+    Spacer(Modifier.height(8.dp))
+    answered.take(6).forEach { q ->
+        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+            Column(Modifier.padding(14.dp)) {
+                Text(q.text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(if (q.myAnswer == -1) q.myText.orEmpty() else q.options.getOrNull(q.myAnswer ?: -1).orEmpty(), style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    }
+}

@@ -51,17 +51,28 @@ interface CursorValue {
   id: string;
 }
 
-const ALIASES = [
-  'Sao Băng',
-  'Mây Nhỏ',
-  'Gió Thu',
-  'Nắng Mai',
-  'Mưa Nhẹ',
-  'Đêm Sao',
-  'Lá Phong',
-  'Sương Sớm',
-  'Mèo Mun',
-  'Cà Phê',
+/** Danh tính ẩn danh là con vật (kiểu Litmatch) ; vị trí i ứng với avatarSeed i + 1, khớp emoji trên Android. */
+export const ANIMAL_ALIASES = [
+  'Mèo Lười',
+  'Cún Con',
+  'Cáo Nhỏ',
+  'Gấu Trúc',
+  'Koala Ngủ Gật',
+  'Hổ Con',
+  'Sư Tử',
+  'Ếch Xanh',
+  'Khỉ Con',
+  'Thỏ Trắng',
+  'Gấu Nâu',
+  'Hamster',
+  'Cánh Cụt',
+  'Cú Mèo',
+  'Bạch Tuộc',
+  'Kỳ Lân',
+  'Heo Hồng',
+  'Gà Con',
+  'Cá Heo',
+  'Rùa Chậm',
 ];
 
 const NOT_BLOCKED_SQL = (me: string, otherUserColumn: string) =>
@@ -120,6 +131,9 @@ export class CampusService {
       );
     if (query.category) {
       qb.andWhere('post.category = :category', { category: query.category });
+    }
+    if (query.community) {
+      qb.andWhere('post.community = :community', { community: query.community });
     }
     if (query.campus?.trim()) {
       qb.andWhere('post.campus = :campus', { campus: query.campus.trim() });
@@ -221,6 +235,7 @@ export class CampusService {
           discoverToken: discoverable ? randomUUID() : null,
           content,
           category: dto.category,
+          community: dto.community ?? null,
           anonymousMode: dto.anonymousMode,
           // Campus is only public when the author explicitly allowed it.
           campus:
@@ -706,7 +721,7 @@ export class CampusService {
       avatarSeed = (avatarSeed % 20) + 1;
     }
     return {
-      alias: `${ALIASES[randomInt(ALIASES.length)]} #${randomInt(1000, 10000)}`,
+      alias: `${ANIMAL_ALIASES[(avatarSeed - 1) % ANIMAL_ALIASES.length]} #${randomInt(1000, 10000)}`,
       avatarSeed,
     };
   }
