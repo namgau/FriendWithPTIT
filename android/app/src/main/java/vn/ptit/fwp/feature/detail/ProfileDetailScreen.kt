@@ -173,9 +173,6 @@ fun ProfileDetailScreen(
                     )
                     CompatibilityOrb(
                         score = state.score,
-                        personality = state.score,
-                        emotion = (state.score - 5).coerceAtLeast(20),
-                        interest = (state.score + 5).coerceAtMost(98),
                         orbSize = 96.dp,
                         modifier = Modifier.align(Alignment.TopEnd).padding(10.dp)
                     )

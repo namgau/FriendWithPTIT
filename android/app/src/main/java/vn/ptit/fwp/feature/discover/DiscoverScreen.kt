@@ -353,10 +353,12 @@ internal fun SwipeCard(
                             offsetX.value > 280f -> scope.launch {
                                 offsetX.animateTo(1400f, tween(220))
                                 onLike()
+                                offsetX.snapTo(0f)
                             }
                             offsetX.value < -280f -> scope.launch {
                                 offsetX.animateTo(-1400f, tween(220))
                                 onPass()
+                                offsetX.snapTo(0f)
                             }
                             else -> scope.launch { offsetX.animateTo(0f, tween(220)) }
                         }
@@ -423,9 +425,6 @@ internal fun SwipeCard(
                 }
                 if (profile.isDemo) CompatibilityOrb(
                     score = ranked.score,
-                    personality = ranked.score,
-                    emotion = (ranked.score - 6).coerceAtLeast(20),
-                    interest = (ranked.score + 4).coerceAtMost(98),
                     orbSize = 84.dp,
                     modifier = Modifier
                         .align(Alignment.TopEnd)

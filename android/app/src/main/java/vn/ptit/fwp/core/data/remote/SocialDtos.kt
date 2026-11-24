@@ -9,7 +9,8 @@ data class SocialProfileDto(
     val bio: String = "", val interests: List<String> = emptyList(), val avatarSeed: Int = 1,
     val mode: String = "", val distanceKm: Double = 0.0, val verified: Boolean = false,
     val showGpaPublic: Boolean = false, val showLocationPublic: Boolean = false,
-    val compatibility: Int? = null, val likedAt: String? = null, val superLike: Boolean = false
+    val compatibility: Int? = null, val likedAt: String? = null, val superLike: Boolean = false,
+    val rankingReasons: List<String>? = null
 )
 data class SocialProfilesDto(val total: Int, val items: List<SocialProfileDto>)
 data class SocialSwipeRequest(val targetUserId: String, val action: String)

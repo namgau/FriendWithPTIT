@@ -128,7 +128,7 @@ export class ProfilesService {
       const shared = new Set((candidate.interests ?? []).map(norm).filter((s) => s && own.has(s))).size;
       const compatibility = Math.min(100, Math.round(100 * shared / Math.max(1, own.size)));
       const distance = distanceKm(viewer.lat, viewer.lng, candidate.lat, candidate.lng);
-      return { candidate, compatibility, distance };
+      return { candidate, compatibility, distance, shared };
     });
     const hasViewerLocation = !!viewer.lat && !!viewer.lng;
     const hasLocation = (p: typeof viewer) => p.showLocationPublic && !!p.lat && !!p.lng;
@@ -161,9 +161,15 @@ export class ProfilesService {
       total: scored.length,
       items: scored
         .slice(offset, offset + limit)
-        .map((item) =>
-          toProfileView(item.candidate, viewer, item.compatibility),
-        ),
+        .map((item) => ({
+          ...toProfileView(item.candidate, viewer, item.compatibility),
+          // Only expose public, truthful factors of the default ranking; never infer
+          // hidden GPA/location from the tie breakers.
+          rankingReasons: sort === 'compatibility' ? [
+            item.shared ? `${item.shared} sở thích chung` : 'Chưa có sở thích chung',
+            ...(item.candidate.mode === viewer.mode ? ['Cùng chế độ kết nối'] : []),
+          ] : [],
+        })),
       filters: {
         modes,
         gpaTiers,
