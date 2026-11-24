@@ -413,7 +413,7 @@ private fun CampusSettingsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
             Text("Riêng tư Trang chủ", style = MaterialTheme.typography.headlineSmall)
-            Text("Tắt "Cho phép khám phá tác giả" thì người khác không còn mở được hồ sơ của bạn từ bài đăng cũ.", style = MaterialTheme.typography.bodySmall)
+            Text("Tắt “Cho phép khám phá tác giả” thì người khác không còn mở được hồ sơ của bạn từ bài đăng cũ.", style = MaterialTheme.typography.bodySmall)
             if (state.settingsLoading) {
                 CircularProgressIndicator(Modifier.padding(16.dp).size(24.dp))
             } else if (state.settings == null) {
