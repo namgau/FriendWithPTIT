@@ -45,7 +45,8 @@ fun BackendDiscoverScreen(identity: PresentationIdentity, onOpenChat: (String) -
         }
         Text("Khám phá hôm nay", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(horizontal = 20.dp))
         Text(
-            state.quota?.let { "Còn ${it.remaining}/${it.limit} lượt quẹt hôm nay" } ?: "Lướt để tìm người hợp gu",
+            state.quota?.let { if (it.unlimited) "Không giới hạn lượt quẹt (tài khoản demo)" else "Còn ${it.remaining}/${it.limit} lượt quẹt hôm nay" }
+                ?: "Lướt để tìm người hợp gu",
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 20.dp)
         )
@@ -53,7 +54,7 @@ fun BackendDiscoverScreen(identity: PresentationIdentity, onOpenChat: (String) -
         Box(Modifier.weight(1f).padding(start = 14.dp, end = 14.dp, top = 10.dp, bottom = 12.dp), contentAlignment = Alignment.Center) {
             val top = state.profiles.firstOrNull()
             when {
-                state.quota?.remaining == 0 -> EmptyState(Icons.Rounded.HourglassBottom, "Hết lượt quẹt hôm nay",
+                state.quota?.let { !it.unlimited && it.remaining == 0 } == true -> EmptyState(Icons.Rounded.HourglassBottom, "Hết lượt quẹt hôm nay",
                     "Mỗi ngày bạn có ${state.quota?.limit} lượt để lướt chậm và chọn kỹ. Lượt mới mở lại lúc 0h. Trong lúc chờ, thử trả lời vài câu hỏi để FwP hiểu gu bạn hơn.",
                     actionLabel = "Trả lời câu hỏi", onAction = onQuestions)
                 top != null -> key(top.id) { SwipeCard(

@@ -20,7 +20,7 @@ data class ProfileAnswerDto(val question: String, val answer: String)
 data class SocialProfilesDto(val total: Int, val items: List<SocialProfileDto>)
 data class SocialSwipeRequest(val targetUserId: String, val action: String)
 data class SocialSwipeDto(val matched: Boolean, val match: SocialMatchDto? = null, val remainingToday: Int? = null)
-data class SwipeQuotaDto(val limit: Int, val used: Int, val remaining: Int)
+data class SwipeQuotaDto(val limit: Int, val used: Int, val remaining: Int, val unlimited: Boolean = false)
 data class FunQuestionDto(val id: String, val text: String, val options: List<String>,
     val myAnswer: Int? = null, val myAcceptable: List<Int>? = null)
 data class FunQuestionsDto(val answered: Int, val items: List<FunQuestionDto>)
