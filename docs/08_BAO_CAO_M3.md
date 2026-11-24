@@ -215,6 +215,10 @@ CI 95% cluster bootstrap theo group (B = 2000) ; Δ = PR-AUC(chốt) − PR-AUC(
 - Lần mở đầu (19:13, toàn bộ 5 bộ) bị hệ điều hành dừng vì thiếu RAM khi đang tính T4 cho E1, trước khi tính chỉ số nào ; chạy lại bằng `--again` theo từng nhóm bộ. `experiments/test_opened.json` ghi đủ 4 lần.
 - ROC-AUC chưa có CI. ECE (10 bin phân vị) lấy từ output console của `run_test`, `TEST_RESULTS_*.md` không in cột này. ECE PhoBERT H1 tăng từ 0.016 (CV) lên 0.039 trên test, cùng nguyên nhân với FPR: Platt chuyển từ model 80%.
 
+![Đường hiệu chỉnh của mô hình chốt trên test](figures/reliability_test.png)
+
+Hình trên: E1, E2, H2 bám đường chéo ; H1 (PhoBERT) nằm dưới đường chéo ở vùng điểm giữa — điểm cao hơn tỉ lệ thật, khớp với FPR 0.081 vượt mục tiêu ; G1 dồn điểm vào khoảng 0.3–0.7 (mô hình yếu, ROC 0.645).
+
 ### R5 — Cross-domain Head A (X4, RQ2)
 
 | Train → Test | PR-AUC | ROC-AUC | Brier thô → sau prior shift |
@@ -238,6 +242,10 @@ CI 95% cluster bootstrap theo group (B = 2000) ; Δ = PR-AUC(chốt) − PR-AUC(
 | E2 | LightGBM (riêng cho 48h) | — | — | 0.530 ± 0.029 |
 
 RSF là **một** mô hình trả lời mọi Δ (1h, 24h, 48h, 72h), giữ được các mẫu bị censor và chỉ kém LightGBM huấn luyện riêng cho từng Δ khoảng 0.01–0.04 PR-AUC. Trong app, nên dùng LightGBM cho cảnh báo 48h và RSF cho câu hỏi "còn bao lâu".
+
+![Kaplan–Meier thời gian tới tin kế tiếp trên train](figures/headA_survival_km.png)
+
+Đường Kaplan–Meier (train, không có đặc trưng): E1 rơi gần hết trong vài phút đầu rồi phẳng ở khoảng 0.10 — trên IRC tin kế tiếp hoặc đến ngay, hoặc không đến ; E2 giảm dần trong nhiều giờ, còn 0.33 ở 48h. Giá trị tại 48h khớp prevalence nhãn nhị phân (0.10 / 0.33).
 
 **Conformal (X8, `HEAD_A_CONFORMAL.md`):**
 - CQR một phía đạt coverage khoảng 0.90 đúng mục tiêu trong miền.
@@ -291,6 +299,8 @@ Confusion matrix E1 tại τ2: TP 9,801, FN 19,038, FP 18,377, TN 233,676.
 
 **E2 — Slice (lỗi theo nhóm).**
 - *E1 theo số tin:* prevalence không đơn điệu (6–10 tin: 0.067 ; 11–20 tin: 0.184 ; > 50 tin: 0.055). Recall giảm từ 0.37 xuống 0.14 với hội thoại dài. SHAP bị `n_msgs` chi phối (1.25 log-odds, gấp 2.7 lần đặc trưng thứ hai). Đây là nghi vấn **artifact của cách tách hội thoại** trong Ubuntu corpus, không phải hành vi người dùng.
+
+![SHAP top 8 đặc trưng Head A](figures/headA_shap.png)
 - *Giờ trong ngày, cuối tuần:* lift gần như không đổi (2.9–3.1). Không có lỗi "im vì ngủ" rõ rệt, khớp với việc bỏ T1_clock không mất gì.
 - *H1 — thiên lệch:*
   - Bình luận có teencode bị báo nhầm nhiều hơn: FPR 11.0% so với 3.7%.
@@ -340,6 +350,8 @@ Confusion matrix E1 tại τ2: TP 9,801, FN 19,038, FP 18,377, TN 233,676.
 | Nhiễu nhãn | H1 có 162 văn bản trùng nhưng mâu thuẫn nhãn ; bỏ chúng làm PR-AUC tăng từ 0.706 lên 0.717. Đọc tay: khoảng 16% FP có thể do nhãn sai. Confident learning báo tới 67% FP "nghi nhiễu" — cao hơn nhiều so với đọc tay |
 | Lệch định nghĩa | ViHSD gán chửi cảm thán là OFFENSIVE → thêm đặc trưng chửi có / không có đối tượng làm FPR trên slice tăng từ 0.50 lên 0.71 |
 | Artifact dữ liệu | `n_msgs` chi phối E1 ; prevalence không đơn điệu theo độ dài |
+
+![Learning curve Head A](figures/headA_learning_curve.png)
 
 **E5 — Hành động đã thử (trước → sau, CV ; `HEAD_B_E5.md`).**
 
@@ -412,7 +424,7 @@ Cả hai fit trên toàn bộ train theo đúng giao thức CV (`final_models.py
 - Mô hình cho app: `python -m src.m3_health.export_serving` → `models/m3/v1/` (file `.joblib` không commit, `metadata.json` có commit + ngưỡng).
 - Test (chỉ A, đã mở 23/11): `python -m src.m3_health.run_test --open --again --datasets E1` (rồi `E2`, rồi `G1 H1 H2`) → `docs/results/TEST_RESULTS_<bộ>.md` ; lịch sử mở ở `experiments/test_opened.json`.
 - Phân tích lỗi trên test: `python -m src.m3_health.run_error_analysis_test` → `docs/results/ERROR_ANALYSIS_TEST.md` (đọc `reports/test_scores_*.parquet`, τ ở `experiments/test_taus.json`).
-- Hình: `python -m src.eval.figures` → `docs/figures/` (đọc `experiments/ledger.csv` ; hình hiệu chỉnh cần `reports/headB_oof_*.csv`).
+- Hình: `python -m src.eval.figures` → `docs/figures/` (đọc `experiments/ledger.csv` và `ERROR_ANALYSIS.md` ; hình hiệu chỉnh cần `reports/headB_oof_*.csv` và `reports/test_scores_*.parquet` ; Kaplan–Meier cần `data/processed`).
 
 - Mọi bảng sinh bằng `python -m src.m3_health.<script>` từ `configs/default.yaml`, seed 42.
 - Mỗi lần chạy ghi 1 dòng vào `experiments/ledger.csv`: commit, hash dữ liệu, metric mean / SD.
@@ -426,5 +438,5 @@ Cả hai fit trên toàn bộ train theo đúng giao thức CV (`final_models.py
 - [x] 23/11: A8 — mở test, điền R4 + paired bootstrap ; chạy lại A9 trên test (3.4b).
 - [x] 24/11: viết 14 ví dụ lỗi bằng lời (E3b) ; trả lời B7 điểm 1 (tiêu chí chọn mô hình chốt) và 3 (giảm câu khẳng định nguyên nhân).
 - [ ] A duyệt tay lại phân loại `reports/h1_fp_audit.csv` (nhóm A–E).
-- [ ] Hình: reliability diagram, learning curve, SHAP summary, đường cong survival mẫu.
+- [x] 24/11: hình reliability trên test, learning curve, SHAP summary, Kaplan–Meier (`src/eval/figures.py`).
 - [ ] 27/11: duyệt chéo theo checklist `01_*` §5.

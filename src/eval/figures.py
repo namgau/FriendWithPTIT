@@ -141,6 +141,110 @@ def head_b_reliability(bins: int = 10) -> None:
     _save(fig, "headB_reliability.png")
 
 
+ERR = ROOT / "docs" / "results" / "ERROR_ANALYSIS.md"
+
+
+def _md_rows(text: str, header: str) -> list[list[str]]:
+    """Các dòng của bảng markdown ngay sau dòng tiêu đề bảng `header` (file do script sinh)."""
+    lines = text.splitlines()
+    i = next(k for k, s in enumerate(lines) if s.startswith(header)) + 2
+    rows = []
+    while i < len(lines) and lines[i].startswith("|"):
+        rows.append([c.strip().replace(",", "") for c in lines[i].strip("|").split("|")])
+        i += 1
+    return rows
+
+
+def learning_curve() -> None:
+    rows = pd.DataFrame(_md_rows(ERR.read_text(encoding="utf-8"), "| dataset | tỉ lệ train"),
+                        columns=["d", "frac", "n", "train", "val"]).astype({"n": int, "train": float, "val": float})
+    fig, axes = plt.subplots(1, 2, figsize=(9, 2.8))
+    for ax, (d, g) in zip(axes, rows.groupby("d")):
+        ax.plot(g.n, g.train, color=GRAY, marker="o", markersize=4, label="train")
+        ax.plot(g.n, g.val, color=BLUE, marker="o", markersize=4, linewidth=2, label="validation")
+        for x, v in zip(g.n, g.val):
+            ax.text(x, v - 0.06, f"{v:.3f}", ha="center", fontsize=7, color=INK)
+        ax.set_xscale("log")
+        ax.xaxis.set_minor_formatter(matplotlib.ticker.NullFormatter())
+        ax.set_ylim(0, 1)
+        ax.set_title(f"{d} — learning curve (LightGBM T1+T2)", loc="left", fontsize=10, color=INK)
+        ax.set_xlabel("Số mẫu train (thang log)")
+        ax.grid(color=GRID, linewidth=0.6)
+    axes[0].set_ylabel("PR-AUC")
+    axes[0].legend(frameon=False, fontsize=8)
+    fig.suptitle("Fold cuối, lấy ngẫu nhiên 10–100% group của outer-train ; nguồn ERROR_ANALYSIS.md (E4)",
+                 x=0.01, ha="left", fontsize=8, color=MUTED)
+    _save(fig, "headA_learning_curve.png")
+
+
+def shap_summary() -> None:
+    lines = [s for s in ERR.read_text(encoding="utf-8").splitlines() if s.startswith("**E3 — đóng góp SHAP")]
+    fig, axes = plt.subplots(1, 2, figsize=(9, 2.8))
+    for ax, d, s in zip(axes, ("E1", "E2"), lines[:2]):  # thứ tự trong file: Head A E1 rồi E2
+        pairs = [p.strip().rsplit(" ", 1) for p in s.split(":", 1)[1].strip(" .").split(",")]
+        df = pd.DataFrame({"label": [a for a, _ in pairs], "mean": [float(b) for _, b in pairs], "sd": 0.0})
+        _hbars(ax, df, [BLUE] * len(df), f"{d} — top 8 đặc trưng", "mean |SHAP| (log-odds)")
+        ax.set_xlim(0, df["mean"].max() * 1.25)  # _hbars chặn trục ở 1 (thang xác suất), SHAP có thể > 1
+    fig.suptitle("LightGBM T1+T2 trên OOF train ; nguồn ERROR_ANALYSIS.md (E3)", x=0.01, ha="left", fontsize=8, color=MUTED)
+    _save(fig, "headA_shap.png")
+
+
+def survival_km(cap_h: float = 168) -> None:
+    from lifelines import KaplanMeierFitter
+
+    from src.m3_health.labels import cv_conversations, load_config, load_train
+    cfg = load_config()
+    fig, ax = plt.subplots(figsize=(6, 3))
+    for d, color in (("E1", BLUE), ("E2", ORANGE)):
+        lab = load_train(d)
+        lab = lab[lab["conversation_id"].isin(cv_conversations(lab, cfg))]
+        t = lab["duration_s"].to_numpy(float) / 3600
+        e = lab["event"].to_numpy(bool) & (t <= cap_h)
+        km = KaplanMeierFitter().fit(np.minimum(t, cap_h), e)
+        sf = km.survival_function_.iloc[:, 0]
+        ax.step(sf.index, sf.values, where="post", color=color, linewidth=2, label=f"{d} (n = {len(t):,})")
+        s48 = float(km.predict(48))
+        ax.annotate(f"{s48:.2f}", (48, s48), xytext=(6, 4), textcoords="offset points", fontsize=8, color=color)
+    ax.axvline(48, color=GRAY, linestyle="--", linewidth=1)
+    ax.set_xscale("symlog", linthresh=1)
+    ax.set_xlim(0, cap_h)
+    ax.set_ylim(0, 1)
+    ax.set_xlabel("Giờ kể từ mốc t (thang symlog) ; nét đứt: Δ = 48h")
+    ax.set_ylabel("P(chưa có tin mới)")
+    ax.set_title("Kaplan–Meier thời gian tới tin kế tiếp (train)", loc="left", fontsize=10, color=INK)
+    ax.grid(color=GRID, linewidth=0.6)
+    ax.legend(frameon=False, fontsize=8)
+    _save(fig, "headA_survival_km.png")
+
+
+TEST_CHOSEN = {"E1": "lgbm_T1-T4", "E2": "lgbm_T1-T4", "G1": "tfidf_lr", "H1": "phobert_c2", "H2": "tfidf_lr"}
+
+
+def reliability_test(bins: int = 10) -> None:
+    """Đường hiệu chỉnh trên TEST (A8) — chỉ để báo cáo, không dùng chỉnh mô hình."""
+    fig, axes = plt.subplots(1, 5, figsize=(13, 2.9), sharey=True)
+    for ax, (d, col) in zip(axes, TEST_CHOSEN.items()):
+        path = ROOT / "reports" / f"test_scores_{d}.parquet"
+        if not path.exists():
+            ax.set_visible(False)
+            continue
+        s = pd.read_parquet(path, columns=["y", col]).rename(columns={col: "p"})
+        q = pd.qcut(s.p, bins, duplicates="drop")
+        g = s.groupby(q, observed=True).agg(p=("p", "mean"), y=("y", "mean"), n=("y", "size"))
+        ece = float((g.n / len(s) * (g.p - g.y).abs()).sum())
+        ax.plot([0, 1], [0, 1], color=GRAY, linewidth=1, linestyle="--")
+        ax.plot(g.p, g.y, color=BLUE, linewidth=2, marker="o", markersize=4)
+        ax.set_title(f"{d} — ECE ≈ {ece:.3f}", loc="left", fontsize=10, color=INK)
+        ax.set_xlabel(col.replace("lgbm_", "LightGBM ").replace("tfidf_lr", "TF-IDF + LR").replace("phobert_c2", "PhoBERT"))
+        ax.set_xlim(0, 1)
+        ax.set_ylim(0, 1)
+        ax.grid(color=GRID, linewidth=0.6)
+    axes[0].set_ylabel("Tỉ lệ dương thực tế")
+    fig.suptitle(f"Đường hiệu chỉnh của mô hình chốt trên TEST ({bins} bin theo phân vị) ; đường chéo = hoàn hảo",
+                 x=0.01, ha="left", fontsize=8, color=MUTED)
+    _save(fig, "reliability_test.png")
+
+
 def _save(fig, name: str) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
     fig.tight_layout()
@@ -156,6 +260,10 @@ def main() -> None:
     head_b_models(led)
     imbalance_b(led)
     head_b_reliability()
+    learning_curve()
+    shap_summary()
+    reliability_test()
+    survival_km()
 
 
 if __name__ == "__main__":
