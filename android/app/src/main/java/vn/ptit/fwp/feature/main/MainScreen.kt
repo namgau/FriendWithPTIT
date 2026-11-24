@@ -11,7 +11,7 @@ import androidx.compose.material.icons.rounded.Explore
 import androidx.compose.material.icons.rounded.Forum
 import androidx.compose.material.icons.rounded.LocalFireDepartment
 import androidx.compose.material.icons.rounded.Person
-import androidx.compose.material.icons.rounded.School
+import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material3.Badge
 import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
@@ -49,7 +49,7 @@ private data class MainTab(val label: String, val icon: ImageVector)
 private val tabs = listOf(
     MainTab("Hôm nay", Icons.Rounded.LocalFireDepartment),
     MainTab("Khám phá", Icons.Rounded.Explore),
-    MainTab("Sân trường", Icons.Rounded.School),
+    MainTab("Trang chủ", Icons.Rounded.Home),
     // Match và Chat gộp một tab: danh sách match chính là danh sách cuộc trò chuyện.
     MainTab("Match", Icons.Rounded.Forum),
     MainTab("Tôi", Icons.Rounded.Person)

@@ -365,7 +365,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
     ) {
         if (_state.value.creating) return
         if (mode == CampusAnonymousMode.DISCOVERABLE && _state.value.settings?.discoveryEnabled != true) {
-            _state.update { it.copy(message = "Hãy bật khám phá tác giả trong cài đặt Sân trường trước khi đăng.") }
+            _state.update { it.copy(message = "Hãy bật khám phá tác giả trong cài đặt Trang chủ trước khi đăng.") }
             return
         }
         if (content.isBlank() && images.isEmpty()) {
@@ -387,7 +387,7 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
                     _state.update { it.copy(creating = false) }
                 }
                 _state.update {
-                    it.copy(message = "Đã đăng bài ẩn danh lên Sân trường.")
+                    it.copy(message = "Đã đăng bài ẩn danh lên Trang chủ.")
                 }
                 onCreated()
                 refresh()

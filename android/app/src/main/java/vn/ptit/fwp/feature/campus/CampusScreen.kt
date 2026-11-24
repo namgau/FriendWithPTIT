@@ -145,7 +145,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Column(Modifier.weight(1f)) {
-                    Text("Sân trường", style = MaterialTheme.typography.headlineSmall)
+                    Text("Trang chủ", style = MaterialTheme.typography.headlineSmall)
                     Text(
                         "Ẩn danh, thật lòng, đúng chuyện",
                         style = MaterialTheme.typography.bodySmall,
@@ -153,10 +153,10 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                     )
                 }
                 IconButton(onClick = { viewModel.loadSettings(); settingsOpen = true }) {
-                    Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Sân trường")
+                    Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Trang chủ")
                 }
                 IconButton(onClick = { viewModel.refresh(); viewModel.loadSettings() }) {
-                    Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới Sân trường")
+                    Icon(Icons.Rounded.Refresh, contentDescription = "Làm mới Trang chủ")
                 }
             }
 
@@ -232,8 +232,8 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             when {
                 !state.configured -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
-                    title = "Sân trường cần backend",
-                    subtitle = "Truyền -PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/ khi build Android và chạy NestJS + PostgreSQL. App không dùng dữ liệu mock cho Sân trường.",
+                    title = "Trang chủ cần backend",
+                    subtitle = "Truyền -PFWP_BACKEND_BASE_URL=http://10.0.2.2:3000/ khi build Android và chạy NestJS + PostgreSQL. App không dùng dữ liệu mock cho Trang chủ.",
                     modifier = Modifier
                         .weight(1f)
                         .align(Alignment.CenterHorizontally)
@@ -246,7 +246,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 }
                 state.error != null && state.posts.isEmpty() -> EmptyState(
                     icon = Icons.Rounded.CloudOff,
-                    title = "Chưa tải được Sân trường",
+                    title = "Chưa tải được Trang chủ",
                     subtitle = state.error ?: "",
                     modifier = Modifier.weight(1f),
                     actionLabel = "Thử lại",
@@ -319,7 +319,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             containerColor = PtitRed,
             contentColor = MaterialTheme.colorScheme.onPrimary
         ) {
-            Icon(Icons.Rounded.Add, contentDescription = "Đăng bài lên Sân trường")
+            Icon(Icons.Rounded.Add, contentDescription = "Đăng bài lên Trang chủ")
         }
 
         SnackbarHost(
@@ -338,7 +338,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             onSubmit = { content, category, mode, images ->
                 viewModel.createPost(content, category, mode, images) {
                     composerOpen = false
-                    scope.launch { snackbar.showSnackbar("Đã đăng bài ẩn danh lên Sân trường.") }
+                    scope.launch { snackbar.showSnackbar("Đã đăng bài ẩn danh lên Trang chủ.") }
                 }
             }
         )
@@ -423,7 +423,7 @@ private fun CampusSettingsSheet(
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
-            Text("Riêng tư Sân trường", style = MaterialTheme.typography.headlineSmall)
+            Text("Riêng tư Trang chủ", style = MaterialTheme.typography.headlineSmall)
             Text("Cài đặt được lưu trên backend. Tắt khám phá sẽ thu hồi các liên kết tác giả hiện có.", style = MaterialTheme.typography.bodySmall)
             if (state.settingsLoading) {
                 CircularProgressIndicator(Modifier.padding(16.dp).size(24.dp))
@@ -631,7 +631,7 @@ private fun CampusPostCard(
         AlertDialog(
             onDismissRequest = { showDelete = false },
             title = { Text("Xóa bài viết?") },
-            text = { Text("Bài viết sẽ biến mất khỏi Sân trường và ảnh kèm theo sẽ bị xóa khỏi dev storage.") },
+            text = { Text("Bài viết sẽ biến mất khỏi Trang chủ và ảnh kèm theo sẽ bị xóa khỏi dev storage.") },
             confirmButton = {
                 TextButton(onClick = {
                     showDelete = false
