@@ -551,8 +551,7 @@ private fun CircleAction(
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = if (enabled) 10.dp else 0.dp,
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        shadowElevation = if (enabled) 8.dp else 0.dp,
         modifier = Modifier
             .size(size.dp)
             .clickable(enabled = enabled, onClick = onClick)

@@ -183,7 +183,8 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 LazyRow(
                     Modifier.fillMaxWidth(),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
                     item {
                         FwpChip(text = "Tất cả", selected = state.community == null, onClick = { viewModel.selectCommunity(null) })
@@ -194,25 +195,23 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                             shape = RoundedCornerShape(12.dp),
                             color = if (selected) PtitRed.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface,
                             border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) PtitRed else MaterialTheme.colorScheme.outline),
-                            modifier = Modifier.width(190.dp).clickable { viewModel.selectCommunity(if (selected) null else c.id) }
+                            modifier = Modifier.width(220.dp).clickable { viewModel.selectCommunity(if (selected) null else c.id) }
                         ) {
                             Column(Modifier.padding(12.dp)) {
                                 Text(c.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
                                 Text(c.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, minLines = 2)
                                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
                                     Text("${c.memberCount} thành viên", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                                    Surface(
-                                        shape = RoundedCornerShape(8.dp),
-                                        color = if (c.joined) MaterialTheme.colorScheme.surfaceVariant else PtitRed,
-                                        modifier = Modifier.clickable { viewModel.toggleJoin(c.id) }
-                                    ) {
-                                        Text(
-                                            if (c.joined) "Đã tham gia" else "Tham gia",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = if (c.joined) MaterialTheme.colorScheme.onSurface else androidx.compose.ui.graphics.Color.White,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp)
-                                        )
-                                    }
+                                    if (c.joined) androidx.compose.material3.OutlinedButton(
+                                        onClick = { viewModel.toggleJoin(c.id) },
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) { Text("Đã tham gia", style = MaterialTheme.typography.labelMedium) }
+                                    else androidx.compose.material3.Button(
+                                        onClick = { viewModel.toggleJoin(c.id) },
+                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp),
+                                        modifier = Modifier.height(36.dp)
+                                    ) { Text("Tham gia", style = MaterialTheme.typography.labelMedium) }
                                 }
                             }
                         }
@@ -478,7 +477,7 @@ private fun CampusPostCard(
     var showDelete by remember { mutableStateOf(false) }
 
     Surface(
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.surface,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = Modifier.fillMaxWidth()

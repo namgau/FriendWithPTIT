@@ -51,6 +51,7 @@ import vn.ptit.fwp.core.design.GpaBadge
 import vn.ptit.fwp.core.design.InfoRow
 import vn.ptit.fwp.core.design.PtitGold
 import vn.ptit.fwp.core.design.PtitRed
+import vn.ptit.fwp.core.design.PtitRedDeep
 import vn.ptit.fwp.core.design.PtitRedSoft
 import vn.ptit.fwp.core.design.SecondaryButton
 import vn.ptit.fwp.core.design.SectionHeader
@@ -104,11 +105,7 @@ fun ProfileScreen(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .background(
-                            Brush.linearGradient(
-                                listOf(PtitRed, Color(0xFF8E1B1B), Color(0xFF5C1010))
-                            )
-                        )
+                        .background(PtitRedDeep)
                 )
                 me.coverPhoto?.let { cover ->
                     AsyncImage(model = cover, contentDescription = "Ảnh bìa", contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
