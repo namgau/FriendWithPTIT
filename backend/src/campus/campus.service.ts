@@ -51,17 +51,28 @@ interface CursorValue {
   id: string;
 }
 
-const ALIASES = [
-  'Sao Băng',
-  'Mây Nhỏ',
-  'Gió Thu',
-  'Nắng Mai',
-  'Mưa Nhẹ',
-  'Đêm Sao',
-  'Lá Phong',
-  'Sương Sớm',
-  'Mèo Mun',
-  'Cà Phê',
+/** Danh tính ẩn danh là con vật (kiểu Litmatch) ; vị trí i ứng với avatarSeed i + 1, khớp emoji trên Android. */
+export const ANIMAL_ALIASES = [
+  'Mèo Lười',
+  'Cún Con',
+  'Cáo Nhỏ',
+  'Gấu Trúc',
+  'Koala Ngủ Gật',
+  'Hổ Con',
+  'Sư Tử',
+  'Ếch Xanh',
+  'Khỉ Con',
+  'Thỏ Trắng',
+  'Gấu Nâu',
+  'Hamster',
+  'Cánh Cụt',
+  'Cú Mèo',
+  'Bạch Tuộc',
+  'Kỳ Lân',
+  'Heo Hồng',
+  'Gà Con',
+  'Cá Heo',
+  'Rùa Chậm',
 ];
 
 const NOT_BLOCKED_SQL = (me: string, otherUserColumn: string) =>
@@ -710,7 +721,7 @@ export class CampusService {
       avatarSeed = (avatarSeed % 20) + 1;
     }
     return {
-      alias: `${ALIASES[randomInt(ALIASES.length)]} #${randomInt(1000, 10000)}`,
+      alias: `${ANIMAL_ALIASES[(avatarSeed - 1) % ANIMAL_ALIASES.length]} #${randomInt(1000, 10000)}`,
       avatarSeed,
     };
   }

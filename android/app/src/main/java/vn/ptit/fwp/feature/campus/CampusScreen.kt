@@ -485,7 +485,7 @@ private fun CampusPostCard(
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                DemoPortrait(
+                vn.ptit.fwp.core.design.AnimalAvatar(
                     seed = post.author.avatarSeed,
                     modifier = Modifier
                         .size(42.dp)
@@ -1036,7 +1036,7 @@ private fun CampusCommentsSheet(
                 ) {
                     items(comments, key = { it.id }) { comment ->
                         Row(verticalAlignment = Alignment.Top) {
-                            DemoPortrait(
+                            vn.ptit.fwp.core.design.AnimalAvatar(
                                 seed = comment.avatarSeed,
                                 modifier = Modifier.size(32.dp).clip(CircleShape)
                             )
@@ -1156,7 +1156,7 @@ private fun CampusAuthorSheet(
                 }
                 return@Column
             }
-            DemoPortrait(
+            vn.ptit.fwp.core.design.AnimalAvatar(
                 seed = author.avatarSeed,
                 modifier = Modifier
                     .size(104.dp)

@@ -165,6 +165,9 @@ fun ProfilePhoto(
                     .matchParentSize()
                     .blur(blurRadius)
             )
+        } else if (profile.id == "masked") {
+            // Match ẩn danh chưa lộ diện: con vật thay cho chân dung, không làm mờ.
+            AnimalAvatar(seed = profile.avatarSeed, modifier = Modifier.matchParentSize())
         } else {
             DemoPortrait(
                 seed = profile.avatarSeed,
