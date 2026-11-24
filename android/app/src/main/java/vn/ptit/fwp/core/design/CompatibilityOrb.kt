@@ -35,9 +35,10 @@ import kotlin.math.sin
 @Composable
 fun CompatibilityOrb(
     score: Int,
-    personality: Int,
-    emotion: Int,
-    interest: Int,
+    // Điểm con chỉ truyền khi có số đo thật ; null thì không vẽ 3 trục.
+    personality: Int? = null,
+    emotion: Int? = null,
+    interest: Int? = null,
     modifier: Modifier = Modifier,
     orbSize: Dp = 118.dp,
     showLabels: Boolean = false
@@ -117,7 +118,7 @@ fun CompatibilityOrb(
                 center = Offset(center.x - radius * 0.22f, center.y - radius * 0.28f),
                 style = Stroke(width = 1.dp.toPx())
             )
-            val axes = listOf(personality, emotion, interest)
+            val axes = if (personality != null && emotion != null && interest != null) listOf(personality, emotion, interest) else emptyList()
             axes.forEachIndexed { i, value ->
                 val a = Math.toRadians((-90 + i * 120).toDouble())
                 val start = Offset(center.x, center.y)

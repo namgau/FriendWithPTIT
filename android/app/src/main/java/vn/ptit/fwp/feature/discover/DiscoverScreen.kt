@@ -425,9 +425,6 @@ internal fun SwipeCard(
                 }
                 if (profile.isDemo) CompatibilityOrb(
                     score = ranked.score,
-                    personality = ranked.score,
-                    emotion = (ranked.score - 6).coerceAtLeast(20),
-                    interest = (ranked.score + 4).coerceAtMost(98),
                     orbSize = 84.dp,
                     modifier = Modifier
                         .align(Alignment.TopEnd)
