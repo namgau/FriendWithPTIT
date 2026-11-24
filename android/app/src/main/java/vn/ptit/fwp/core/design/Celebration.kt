@@ -67,6 +67,7 @@ fun MatchCelebration(
         contentAlignment = Alignment.Center
     ) {
         Confetti(modifier = Modifier.fillMaxSize())
+        Fireworks(modifier = Modifier.fillMaxSize())
         Column(
             modifier = Modifier
                 .padding(28.dp)
@@ -106,7 +107,9 @@ fun MatchCelebration(
                     modifier = Modifier.size(96.dp)
                 ) {
                     Box(Modifier.fillMaxSize()) {
-                        DemoPortrait(seed = other.avatarSeed, modifier = Modifier.fillMaxSize())
+                        if (other.photoUrl != null) ProfilePhoto(other, Modifier.fillMaxSize(), blurLevel = 0.3f, shape = CircleShape,
+                            showAnonymousHint = false, showAnonBadge = false)
+                        else DemoPortrait(seed = other.avatarSeed, modifier = Modifier.fillMaxSize())
                     }
                 }
             }
@@ -175,6 +178,33 @@ fun Confetti(modifier: Modifier = Modifier) {
                 radius = piece.size,
                 center = Offset(x, y)
             )
+        }
+    }
+}
+
+/** Pháo hoa: các chùm tia nở ra lệch pha nhau, lặp lại liên tục. */
+@Composable
+fun Fireworks(modifier: Modifier = Modifier) {
+    val transition = rememberInfiniteTransition(label = "fireworks")
+    val t by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart), label = "fwT")
+    val bursts = remember {
+        val r = Random(7)
+        List(6) { Triple(Offset(0.15f + r.nextFloat() * 0.7f, 0.08f + r.nextFloat() * 0.45f), r.nextFloat(),
+            listOf(PtitGold, Color(0xFFFF5252), Color.White, Color(0xFFFFD54F), Color(0xFF64B5F6)).random(r)) }
+    }
+    Canvas(modifier = modifier) {
+        bursts.forEach { (center, phase, color) ->
+            val local = (t + phase) % 1f
+            if (local > 0.7f) return@forEach
+            val p = local / 0.7f
+            val eased = 1f - (1f - p) * (1f - p)
+            val c = Offset(center.x * size.width, center.y * size.height)
+            val radius = eased * size.minDimension * 0.22f
+            repeat(18) { i ->
+                val a = i * (2 * Math.PI / 18)
+                val end = Offset(c.x + kotlin.math.cos(a).toFloat() * radius, c.y + kotlin.math.sin(a).toFloat() * radius + p * p * 30f)
+                drawCircle(color.copy(alpha = (1f - p).coerceIn(0f, 1f)), radius = 4f * (1f - p * 0.6f), center = end)
+            }
         }
     }
 }

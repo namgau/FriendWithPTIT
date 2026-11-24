@@ -58,7 +58,9 @@ data class RemoteProfileDto(
     val showLocationPublic: Boolean = true,
     val updatedAt: String? = null,
     val photos: List<String>? = null,
-    val coverPhoto: String? = null
+    val coverPhoto: String? = null,
+    val about: Map<String, String>? = null,
+    val languages: List<String>? = null
 )
 
 data class UpdateRemoteProfileRequest(
@@ -79,7 +81,9 @@ data class UpdateRemoteProfileRequest(
     val avatarSeed: Int? = null,
     val mode: String? = null,
     val showGpaPublic: Boolean? = null,
-    val showLocationPublic: Boolean? = null
+    val showLocationPublic: Boolean? = null,
+    val about: Map<String, String>? = null,
+    val languages: List<String>? = null
 )
 
 data class CampusAuthorBadgeDto(
@@ -125,8 +129,10 @@ data class CampusPostDto(
 )
 
 data class CommunityDto(val id: String, val name: String, val description: String, val memberCount: Int, val joined: Boolean,
-    val pending: Boolean = false, val isOwner: Boolean = false, val requiresApproval: Boolean = false, val pendingCount: Int = 0)
-data class CreateCommunityRequest(val name: String, val description: String, val requiresApproval: Boolean)
+    val pending: Boolean = false, val isOwner: Boolean = false, val requiresApproval: Boolean = false, val pendingCount: Int = 0,
+    val hidden: Boolean = false, val inviteCode: String? = null)
+data class CreateCommunityRequest(val name: String, val description: String, val requiresApproval: Boolean, val hidden: Boolean = false)
+data class JoinByCodeRequest(val code: String)
 data class CommunityRequestDto(val userId: String, val nickname: String, val avatarSeed: Int)
 data class CommunityRequestsDto(val items: List<CommunityRequestDto>)
 data class DecideRequestBody(val approve: Boolean)
@@ -296,6 +302,8 @@ interface CampusApi {
     suspend fun communities(@Header("Authorization") authorization: String): CommunitiesDto
     @POST("campus/communities")
     suspend fun createCommunity(@Header("Authorization") authorization: String, @Body request: CreateCommunityRequest): CommunitiesDto
+    @POST("campus/communities/join-by-code")
+    suspend fun joinCommunityByCode(@Header("Authorization") authorization: String, @Body body: JoinByCodeRequest): CommunitiesDto
     @GET("campus/communities/{id}/requests")
     suspend fun communityRequests(@Header("Authorization") authorization: String, @Path("id") id: String): CommunityRequestsDto
     @POST("campus/communities/{id}/requests/{userId}")

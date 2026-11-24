@@ -18,6 +18,7 @@ export class QuestionsService {
       items: QUESTION_BANK.map((q) => ({
         ...q,
         myAnswer: mine.get(q.id)?.answer ?? null,
+        myText: mine.get(q.id)?.customText ?? null,
         myAcceptable: mine.get(q.id)?.acceptable ?? [],
       })),
     };
@@ -27,17 +28,20 @@ export class QuestionsService {
     const question = QUESTION_BY_ID.get(questionId);
     if (!question) throw new NotFoundException('Question not found');
     const n = question.options.length;
-    if (dto.answer >= n || dto.acceptable.some((i) => i >= n)) {
+    const text = dto.text?.trim();
+    if (dto.answer === -1 && !text) throw new BadRequestException('Custom answer needs text');
+    if (dto.answer >= n || dto.acceptable.some((i) => i >= n || i < 0)) {
       throw new BadRequestException('Answer out of range');
     }
     // Your own answer is always acceptable to you; empty set means "any answer".
-    const acceptable = dto.acceptable.length
+    const acceptable = dto.acceptable.length && dto.answer >= 0
       ? Array.from(new Set([...dto.acceptable, dto.answer])).sort()
       : question.options.map((_, i) => i);
     const row = (await this.answers.findOne({ where: { userId, questionId } }))
       ?? this.answers.create({ userId, questionId });
     row.answer = dto.answer;
-    row.acceptable = acceptable;
+    row.acceptable = dto.answer === -1 ? question.options.map((_, i) => i) : acceptable;
+    row.customText = dto.answer === -1 ? text! : null;
     await this.answers.save(row);
     return this.list(userId);
   }

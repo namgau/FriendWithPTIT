@@ -1,5 +1,11 @@
 package vn.ptit.fwp.feature.main
 
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.ui.Alignment
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.offset
 import androidx.compose.ui.graphics.graphicsLayer
@@ -81,6 +87,23 @@ fun MainScreen(
     val unreadMessages = matches.sumOf { it.unreadCount }
     val swipedIds = swipes.map { it.targetId }.toSet()
     val incomingLikes = profiles.count { it.likedYou && it.id !in swipedIds }
+    // Backend: chấm đỏ ở tab Match khi có thông báo match / tin nhắn / lượt thích chưa đọc (hỏi lại mỗi 20 giây).
+    val matchUnread by androidx.compose.runtime.produceState(0, identity, demo) {
+        if (demo || !identity.authenticated) return@produceState
+        val api = container.backendSocial.forIdentity(identity)
+        while (true) {
+            value = runCatching { api.notifications().items.count { !it.read && it.kind in setOf("MATCH", "MESSAGE", "LIKE") } }.getOrDefault(value)
+            kotlinx.coroutines.delay(20_000)
+        }
+    }
+    var matchSeen by remember { mutableIntStateOf(0) }
+    val matchDot = matchUnread > matchSeen
+    LaunchedEffect(selected) {
+        if (selected == 3 && !demo && identity.authenticated) {
+            matchSeen = matchUnread
+            runCatching { container.backendSocial.forIdentity(identity).readNotifications() }
+        }
+    }
 
     Scaffold(
         containerColor = MaterialTheme.colorScheme.background,
@@ -107,15 +130,7 @@ fun MainScreen(
                                     }
                                 }
                             ) {
-                                // Icon nảy lên khi được chọn (lò xo, không bật nảy quá đà).
-                                val isSelected = selected == index
-                                val scale by androidx.compose.animation.core.animateFloatAsState(
-                                    if (isSelected) 1.18f else 1f,
-                                    androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 500f), label = "tabScale")
-                                val lift by androidx.compose.animation.core.animateDpAsState(
-                                    if (isSelected) (-2).dp else 0.dp, androidx.compose.animation.core.spring(dampingRatio = 0.5f), label = "tabLift")
-                                Icon(tab.icon, contentDescription = tab.label,
-                                    modifier = Modifier.offset(y = lift).graphicsLayer { scaleX = scale; scaleY = scale })
+                                AnimatedTabIcon(index, tab, selected == index, dot = index == 3 && matchDot)
                             }
                         },
                         label = { Text(tab.label) },
@@ -179,6 +194,49 @@ fun MainScreen(
                     )
                 }
             }
+        }
+    }
+}
+
+/**
+ * Icon tab có animation riêng khi được chọn: lửa bập bùng, la bàn xoay, nhà nhún, khung chat lắc, người bật lên.
+ * dot = chấm đỏ nhấp nháy ở góc phải trên.
+ */
+@Composable
+private fun AnimatedTabIcon(index: Int, tab: MainTab, selected: Boolean, dot: Boolean) {
+    val anim = remember { androidx.compose.animation.core.Animatable(0f) }
+    LaunchedEffect(selected) {
+        if (selected) { anim.snapTo(0f); anim.animateTo(1f, androidx.compose.animation.core.tween(if (index == 1) 650 else 520)) }
+    }
+    val t = anim.value
+    val wave = kotlin.math.sin(t * Math.PI.toFloat())
+    Box {
+        Icon(
+            tab.icon, contentDescription = tab.label,
+            modifier = Modifier.graphicsLayer {
+                when (index) {
+                    0 -> { // lửa: phập phồng + lắc nhẹ
+                        val flicker = 1f + kotlin.math.sin(t * 6 * Math.PI.toFloat()) * 0.12f * (1 - t)
+                        scaleX = flicker; scaleY = flicker * (1f + wave * 0.1f)
+                        rotationZ = kotlin.math.sin(t * 4 * Math.PI.toFloat()) * 8f * (1 - t)
+                        transformOrigin = androidx.compose.ui.graphics.TransformOrigin(0.5f, 1f)
+                    }
+                    1 -> rotationZ = t * 360f // la bàn xoay một vòng
+                    2 -> translationY = -wave * 10f // nhà nhún lên
+                    3 -> rotationZ = kotlin.math.sin(t * 3 * Math.PI.toFloat()) * 14f * (1 - t) // chat lắc
+                    else -> { scaleX = 1f + wave * 0.22f; scaleY = 1f + wave * 0.22f }
+                }
+            }
+        )
+        if (dot) {
+            val blink = androidx.compose.animation.core.rememberInfiniteTransition(label = "dot")
+            val alpha by blink.animateFloat(1f, 0.25f, androidx.compose.animation.core.infiniteRepeatable(
+                androidx.compose.animation.core.tween(700), androidx.compose.animation.core.RepeatMode.Reverse), label = "dotAlpha")
+            Box(
+                Modifier.align(Alignment.TopEnd).offset(x = 4.dp, y = (-2).dp).size(9.dp)
+                    .graphicsLayer { this.alpha = alpha }
+                    .background(PtitRed, androidx.compose.foundation.shape.CircleShape)
+            )
         }
     }
 }

@@ -74,7 +74,14 @@ fun BackendDiscoverScreen(identity: PresentationIdentity, onOpenChat: (String) -
     if (filters) ModalBottomSheet(onDismissRequest = { filters = false }) {
         FilterSheet(state.filters, onApply = { filters = false; vm.refresh(it) }, onReset = { filters = false; vm.refresh(DiscoveryFilters()) })
     }
-    state.notice?.let { notice -> AlertDialog(onDismissRequest = vm::dismissNotice,
+    state.match?.let { match ->
+        androidx.compose.ui.window.Dialog(onDismissRequest = vm::dismissNotice,
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)) {
+            MatchCelebration(me = null, other = match.displayProfile(),
+                onChat = { vm.dismissNotice(); onOpenChat(match.id) }, onContinue = vm::dismissNotice)
+        }
+    }
+    if (state.match == null) state.notice?.let { notice -> AlertDialog(onDismissRequest = vm::dismissNotice,
         title = { Text(if (state.match != null) "Đã match" else "Đã gửi") }, text = { Text(notice) },
         confirmButton = { TextButton(onClick = { val match = state.match; vm.dismissNotice(); match?.let { onOpenChat(it.id) } }) { Text(if (state.match != null) "Mở trò chuyện" else "Đã hiểu") } }) }
 }

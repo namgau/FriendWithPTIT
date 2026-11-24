@@ -12,6 +12,7 @@ import {
   Max,
   MaxLength,
   Min,
+  IsObject,
 } from 'class-validator';
 
 const MODES = ['DATING', 'FRIENDS', 'STUDY'];
@@ -97,6 +98,17 @@ export class UpdateProfileDto {
   @Min(1)
   @Max(50)
   avatarSeed?: number;
+
+  @IsOptional()
+  @IsObject()
+  about?: Record<string, string>;
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(30, { each: true })
+  languages?: string[];
 
   @IsOptional()
   @IsIn(MODES)
@@ -216,6 +228,9 @@ export class NearbyQueryDto {
   @Max(100)
   radiusKm?: number;
 }
+
+/** Khóa hợp lệ của "Thêm về tôi" ; giá trị là chuỗi ngắn do app chọn sẵn. */
+export const ABOUT_KEYS = ['smoking', 'drinking', 'heightCm', 'pets', 'religion', 'exercise', 'zodiac'] as const;
 
 export class AddPhotoDto {
   /** Data URL base64 (JPEG/PNG/WebP), kiểm tra và mã hóa lại như ảnh Campus. */

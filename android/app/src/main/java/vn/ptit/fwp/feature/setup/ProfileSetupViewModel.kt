@@ -106,6 +106,15 @@ class ProfileSetupViewModel(
 
     fun setCover(uri: String?) = updateDraft { copy(coverPhoto = uri) }
 
+    /** Chọn lại cùng giá trị thì bỏ chọn ; null = xóa. */
+    fun setAbout(key: String, value: String?) = updateDraft {
+        copy(about = if (value == null || about[key] == value) about - key else about + (key to value))
+    }
+
+    fun toggleLanguage(language: String) = updateDraft {
+        copy(languages = if (language in languages) languages - language else (languages + language).take(8))
+    }
+
     fun removePhoto(index: Int) = updateDraft {
         val next = photos.filterIndexed { i, _ -> i != index }
         copy(photos = next, photoUrl = next.firstOrNull())
@@ -247,6 +256,8 @@ class ProfileSetupViewModel(
         mode = mode,
         email = email,
         photoUrl = photoUrl,
-        photos = photos
+        photos = photos,
+        about = about,
+        languages = languages
     )
 }

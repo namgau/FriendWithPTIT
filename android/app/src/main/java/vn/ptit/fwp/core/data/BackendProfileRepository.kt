@@ -140,7 +140,9 @@ private fun UpdateRemoteProfileRequest.includePreviouslySubmitted(
     bio = bio ?: desired.bio.takeIf { previous.bio != null }, interests = interests ?: desired.interests.takeIf { previous.interests != null },
     avatarSeed = avatarSeed ?: desired.avatarSeed.takeIf { previous.avatarSeed != null }, mode = mode ?: desired.mode.takeIf { previous.mode != null },
     showGpaPublic = showGpaPublic ?: desired.showGpaPublic.takeIf { previous.showGpaPublic != null },
-    showLocationPublic = showLocationPublic ?: desired.showLocationPublic.takeIf { previous.showLocationPublic != null }
+    showLocationPublic = showLocationPublic ?: desired.showLocationPublic.takeIf { previous.showLocationPublic != null },
+    about = about ?: desired.about.takeIf { previous.about != null },
+    languages = languages ?: desired.languages.takeIf { previous.languages != null }
 )
 
 private fun UpdateRemoteProfileRequest.excludingMatched(profile: RemoteProfileDto) = copy(
@@ -153,7 +155,9 @@ private fun UpdateRemoteProfileRequest.excludingMatched(profile: RemoteProfileDt
     interests = interests?.takeIf { it.toSet() != profile.interests.orEmpty().toSet() },
     avatarSeed = avatarSeed?.takeIf { it != profile.avatarSeed }, mode = mode?.takeIf { it != profile.mode },
     showGpaPublic = showGpaPublic?.takeIf { it != profile.showGpaPublic },
-    showLocationPublic = showLocationPublic?.takeIf { it != profile.showLocationPublic }
+    showLocationPublic = showLocationPublic?.takeIf { it != profile.showLocationPublic },
+    about = about?.takeIf { it != profile.about.orEmpty() },
+    languages = languages?.takeIf { it.toSet() != profile.languages.orEmpty().toSet() }
 )
 
 private fun matchesRequested(profile: RemoteProfileDto, request: UpdateRemoteProfileRequest): Boolean =
@@ -166,7 +170,9 @@ private fun matchesRequested(profile: RemoteProfileDto, request: UpdateRemotePro
         (request.interests == null || profile.interests?.toSet() == request.interests.toSet()) &&
         (request.avatarSeed == null || profile.avatarSeed == request.avatarSeed) && (request.mode == null || profile.mode == request.mode) &&
         (request.showGpaPublic == null || profile.showGpaPublic == request.showGpaPublic) &&
-        (request.showLocationPublic == null || profile.showLocationPublic == request.showLocationPublic)
+        (request.showLocationPublic == null || profile.showLocationPublic == request.showLocationPublic) &&
+        (request.about == null || profile.about.orEmpty() == request.about) &&
+        (request.languages == null || profile.languages.orEmpty().toSet() == request.languages.toSet())
 
 internal fun profileVersionChanged(original: RemoteProfileDto, latest: RemoteProfileDto): Boolean =
     original.id != latest.id || original.userId != latest.userId || original.updatedAt == null ||
@@ -183,7 +189,9 @@ fun RemoteProfileDto.toLocalProfile(): Profile = Profile(
     mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS),
     photoUrl = photos?.firstOrNull()?.let(::backendAbsoluteUrl),
     photos = photos.orEmpty().map(::backendAbsoluteUrl),
-    coverPhoto = coverPhoto?.let(::backendAbsoluteUrl)
+    coverPhoto = coverPhoto?.let(::backendAbsoluteUrl),
+    about = about.orEmpty(),
+    languages = languages.orEmpty()
 )
 
 fun RemoteProfileDto.toDraft(email: String): MyProfileDraft = MyProfileDraft(
@@ -193,14 +201,17 @@ fun RemoteProfileDto.toDraft(email: String): MyProfileDraft = MyProfileDraft(
     showGpa = showGpaPublic, showLocation = showLocationPublic,
     mode = runCatching { ConnectionMode.valueOf(mode) }.getOrDefault(ConnectionMode.FRIENDS), email = email,
     photos = photos.orEmpty(),
-    coverPhoto = coverPhoto
+    coverPhoto = coverPhoto,
+    about = about.orEmpty(),
+    languages = languages.orEmpty()
 )
 
 fun MyProfileDraft.toBackendUpdate() = UpdateRemoteProfileRequest(
     nickname = nickname.trim(), fullName = fullName.trim(), age = age, gender = if (gender == Gender.ANY) "OTHER" else gender.name,
     school = school, campus = campus, faculty = faculty, major = major, academicYear = academicYear,
     alumni = alumni, gpa = gpa, bio = bio.trim(), interests = interests.toList(), avatarSeed = avatarSeed,
-    mode = mode.name, showGpaPublic = showGpa, showLocationPublic = showLocation
+    mode = mode.name, showGpaPublic = showGpa, showLocationPublic = showLocation,
+    about = about, languages = languages
 )
 
 internal fun MyProfileDraft.changedBackendUpdate(original: RemoteProfileDto): UpdateRemoteProfileRequest {
@@ -215,6 +226,8 @@ internal fun MyProfileDraft.changedBackendUpdate(original: RemoteProfileDto): Up
         interests = all.interests?.takeIf { it.toSet() != original.interests.orEmpty().toSet() },
         avatarSeed = all.avatarSeed?.takeIf { it != original.avatarSeed }, mode = all.mode?.takeIf { it != original.mode },
         showGpaPublic = all.showGpaPublic?.takeIf { it != original.showGpaPublic },
-        showLocationPublic = all.showLocationPublic?.takeIf { it != original.showLocationPublic }
+        showLocationPublic = all.showLocationPublic?.takeIf { it != original.showLocationPublic },
+        about = all.about?.takeIf { it != original.about.orEmpty() },
+        languages = all.languages?.takeIf { it.toSet() != original.languages.orEmpty().toSet() }
     )
 }

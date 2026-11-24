@@ -16,7 +16,11 @@ export interface CreateCommunityInput {
   name: string;
   description?: string;
   requiresApproval?: boolean;
+  hidden?: boolean;
 }
+
+/** Mã mời = 8 ký tự đầu của id (in hoa). */
+export const inviteCode = (id: string) => id.replace(/-/g, '').slice(0, 8).toUpperCase();
 
 @Injectable()
 export class CommunitiesService implements OnModuleInit {
@@ -46,10 +50,13 @@ export class CommunitiesService implements OnModuleInit {
       this.members.find(),
     ]);
     return {
-      items: all.map((c) => {
+      // Cộng đồng ẩn chỉ hiện với chủ, thành viên và người đang chờ duyệt.
+      items: all.filter((c) => !c.hidden || c.ownerUserId === userId || rows.some((r) => r.communityId === c.id && r.userId === userId)).map((c) => {
         const mine = rows.find((r) => r.communityId === c.id && r.userId === userId);
         const isOwner = c.ownerUserId === userId;
         return {
+          hidden: c.hidden,
+          inviteCode: c.hidden && (isOwner || mine?.status === 'MEMBER') ? inviteCode(c.id) : null,
           id: c.id,
           name: c.name,
           description: c.description,
@@ -74,14 +81,27 @@ export class CommunitiesService implements OnModuleInit {
       description: (input.description ?? '').trim(),
       ownerUserId: userId,
       requiresApproval: input.requiresApproval ?? false,
+      hidden: input.hidden ?? false,
     }));
     await this.members.save(this.members.create({ userId, communityId: community.id, status: 'MEMBER' }));
     return this.list(userId);
   }
 
-  async setJoined(userId: string, communityId: string, joined: boolean) {
+  async joinByCode(userId: string, code: string) {
+    const wanted = code.trim().toUpperCase();
+    const community = (await this.communities.find()).find((c) => inviteCode(c.id) === wanted);
+    if (!community) throw new NotFoundException('Mã mời không đúng');
+    return this.setJoined(userId, community.id, true, true);
+  }
+
+  async setJoined(userId: string, communityId: string, joined: boolean, viaCode = false) {
     const community = await this.communities.findOne({ where: { id: communityId } });
     if (!community) throw new NotFoundException('Community not found');
+    const member = await this.members.findOne({ where: { userId, communityId } });
+    // Cộng đồng ẩn: người ngoài chỉ vào được bằng mã mời (giống như không tồn tại).
+    if (joined && community.hidden && !viaCode && !member && community.ownerUserId !== userId) {
+      throw new NotFoundException('Community not found');
+    }
     const existing = await this.members.findOne({ where: { userId, communityId } });
     if (joined && !existing) {
       const status = community.requiresApproval && community.ownerUserId !== userId ? 'PENDING' : 'MEMBER';

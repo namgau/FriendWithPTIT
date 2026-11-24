@@ -103,9 +103,17 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
         }
     }
 
-    fun createCommunity(name: String, description: String, approval: Boolean) {
+    fun joinByCode(code: String) {
         viewModelScope.launch {
-            runCatching { repository.createCommunity(name, description, approval) }
+            runCatching { repository.joinByCode(code) }
+                .onSuccess { list -> _state.update { it.copy(communities = list, message = "Đã gửi yêu cầu bằng mã mời.") } }
+                .onFailure { error -> _state.update { it.copy(message = if (error is retrofit2.HttpException && error.code() == 404) "Mã mời không đúng." else humanError(error)) } }
+        }
+    }
+
+    fun createCommunity(name: String, description: String, approval: Boolean, hidden: Boolean) {
+        viewModelScope.launch {
+            runCatching { repository.createCommunity(name, description, approval, hidden) }
                 .onSuccess { list -> _state.update { it.copy(communities = list, message = "Đã tạo cộng đồng $name.") } }
                 .onFailure { error -> _state.update { it.copy(message = humanError(error)) } }
         }

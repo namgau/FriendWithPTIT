@@ -23,6 +23,7 @@ export const QUESTION_BANK: FunQuestion[] = [
   { id: 'smoke', text: 'Bạn có hút thuốc không?', options: ['Không', 'Thỉnh thoảng', 'Có'] },
   { id: 'children', text: 'Sau này bạn có muốn có con không?', options: ['Có', 'Chưa chắc', 'Không'] },
   { id: 'first_date_bill', text: 'Buổi hẹn đầu, ai nên trả tiền?', options: ['Người rủ', 'Chia đôi', 'Ai cũng được'] },
+  { id: 'proud', text: 'Bạn tự hào gì về bản thân nhất?', options: ['Sự tử tế', 'Sự chăm chỉ', 'Khiếu hài hước', 'Biết lắng nghe'] },
   { id: 'reply_time', text: 'Người ấy trả lời tin nhắn sau bao lâu thì bạn thấy ổn?', options: ['Vài phút', 'Vài giờ', 'Trong ngày', 'Lúc nào cũng được'] },
 ];
 
@@ -46,8 +47,9 @@ export function questionMatch(
   theirs: AnswerLike[],
 ): { percent: number; common: number } | null {
   // Chỉ tính câu còn trong bộ hiện tại (câu trả lời cho câu đã bỏ vẫn nằm trong DB).
-  const other = new Map(theirs.filter((a) => QUESTION_BY_ID.has(a.questionId)).map((a) => [a.questionId, a]));
-  const pairs = mine.filter((a) => QUESTION_BY_ID.has(a.questionId)).flatMap((a) => (other.has(a.questionId) ? [[a, other.get(a.questionId)!] as const] : []));
+  const other = new Map(theirs.filter((a) => QUESTION_BY_ID.has(a.questionId) && a.answer >= 0).map((a) => [a.questionId, a]));
+  // Câu tự viết (answer = -1) không so được nên bỏ qua khi tính % hợp gu.
+  const pairs = mine.filter((a) => QUESTION_BY_ID.has(a.questionId) && a.answer >= 0).flatMap((a) => (other.has(a.questionId) ? [[a, other.get(a.questionId)!] as const] : []));
   if (pairs.length < MIN_COMMON_QUESTIONS) return null;
   const okMine = pairs.filter(([m, t]) => m.acceptable.includes(t.answer)).length / pairs.length;
   const okTheirs = pairs.filter(([m, t]) => t.acceptable.includes(m.answer)).length / pairs.length;

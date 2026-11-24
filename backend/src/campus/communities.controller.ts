@@ -17,6 +17,16 @@ export class CreateCommunityDto {
   @IsOptional()
   @IsBoolean()
   requiresApproval?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  hidden?: boolean;
+}
+
+export class JoinByCodeDto {
+  @IsString()
+  @MaxLength(16)
+  code: string;
 }
 
 export class DecideRequestDto {
@@ -38,6 +48,12 @@ export class CommunitiesController {
   @HttpCode(200)
   create(@CurrentUser() user: RequestUser, @Body() dto: CreateCommunityDto) {
     return this.communities.create(user.userId, dto);
+  }
+
+  @Post('join-by-code')
+  @HttpCode(200)
+  joinByCode(@CurrentUser() user: RequestUser, @Body() dto: JoinByCodeDto) {
+    return this.communities.joinByCode(user.userId, dto.code);
   }
 
   @Post(':id/join')

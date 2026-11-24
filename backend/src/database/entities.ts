@@ -109,6 +109,14 @@ export class Profile {
   @Column({ type: 'text', array: true, default: () => "'{}'" })
   photos: string[];
 
+  /** "Thêm về tôi": smoking, drinking, heightCm, pets, religion... (giá trị chuỗi). */
+  @Column({ type: 'jsonb', default: () => "'{}'" })
+  about: Record<string, string>;
+
+  /** Ngôn ngữ nói được. */
+  @Column({ type: 'text', array: true, default: () => "'{}'" })
+  languages: string[];
+
   /** Ảnh bìa (banner) ; cùng quy ước đường dẫn với photos. */
   @Column({ name: 'cover_photo', type: 'text', nullable: true })
   coverPhoto: string | null;
@@ -678,6 +686,10 @@ export class CampusCommunity {
   @Column({ name: 'owner_user_id', type: 'varchar', nullable: true })
   ownerUserId: string | null;
 
+  /** Ẩn: không hiện công khai, chỉ vào được bằng mã mời. */
+  @Column({ default: false })
+  hidden: boolean;
+
   /** Chủ cộng đồng phải duyệt người xin vào. */
   @Column({ name: 'requires_approval', default: false })
   requiresApproval: boolean;
@@ -722,6 +734,10 @@ export class QuestionAnswer {
 
   @Column({ type: 'int' })
   answer: number;
+
+  /** Câu trả lời tự viết (answer = -1) ; không tính vào % hợp gu. */
+  @Column({ name: 'custom_text', type: 'varchar', length: 200, nullable: true })
+  customText: string | null;
 
   /** Answers this user would accept from someone else (always includes their own). */
   @Column({ type: 'int', array: true, default: () => "'{}'" })

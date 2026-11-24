@@ -145,7 +145,10 @@ fun ProfileSetupScreen(
                         viewModel.setGpaText(value)
                     }
                 }
-                2 -> InterestsStep(state, viewModel)
+                2 -> {
+                    InterestsStep(state, viewModel)
+                    AboutMeStep(state, viewModel)
+                }
                 3 -> PrivacyStep(state, viewModel)
             }
             if (state.error != null) {
@@ -731,4 +734,41 @@ private fun stepTitle(step: Int): String = when (step) {
     1 -> "Học vấn"
     2 -> "Sở thích & chế độ"
     else -> "Quyền riêng tư"
+}
+
+/** "Thêm về tôi" (không bắt buộc) + ngôn ngữ nói được ; chạm lại để bỏ chọn. */
+@OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+@Composable
+private fun AboutMeStep(state: SetupUiState, viewModel: ProfileSetupViewModel) {
+    Spacer(Modifier.height(24.dp))
+    SectionHeader(title = "Thêm về tôi", subtitle = "Không bắt buộc ; hiện thành chip trên hồ sơ của bạn.")
+    vn.ptit.fwp.core.model.ABOUT_FIELDS.forEach { field ->
+        Spacer(Modifier.height(12.dp))
+        Text(field.label, style = MaterialTheme.typography.titleSmall)
+        Spacer(Modifier.height(6.dp))
+        androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            field.options.forEach { option ->
+                FwpChip(text = option, selected = state.draft.about[field.key] == option, onClick = { viewModel.setAbout(field.key, option) })
+            }
+        }
+    }
+    Spacer(Modifier.height(12.dp))
+    val height = state.draft.about["heightCm"]?.toIntOrNull()
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text("Chiều cao", style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
+        Text(height?.let { "$it cm" } ?: "Chưa chọn", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
+    }
+    androidx.compose.material3.Slider(
+        value = (height ?: 165).toFloat(),
+        onValueChange = { viewModel.setAbout("heightCm", it.toInt().toString().takeIf { v -> v != state.draft.about["heightCm"] } ?: return@Slider) },
+        valueRange = 140f..200f
+    )
+    Spacer(Modifier.height(12.dp))
+    Text("Ngôn ngữ nói được", style = MaterialTheme.typography.titleSmall)
+    Spacer(Modifier.height(6.dp))
+    androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        vn.ptit.fwp.core.model.LANGUAGE_CATALOG.forEach { language ->
+            FwpChip(text = language, selected = language in state.draft.languages, onClick = { viewModel.toggleLanguage(language) })
+        }
+    }
 }

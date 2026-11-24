@@ -379,8 +379,9 @@ internal fun SwipeCard(
                                 )
                             )
                     )
+                    val headerAlpha = (1f - scroll.value / 360f).coerceIn(0f, 1f)
                     Row(
-                        Modifier.align(Alignment.TopStart).padding(12.dp),
+                        Modifier.align(Alignment.TopStart).padding(12.dp).graphicsLayer { alpha = headerAlpha },
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
@@ -390,7 +391,7 @@ internal fun SwipeCard(
                     CompatibilityOrb(
                         score = ranked.score,
                         orbSize = 78.dp,
-                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp)
+                        modifier = Modifier.align(Alignment.TopEnd).padding(6.dp).graphicsLayer { alpha = headerAlpha }
                     )
                     Column(
                         Modifier
@@ -414,7 +415,8 @@ internal fun SwipeCard(
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(
-                            "${vn.ptit.fwp.core.model.ageCohortLabel(profile.age, profile.academicYear)} · ${profile.major.ifBlank { profile.faculty }}",
+                            listOf(vn.ptit.fwp.core.model.ageCohortLabel(profile.age, profile.academicYear), profile.gender.label,
+                                profile.major.ifBlank { profile.faculty }).filter { it.isNotBlank() }.joinToString(" · "),
                             style = MaterialTheme.typography.bodyMedium,
                             color = Color.White.copy(alpha = 0.85f),
                             maxLines = 1,
@@ -436,12 +438,6 @@ internal fun SwipeCard(
                                 Text("· Hợp gu $it%", style = MaterialTheme.typography.labelSmall, color = PtitGold)
                             }
                         }
-                        Spacer(Modifier.height(8.dp))
-                        Text(
-                            "Kéo lên để xem tiểu sử và ảnh khác",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Color.White.copy(alpha = 0.7f)
-                        )
                     }
                 }
                 Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 16.dp)) {
@@ -485,8 +481,10 @@ internal fun SwipeCard(
                     InfoLine("Khoa", profile.faculty)
                     InfoLine("Ngành", profile.major)
                     InfoLine("Tuổi - khóa", vn.ptit.fwp.core.model.ageCohortLabel(profile.age, profile.academicYear))
+                    InfoLine("Giới tính", profile.gender.label)
                     if (showGpa) InfoLine("GPA", String.format(java.util.Locale.US, "%.2f", profile.gpa))
                     Spacer(Modifier.height(14.dp))
+                    vn.ptit.fwp.core.design.AboutChips(profile.about, profile.languages)
                     if (profile.interests.isNotEmpty()) {
                         DetailTitle("Sở thích")
                         androidx.compose.foundation.layout.FlowRow(
@@ -520,9 +518,9 @@ internal fun SwipeCard(
             horizontalArrangement = Arrangement.spacedBy(22.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CircleAction(Icons.Rounded.Close, PtitRed, actionsEnabled, 60) { fly(-1400f, 0f, onPass) }
-            CircleAction(Icons.Rounded.Star, PtitGold, actionsEnabled, 50) { fly(0f, -2200f, onSuperLike) }
-            CircleAction(Icons.Rounded.Favorite, Color(0xFFD81B60), actionsEnabled, 60) { fly(1400f, 0f, onLike) }
+            CircleAction(Icons.Rounded.Close, PtitRed, actionsEnabled, 54, profile.id, 0) { fly(-1400f, 0f, onPass) }
+            CircleAction(Icons.Rounded.Star, PtitGold, actionsEnabled, 44, profile.id, 1) { fly(0f, -2200f, onSuperLike) }
+            CircleAction(Icons.Rounded.Favorite, Color(0xFFD81B60), actionsEnabled, 54, profile.id, 2) { fly(1400f, 0f, onLike) }
         }
         // Dấu "THÍCH" / "BỎ QUA" hiện rõ dần theo độ kéo.
         val drag = offsetX.value
@@ -586,8 +584,18 @@ private fun CircleAction(
     tint: Color,
     enabled: Boolean,
     size: Int,
+    cardKey: String = "",
+    order: Int = 0,
     onClick: () -> Unit
 ) {
+    // Mỗi thẻ mới: 3 nút bật lên lần lượt (lệch 60ms) ; bấm thì icon xoay nhẹ và nảy.
+    val pop = remember(cardKey) { Animatable(0.4f) }
+    LaunchedEffect(cardKey) {
+        kotlinx.coroutines.delay(order * 60L)
+        pop.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 400f))
+    }
+    val spin = remember { Animatable(0f) }
+    val iconScope = rememberCoroutineScope()
     // Nhún khi bấm: phản hồi tức thì ~120ms.
     val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
@@ -599,15 +607,23 @@ private fun CircleAction(
         shadowElevation = if (enabled) 8.dp else 0.dp,
         modifier = Modifier
             .size(size.dp)
-            .graphicsLayer { scaleX = press; scaleY = press }
-            .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), enabled = enabled, onClick = onClick)
+            .graphicsLayer { scaleX = press * pop.value; scaleY = press * pop.value }
+            .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), enabled = enabled) {
+                iconScope.launch { spin.snapTo(0f); spin.animateTo(1f, tween(380)) }
+                onClick()
+            }
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(
                 icon,
                 contentDescription = null,
                 tint = if (enabled) tint else tint.copy(alpha = 0.34f),
-                modifier = Modifier.size((size * 0.42f).dp)
+                modifier = Modifier.size((size * 0.44f).dp).graphicsLayer {
+                    val t = spin.value
+                    rotationZ = kotlin.math.sin(t * Math.PI.toFloat() * 2) * 18f
+                    val bump = 1f + kotlin.math.sin(t * Math.PI.toFloat()) * 0.3f
+                    scaleX = bump; scaleY = bump
+                }
             )
         }
     }

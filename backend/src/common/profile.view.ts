@@ -23,6 +23,8 @@ export interface ProfileView {
   avatarSeed: number;
   photos: string[];
   coverPhoto: string | null;
+  about: Record<string, string>;
+  languages: string[];
   mode: string;
   distanceKm: number;
   verified: boolean;
@@ -57,6 +59,8 @@ export function toAnonymousProfileView(matchId: string): ProfileView {
     avatarSeed: maskedAvatarSeed(matchId),
     photos: [],
     coverPhoto: null,
+    about: {},
+    languages: [],
     mode: '',
     distanceKm: 0,
     verified: false,
@@ -94,6 +98,8 @@ export function toProfileView(
     avatarSeed: profile.avatarSeed,
     photos: profile.photos ?? [],
     coverPhoto: profile.coverPhoto ?? null,
+    about: profile.about ?? {},
+    languages: profile.languages ?? [],
     mode: profile.mode,
     distanceKm: distance,
     verified: profile.verified,

@@ -43,6 +43,19 @@ const CENTER_LNG = 105.7877;
  * Ảnh mẫu: một chân dung từ pravatar.cc (bộ ảnh dựng sẵn cho dữ liệu giả, đã chọn tay:
  * không trẻ em, không người nổi tiếng) + 3 ảnh đời thường từ picsum.photos theo seed.
  */
+/** "Thêm về tôi" mẫu, cố định theo seed. */
+function seedAbout(seed: number, gender: string): Record<string, string> {
+  const pick = <T>(xs: T[], k: number) => xs[(seed * 7 + k) % xs.length];
+  return {
+    smoking: pick(['Không hút thuốc', 'Không hút thuốc', 'Thỉnh thoảng'], 1),
+    drinking: pick(['Không uống', 'Uống xã giao', 'Thỉnh thoảng'], 2),
+    heightCm: String((gender === 'MALE' ? 165 : 152) + ((seed * 13) % 18)),
+    pets: pick(['Nuôi mèo', 'Nuôi chó', 'Chưa nuôi', 'Muốn nuôi'], 3),
+    religion: pick(['Không theo tôn giáo', 'Phật giáo', 'Công giáo', 'Không theo tôn giáo'], 4),
+    exercise: pick(['Tập thường xuyên', 'Thỉnh thoảng', 'Hầu như không'], 5),
+  };
+}
+
 const PORTRAIT: Record<string, number> = { p01: 5, p02: 14, p03: 39, p04: 55, p05: 24, p06: 6, p07: 25, p08: 59, p09: 31, p10: 60, p11: 32, p12: 30, p13: 57, p14: 22, p15: 53, p16: 9, p17: 54, p18: 28, p19: 12, p20: 45, demo: 8 };
 export function seedPhotos(key: string, _gender: string, seed: number): string[] {
   return [
@@ -279,6 +292,8 @@ export class SeedService implements OnApplicationBootstrap {
       interests: spec.interests,
       avatarSeed: spec.seed,
       photos: seedPhotos(spec.key, spec.gender, spec.seed),
+      about: seedAbout(spec.seed, spec.gender),
+      languages: ['Tiếng Việt', ...(spec.seed % 2 ? ['Tiếng Anh'] : []), ...(spec.seed % 5 === 0 ? ['Tiếng Nhật'] : []), ...(spec.seed % 7 === 0 ? ['Tiếng Hàn'] : [])],
       coverPhoto: `https://picsum.photos/seed/fwp-${spec.key}-cover/1200/500`,
       mode: spec.mode,
       lat,

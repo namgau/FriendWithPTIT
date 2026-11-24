@@ -296,6 +296,8 @@ fun ProfileScreen(
                     }
                 }
                 if (state.backendProfile) {
+                    Spacer(Modifier.height(18.dp))
+                    vn.ptit.fwp.core.design.AboutChips(me.about, me.languages)
                     if (me.photos.size > 1) {
                         Spacer(Modifier.height(22.dp))
                         SectionHeader(title = "Ảnh của bạn")
@@ -424,7 +426,7 @@ private fun MyAnswersSection(identity: vn.ptit.fwp.core.data.PresentationIdentit
         Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
             Column(Modifier.padding(14.dp)) {
                 Text(q.text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Text(q.options.getOrNull(q.myAnswer ?: -1).orEmpty(), style = MaterialTheme.typography.titleMedium)
+                Text(if (q.myAnswer == -1) q.myText.orEmpty() else q.options.getOrNull(q.myAnswer ?: -1).orEmpty(), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

@@ -17,6 +17,7 @@ import {
 import { isUuid } from '../common/anonymity';
 import { ProfileView, toProfileView } from '../common/profile.view';
 import {
+  ABOUT_KEYS,
   DiscoverQueryDto,
   NearbyQueryDto,
   UpdateProfileDto,
@@ -109,7 +110,8 @@ export class ProfilesService {
         match: questionMatch(mine, theirs),
         answers: theirs.flatMap((a) => {
           const q = QUESTION_BY_ID.get(a.questionId);
-          return q && q.options[a.answer] ? [{ question: q.text, answer: q.options[a.answer] }] : [];
+          const answer = a.answer === -1 ? a.customText : q?.options[a.answer];
+          return q && answer ? [{ question: q.text, answer }] : [];
         }),
       });
     }
@@ -142,6 +144,8 @@ export class ProfilesService {
       'mode',
       'showGpaPublic',
       'showLocationPublic',
+      'about',
+      'languages',
     ];
     for (const key of allowed) {
       if (dto[key] !== undefined) {
@@ -151,6 +155,13 @@ export class ProfilesService {
     if (dto.interests) {
       profile.interests = Array.from(
         new Set(dto.interests.map((item) => item.trim()).filter(Boolean)),
+      );
+    }
+    if (dto.about) {
+      profile.about = Object.fromEntries(
+        Object.entries(dto.about)
+          .filter(([k, v]) => (ABOUT_KEYS as readonly string[]).includes(k) && typeof v === 'string' && v.trim())
+          .map(([k, v]) => [k, String(v).trim().slice(0, 40)]),
       );
     }
     if (dto.gpa !== undefined && dto.gpaTier === undefined) {

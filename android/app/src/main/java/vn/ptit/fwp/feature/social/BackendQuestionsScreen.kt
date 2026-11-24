@@ -1,5 +1,6 @@
 package vn.ptit.fwp.feature.social
 
+import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -55,9 +56,15 @@ class BackendQuestionsViewModel(container: AppContainer, identity: PresentationI
     fun answer(question: FunQuestionDto, option: Int) =
         run(question.id) { api.answer(question.id, option, question.myAcceptable.orEmpty().ifEmpty { listOf(option) }) }
 
+    /** Câu trả lời tự viết (answer = -1). */
+    fun answerText(question: FunQuestionDto, text: String) {
+        if (text.isBlank()) return
+        run(question.id) { api.answer(question.id, -1, emptyList(), text.trim()) }
+    }
+
     /** Bật/tắt một đáp án mình chấp nhận ở người kia. */
     fun toggleAcceptable(question: FunQuestionDto, option: Int) {
-        val mine = question.myAnswer ?: return
+        val mine = question.myAnswer?.takeIf { it >= 0 } ?: return
         val current = question.myAcceptable.orEmpty().toSet()
         val next = if (option in current) current - option else current + option
         run(question.id) { api.answer(question.id, mine, (next + mine).sorted()) }
@@ -101,7 +108,15 @@ fun BackendQuestionsScreen(identity: PresentationIdentity, onBack: () -> Unit) {
                                 FwpChip(text = option, selected = q.myAnswer == i, onClick = { vm.answer(q, i) })
                             }
                         }
-                        if (q.myAnswer != null) {
+                        var custom by androidx.compose.runtime.saveable.rememberSaveable(q.id) { androidx.compose.runtime.mutableStateOf(q.myText.orEmpty()) }
+                        androidx.compose.foundation.layout.Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                            androidx.compose.material3.OutlinedTextField(custom, { custom = it.take(200) }, singleLine = true,
+                                placeholder = { Text("Hoặc tự viết câu trả lời…") }, modifier = Modifier.weight(1f))
+                            androidx.compose.material3.TextButton(onClick = { vm.answerText(q, custom) }, enabled = custom.isNotBlank() && custom != q.myText) { Text("Lưu") }
+                        }
+                        if (q.myAnswer == -1) Text("Đang dùng câu tự viết (không tính vào % hợp gu)", style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        if (q.myAnswer != null && q.myAnswer >= 0) {
                             Text("Bạn chấp nhận người kia trả lời", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.padding(top = 10.dp, bottom = 4.dp))
                             FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

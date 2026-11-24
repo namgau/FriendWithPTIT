@@ -44,7 +44,8 @@ internal fun CommunitiesSheet(
     communities: List<CommunityDto>,
     onDismiss: () -> Unit,
     onToggleJoin: (String) -> Unit,
-    onCreate: (name: String, description: String, requiresApproval: Boolean) -> Unit,
+    onCreate: (name: String, description: String, requiresApproval: Boolean, hidden: Boolean) -> Unit,
+    onJoinByCode: (String) -> Unit,
     onOpenRequests: (CommunityDto) -> Unit,
     onOpenFeed: (String) -> Unit
 ) {
@@ -60,9 +61,15 @@ internal fun CommunitiesSheet(
             }
             Spacer(Modifier.height(12.dp))
             if (creating) {
-                CreateCommunityForm(onCancel = { creating = false }, onCreate = { n, d, a -> onCreate(n, d, a); creating = false })
+                CreateCommunityForm(onCancel = { creating = false }, onCreate = { n, d, a, h -> onCreate(n, d, a, h); creating = false })
             } else {
                 Button(onClick = { creating = true }, modifier = Modifier.fillMaxWidth()) { Text("+ Tạo cộng đồng") }
+                var code by remember { mutableStateOf("") }
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                    OutlinedTextField(code, { code = it.take(8).uppercase() }, singleLine = true,
+                        placeholder = { Text("Mã mời cộng đồng ẩn") }, modifier = Modifier.weight(1f))
+                    TextButton(onClick = { onJoinByCode(code); code = "" }, enabled = code.length == 8) { Text("Vào") }
+                }
             }
             Spacer(Modifier.height(12.dp))
             LazyColumn(Modifier.heightIn(max = 520.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -79,6 +86,7 @@ internal fun CommunitiesSheet(
                                     Text(
                                         buildString {
                                             append("${c.memberCount} thành viên")
+                                            if (c.hidden) append(" · ẩn")
                                             if (c.requiresApproval) append(" · cần duyệt")
                                             if (c.isOwner) append(" · bạn là chủ")
                                         },
@@ -97,6 +105,8 @@ internal fun CommunitiesSheet(
                             }
                             if (c.description.isNotBlank()) Text(c.description, style = MaterialTheme.typography.bodySmall,
                                 modifier = Modifier.padding(top = 4.dp))
+                            c.inviteCode?.let { Text("Mã mời: $it", style = MaterialTheme.typography.labelLarge, color = PtitRed,
+                                modifier = Modifier.padding(top = 4.dp)) }
                             if (c.pending) Text("Đang chờ chủ cộng đồng duyệt", style = MaterialTheme.typography.labelMedium, color = PtitRed,
                                 modifier = Modifier.padding(top = 4.dp))
                             TextButton(onClick = { onOpenFeed(c.id) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(0.dp)) {
@@ -111,10 +121,11 @@ internal fun CommunitiesSheet(
 }
 
 @Composable
-private fun CreateCommunityForm(onCancel: () -> Unit, onCreate: (String, String, Boolean) -> Unit) {
+private fun CreateCommunityForm(onCancel: () -> Unit, onCreate: (String, String, Boolean, Boolean) -> Unit) {
     var name by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var approval by remember { mutableStateOf(false) }
+    var hidden by remember { mutableStateOf(false) }
     Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {
             Text("Tạo cộng đồng mới", style = MaterialTheme.typography.titleMedium)
@@ -128,9 +139,17 @@ private fun CreateCommunityForm(onCancel: () -> Unit, onCreate: (String, String,
                 }
                 Switch(approval, onCheckedChange = { approval = it })
             }
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                Column(Modifier.weight(1f)) {
+                    Text("Ẩn cộng đồng", style = MaterialTheme.typography.bodyMedium)
+                    Text("Không hiện công khai ; chỉ vào được bằng mã mời", style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                Switch(hidden, onCheckedChange = { hidden = it })
+            }
             Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = Arrangement.End) {
                 TextButton(onClick = onCancel) { Text("Hủy") }
-                Button(onClick = { onCreate(name, description, approval) }, enabled = name.trim().length >= 3) { Text("Tạo") }
+                Button(onClick = { onCreate(name, description, approval, hidden) }, enabled = name.trim().length >= 3) { Text("Tạo") }
             }
         }
     }

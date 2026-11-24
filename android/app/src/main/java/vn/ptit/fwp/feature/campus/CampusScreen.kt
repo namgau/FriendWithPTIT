@@ -154,9 +154,6 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                IconButton(onClick = { viewModel.loadCommunities(); communitiesOpen = true }) {
-                    Icon(Icons.Rounded.Groups, contentDescription = "Cộng đồng")
-                }
                 IconButton(onClick = { viewModel.loadSettings(); settingsOpen = true }) {
                     Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Trang chủ")
                 }
@@ -311,6 +308,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
             onDismiss = { communitiesOpen = false },
             onToggleJoin = viewModel::toggleJoin,
             onCreate = viewModel::createCommunity,
+            onJoinByCode = viewModel::joinByCode,
             onOpenRequests = viewModel::openRequests,
             onOpenFeed = { id -> communitiesOpen = false; viewModel.selectCommunity(id) }
         )

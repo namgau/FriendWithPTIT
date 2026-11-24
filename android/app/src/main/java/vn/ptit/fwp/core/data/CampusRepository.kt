@@ -32,8 +32,11 @@ class CampusRepository(
         withAuth { api, authorization -> api.updateSettings(authorization, request) }
 
     suspend fun communities() = withAuth { api, authorization -> api.communities(authorization).items }
-    suspend fun createCommunity(name: String, description: String, approval: Boolean) = withAuth { api, authorization ->
-        api.createCommunity(authorization, vn.ptit.fwp.core.data.remote.CreateCommunityRequest(name.trim(), description.trim(), approval)).items
+    suspend fun createCommunity(name: String, description: String, approval: Boolean, hidden: Boolean) = withAuth { api, authorization ->
+        api.createCommunity(authorization, vn.ptit.fwp.core.data.remote.CreateCommunityRequest(name.trim(), description.trim(), approval, hidden)).items
+    }
+    suspend fun joinByCode(code: String) = withAuth { api, authorization ->
+        api.joinCommunityByCode(authorization, vn.ptit.fwp.core.data.remote.JoinByCodeRequest(code.trim())).items
     }
     suspend fun communityRequests(id: String) = withAuth { api, authorization -> api.communityRequests(authorization, id).items }
     suspend fun decideRequest(id: String, userId: String, approve: Boolean) = withAuth { api, authorization ->

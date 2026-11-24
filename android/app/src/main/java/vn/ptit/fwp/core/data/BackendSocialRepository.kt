@@ -46,8 +46,8 @@ class BackendSocialSession internal constructor(
     suspend fun incoming() = call { api, auth -> api.incomingLikes(auth) }
     suspend fun swipeQuota() = call { api, auth -> api.swipeQuota(auth) }
     suspend fun questions() = call { api, auth -> api.questions(auth) }
-    suspend fun answer(id: String, answer: Int, acceptable: List<Int>) =
-        call { api, auth -> api.answerQuestion(auth, id, AnswerQuestionRequest(answer, acceptable)) }
+    suspend fun answer(id: String, answer: Int, acceptable: List<Int>, text: String? = null) =
+        call { api, auth -> api.answerQuestion(auth, id, AnswerQuestionRequest(answer, acceptable, text)) }
     suspend fun notifications() = call { api, auth -> api.notifications(auth) }
     suspend fun readNotifications() = call { api, auth -> api.readNotifications(auth, SocialReadRequest()) }
     suspend fun profile(id: String) = call { api, auth -> api.socialProfile(auth, requireBackendId(id)).also { requireBackendId(it.userId); check(it.id == id || it.userId == id) } }
@@ -104,7 +104,8 @@ internal fun SocialProfileDto.displayProfile(masked: Boolean = anonymous): Profi
         photos = if (hidden) emptyList() else photos.orEmpty().map(::backendAbsoluteUrl),
         questionMatch = if (hidden) null else questionMatch, commonQuestions = if (hidden) 0 else commonQuestions ?: 0,
         coverPhoto = if (hidden) null else coverPhoto?.let(::backendAbsoluteUrl),
-        answers = if (hidden) emptyList() else answers.orEmpty().map { it.question to it.answer }
+        answers = if (hidden) emptyList() else answers.orEmpty().map { it.question to it.answer },
+        about = if (hidden) emptyMap() else about.orEmpty(), languages = if (hidden) emptyList() else languages.orEmpty()
     )
 }
 internal fun SocialMatchDto.displayProfile(): Profile = other.displayProfile(anonymous)

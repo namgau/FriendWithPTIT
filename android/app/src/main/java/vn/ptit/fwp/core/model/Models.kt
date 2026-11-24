@@ -120,7 +120,10 @@ data class Profile(
     /** Ảnh bìa (banner), URL tuyệt đối. */
     val coverPhoto: String? = null,
     /** Câu hỏi hợp gu người này đã trả lời: (câu hỏi, câu trả lời). */
-    val answers: List<Pair<String, String>> = emptyList()
+    val answers: List<Pair<String, String>> = emptyList(),
+    /** "Thêm về tôi": khóa trong ABOUT_FIELDS (+ heightCm) → giá trị. */
+    val about: Map<String, String> = emptyMap(),
+    val languages: List<String> = emptyList()
 ) {
     val displayGpa: String
         get() = if (showGpa) String.format(java.util.Locale.US, "%.2f", gpa) else "Tầng ${gpaTier.label}"
@@ -263,8 +266,25 @@ data class MyProfileDraft(
     /** Đường dẫn ảnh thô: `content://` mới chọn, hoặc đường dẫn/URL backend đã có. */
     val photos: List<String> = listOfNotNull(photoUrl),
     /** Ảnh bìa thô (`content://` mới chọn hoặc đường dẫn backend) ; null = không có. */
-    val coverPhoto: String? = null
+    val coverPhoto: String? = null,
+    val about: Map<String, String> = emptyMap(),
+    val languages: List<String> = emptyList()
 )
+
+/** Một mục "Thêm về tôi" chọn từ danh sách (khóa khớp backend ABOUT_KEYS). */
+data class AboutField(val key: String, val label: String, val options: List<String>)
+
+val ABOUT_FIELDS = listOf(
+    AboutField("smoking", "Hút thuốc", listOf("Không hút thuốc", "Thỉnh thoảng", "Có hút")),
+    AboutField("drinking", "Bia rượu", listOf("Không uống", "Uống xã giao", "Thỉnh thoảng", "Thường xuyên")),
+    AboutField("pets", "Thú cưng", listOf("Nuôi mèo", "Nuôi chó", "Chưa nuôi", "Muốn nuôi", "Dị ứng lông")),
+    AboutField("religion", "Tôn giáo", listOf("Không theo tôn giáo", "Phật giáo", "Công giáo", "Tin lành", "Khác")),
+    AboutField("exercise", "Tập thể dục", listOf("Tập thường xuyên", "Thỉnh thoảng", "Hầu như không")),
+    AboutField("zodiac", "Cung hoàng đạo", listOf("Bạch Dương", "Kim Ngưu", "Song Tử", "Cự Giải", "Sư Tử", "Xử Nữ",
+        "Thiên Bình", "Bọ Cạp", "Nhân Mã", "Ma Kết", "Bảo Bình", "Song Ngư"))
+)
+
+val LANGUAGE_CATALOG = listOf("Tiếng Việt", "Tiếng Anh", "Tiếng Nhật", "Tiếng Hàn", "Tiếng Trung", "Tiếng Pháp", "Tiếng Đức")
 
 /** Khóa = năm nhập học ; PTIT mới có tới khóa 2026. */
 const val LATEST_PTIT_COHORT = 2026
