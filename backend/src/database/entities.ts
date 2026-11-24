@@ -7,6 +7,7 @@ import {
   ManyToOne,
   OneToMany,
   OneToOne,
+  PrimaryColumn,
   PrimaryGeneratedColumn,
   UpdateDateColumn,
 } from 'typeorm';
@@ -401,7 +402,7 @@ export class CampusPost {
   category: CampusCategory;
 
   /** Cộng đồng chứa bài (id trong campus/communities.ts) ; null = bảng tin chung. */
-  @Column({ type: 'varchar', length: 32, nullable: true })
+  @Column({ type: 'varchar', length: 40, nullable: true })
   community: string | null;
 
   @Column({ name: 'anonymous_mode', length: 24, default: 'FULLY_ANONYMOUS' })
@@ -661,6 +662,30 @@ export class CampusCommentReport {
   createdAt: Date;
 }
 
+/** Cộng đồng trong Trang chủ: có sẵn (ownerUserId null) hoặc do người dùng tạo. */
+@Entity('campus_communities')
+export class CampusCommunity {
+  @PrimaryColumn({ length: 40 })
+  id: string;
+
+  @Index({ unique: true })
+  @Column({ length: 60 })
+  name: string;
+
+  @Column({ length: 200, default: '' })
+  description: string;
+
+  @Column({ name: 'owner_user_id', type: 'varchar', nullable: true })
+  ownerUserId: string | null;
+
+  /** Chủ cộng đồng phải duyệt người xin vào. */
+  @Column({ name: 'requires_approval', default: false })
+  requiresApproval: boolean;
+
+  @CreateDateColumn({ name: 'created_at' })
+  createdAt: Date;
+}
+
 @Entity('campus_community_members')
 @Index(['userId', 'communityId'], { unique: true })
 export class CampusCommunityMember {
@@ -670,8 +695,12 @@ export class CampusCommunityMember {
   @Column({ name: 'user_id' })
   userId: string;
 
-  @Column({ name: 'community_id', length: 32 })
+  @Column({ name: 'community_id', length: 40 })
   communityId: string;
+
+  /** MEMBER hoặc PENDING (chờ chủ cộng đồng duyệt). */
+  @Column({ length: 16, default: 'MEMBER' })
+  status: string;
 
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
@@ -721,4 +750,5 @@ export const ENTITIES = [
   CampusCommentReport,
   QuestionAnswer,
   CampusCommunityMember,
+  CampusCommunity,
 ];

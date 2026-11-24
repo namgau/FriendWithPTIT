@@ -149,13 +149,13 @@ fun MatchesScreen(
 }
 
 @Composable
-internal fun IncomingLikeCard(like: IncomingLikeData, onClick: () -> Unit) {
+internal fun IncomingLikeCard(like: IncomingLikeData, modifier: Modifier = Modifier, onClick: () -> Unit) {
     val profile = like.profile
     Box(
-        Modifier
+        modifier
             .width(150.dp)
             .aspectRatio(0.76f)
-            .clip(RoundedCornerShape(22.dp))
+            .clip(RoundedCornerShape(16.dp))
             .background(PtitRedSoft)
             .clickable(onClick = onClick)
     ) {
@@ -216,7 +216,7 @@ internal fun IncomingLikeCard(like: IncomingLikeData, onClick: () -> Unit) {
 }
 
 @Composable
-internal fun MatchRow(card: MatchCardData, onClick: () -> Unit) {
+internal fun MatchRow(card: MatchCardData, onAvatarClick: (() -> Unit)? = null, onClick: () -> Unit) {
     val profile = card.profile
     Surface(
         modifier = Modifier
@@ -231,8 +231,9 @@ internal fun MatchRow(card: MatchCardData, onClick: () -> Unit) {
             Box(
                 Modifier
                     .size(68.dp)
-                    .clip(RoundedCornerShape(18.dp))
+                    .clip(RoundedCornerShape(14.dp))
                     .background(PtitRedSoft)
+                    .then(if (onAvatarClick != null) Modifier.clickable(onClick = onAvatarClick) else Modifier)
             ) {
                 if (profile != null) {
                     ProfilePhoto(

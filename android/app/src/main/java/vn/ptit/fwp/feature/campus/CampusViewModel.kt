@@ -58,7 +58,9 @@ data class CampusUiState(
     val sendingComment: Boolean = false,
     val communities: List<vn.ptit.fwp.core.data.remote.CommunityDto> = emptyList(),
     /** Đang xem cộng đồng nào ; null = mọi bài. */
-    val community: String? = null
+    val community: String? = null,
+    val requestsFor: vn.ptit.fwp.core.data.remote.CommunityDto? = null,
+    val requests: List<vn.ptit.fwp.core.data.remote.CommunityRequestDto> = emptyList()
 )
 
 class CampusViewModel(private val container: AppContainer) : ViewModel() {
@@ -85,10 +87,44 @@ class CampusViewModel(private val container: AppContainer) : ViewModel() {
     }
 
     fun toggleJoin(id: String) {
-        val joined = _state.value.communities.firstOrNull { it.id == id }?.joined ?: return
+        val c = _state.value.communities.firstOrNull { it.id == id } ?: return
+        val leaving = c.joined || c.pending
         viewModelScope.launch {
-            runCatching { repository.setJoined(id, !joined) }
-                .onSuccess { list -> _state.update { it.copy(communities = list, message = if (joined) "Đã rời cộng đồng." else "Đã tham gia cộng đồng.") } }
+            runCatching { repository.setJoined(id, !leaving) }
+                .onSuccess { list ->
+                    val now = list.firstOrNull { it.id == id }
+                    _state.update { it.copy(communities = list, message = when {
+                        leaving -> "Đã rời ${c.name}."
+                        now?.pending == true -> "Đã gửi yêu cầu, chờ chủ cộng đồng duyệt."
+                        else -> "Đã tham gia ${c.name}."
+                    }) }
+                }
+                .onFailure { error -> _state.update { it.copy(message = humanError(error)) } }
+        }
+    }
+
+    fun createCommunity(name: String, description: String, approval: Boolean) {
+        viewModelScope.launch {
+            runCatching { repository.createCommunity(name, description, approval) }
+                .onSuccess { list -> _state.update { it.copy(communities = list, message = "Đã tạo cộng đồng $name.") } }
+                .onFailure { error -> _state.update { it.copy(message = humanError(error)) } }
+        }
+    }
+
+    fun openRequests(c: vn.ptit.fwp.core.data.remote.CommunityDto) {
+        _state.update { it.copy(requestsFor = c, requests = emptyList()) }
+        viewModelScope.launch {
+            runCatching { repository.communityRequests(c.id) }.onSuccess { list -> _state.update { it.copy(requests = list) } }
+        }
+    }
+
+    fun closeRequests() = _state.update { it.copy(requestsFor = null, requests = emptyList()) }
+
+    fun decide(userId: String, approve: Boolean) {
+        val c = _state.value.requestsFor ?: return
+        viewModelScope.launch {
+            runCatching { repository.decideRequest(c.id, userId, approve) }
+                .onSuccess { list -> _state.update { it.copy(requests = list) }; loadCommunities() }
                 .onFailure { error -> _state.update { it.copy(message = humanError(error)) } }
         }
     }

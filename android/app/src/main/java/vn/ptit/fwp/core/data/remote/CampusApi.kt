@@ -124,7 +124,12 @@ data class CampusPostDto(
     val community: String? = null
 )
 
-data class CommunityDto(val id: String, val name: String, val description: String, val memberCount: Int, val joined: Boolean)
+data class CommunityDto(val id: String, val name: String, val description: String, val memberCount: Int, val joined: Boolean,
+    val pending: Boolean = false, val isOwner: Boolean = false, val requiresApproval: Boolean = false, val pendingCount: Int = 0)
+data class CreateCommunityRequest(val name: String, val description: String, val requiresApproval: Boolean)
+data class CommunityRequestDto(val userId: String, val nickname: String, val avatarSeed: Int)
+data class CommunityRequestsDto(val items: List<CommunityRequestDto>)
+data class DecideRequestBody(val approve: Boolean)
 data class CommunitiesDto(val items: List<CommunityDto>)
 
 data class CampusFeedDto(
@@ -289,6 +294,13 @@ interface CampusApi {
     ): CampusFeedDto
     @GET("campus/communities")
     suspend fun communities(@Header("Authorization") authorization: String): CommunitiesDto
+    @POST("campus/communities")
+    suspend fun createCommunity(@Header("Authorization") authorization: String, @Body request: CreateCommunityRequest): CommunitiesDto
+    @GET("campus/communities/{id}/requests")
+    suspend fun communityRequests(@Header("Authorization") authorization: String, @Path("id") id: String): CommunityRequestsDto
+    @POST("campus/communities/{id}/requests/{userId}")
+    suspend fun decideCommunityRequest(@Header("Authorization") authorization: String, @Path("id") id: String,
+        @Path("userId") userId: String, @Body body: DecideRequestBody): CommunityRequestsDto
     @POST("campus/communities/{id}/join")
     suspend fun joinCommunity(@Header("Authorization") authorization: String, @Path("id") id: String): CommunitiesDto
     @DELETE("campus/communities/{id}/join")

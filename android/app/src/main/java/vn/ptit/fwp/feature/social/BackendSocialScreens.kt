@@ -1,9 +1,12 @@
 package vn.ptit.fwp.feature.social
 
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.items as gridItems
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -103,28 +106,52 @@ fun BackendMatchesScreen(identity: PresentationIdentity, onOpenChat: (String) ->
     val container = appContainer()
     val vm = fwpViewModel(key = "matches:$identity") { BackendMatchesViewModel(container, identity) }
     val state by vm.state.collectAsState()
+    var tab by rememberSaveable { mutableIntStateOf(0) }
     LaunchedEffect(Unit) { vm.refresh() }
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 18.dp)) {
-        item {
-            Row(Modifier.padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
-                Column(Modifier.weight(1f)) {
-                    Text("Match & trò chuyện", style = MaterialTheme.typography.headlineSmall)
-                    Text("${state.matches.size} kết nối · chạm để nhắn tin", style = MaterialTheme.typography.bodySmall)
+    Column(Modifier.fillMaxSize()) {
+        Row(Modifier.padding(start = 20.dp, end = 12.dp, top = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+            Text("Match & trò chuyện", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.weight(1f))
+            IconButton(onClick = vm::refresh) { Icon(Icons.Rounded.Refresh, "Làm mới") }
+        }
+        TabRow(selectedTabIndex = tab, containerColor = MaterialTheme.colorScheme.background, contentColor = PtitRed) {
+            Tab(selected = tab == 0, onClick = { tab = 0 }, text = { Text("Match (${state.matches.size})") })
+            Tab(selected = tab == 1, onClick = { tab = 1 }, text = {
+                BadgedBox(badge = { if (state.incoming.isNotEmpty()) Badge(containerColor = PtitRed) { Text("${state.incoming.size}") } }) {
+                    Text("Đang thích bạn", modifier = Modifier.padding(end = 10.dp))
                 }
-                IconButton(onClick = vm::refresh) { Icon(Icons.Rounded.Refresh, "Làm mới") }
-            }
-            if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+            })
         }
-        if (!chats && state.incoming.isNotEmpty()) item {
-            SectionHeader("Đang thích bạn", modifier = Modifier.padding(horizontal = 20.dp))
-            LazyRow(contentPadding = PaddingValues(20.dp), horizontalArrangement = Arrangement.spacedBy(11.dp)) {
-                items(state.incoming, key = { it.id }) { profile -> IncomingLikeCard(IncomingLikeData(profile.displayProfile(), profile.compatibility ?: 0)) { onOpenProfile(profile.id) } }
+        if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
+        state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)) }
+        androidx.compose.animation.Crossfade(targetState = tab, label = "matchTabs") { current ->
+            if (current == 0) LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(vertical = 10.dp)) {
+                if (!state.loading && state.matches.isEmpty()) item { EmptyState(Icons.Rounded.Favorite, "Chưa có match", "Khi hai người cùng thích nhau, cuộc trò chuyện sẽ mở ở đây.") }
+                items(state.matches, key = { it.id }) { match ->
+                    val profile = match.displayProfile()
+                    MatchRow(
+                        MatchCardData(match.displayMatch(), profile, emptyList()),
+                        onAvatarClick = if (profile.id != "masked") ({ onOpenProfile(match.other.id) }) else null
+                    ) { onOpenChat(match.id) }
+                }
+            } else androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(2),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                if (!state.loading && state.incoming.isEmpty()) item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                    EmptyState(Icons.Rounded.Favorite, "Chưa ai thích bạn", "Người thích bạn mà bạn chưa thích lại sẽ hiện ở đây.")
+                }
+                gridItems(state.incoming, key = { it.id }) { profile ->
+                    // Khung đỏ: người đã thích mình, chỉ cần mình thích lại là thành match.
+                    IncomingLikeCard(
+                        IncomingLikeData(profile.displayProfile(), profile.compatibility ?: 0),
+                        modifier = Modifier.fillMaxWidth()
+                            .border(2.dp, PtitRed, androidx.compose.foundation.shape.RoundedCornerShape(16.dp))
+                    ) { onOpenProfile(profile.id) }
+                }
             }
-        }
-        if (!state.loading && state.matches.isEmpty()) item { EmptyState(Icons.Rounded.Favorite, "Chưa có match", "Khi hai người cùng thích nhau, server sẽ mở cuộc trò chuyện.") }
-        items(state.matches, key = { it.id }) { match ->
-            MatchRow(MatchCardData(match.displayMatch(), match.displayProfile(), emptyList())) { onOpenChat(match.id) }
         }
     }
 }
@@ -134,48 +161,34 @@ fun BackendProfileDetailScreen(identity: PresentationIdentity, profileId: String
     val container = appContainer()
     val vm = fwpViewModel(key = "detail:$identity:$profileId") { BackendDetailViewModel(container, identity, profileId) }
     val state by vm.state.collectAsState()
+    var menu by remember { mutableStateOf(false) }
     LaunchedEffect(state.finished) { if (state.finished) onBack() }
     Column(Modifier.fillMaxSize()) {
-        FwpTopBar("Hồ sơ", onBack = onBack)
+        FwpTopBar(state.profile?.displayProfile()?.nickname ?: "Hồ sơ", onBack = onBack, actions = {
+            Box {
+                IconButton(onClick = { menu = true }) { Icon(Icons.Rounded.MoreVert, "Tùy chọn") }
+                DropdownMenu(menu, onDismissRequest = { menu = false }) {
+                    DropdownMenuItem(text = { Text("Chặn người dùng", color = PtitRed) }, enabled = !state.busy && state.profile != null,
+                        onClick = { menu = false; vm.block() })
+                }
+            }
+        })
         if (state.loading) LinearProgressIndicator(Modifier.fillMaxWidth())
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(16.dp)); TextButton(onClick = vm::refresh) { Text("Thử lại") } }
         val dto = state.profile
         if (dto != null) {
-            val profile = dto.displayProfile()
-            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(18.dp)) {
-                profile.coverPhoto?.let { cover ->
-                    coil3.compose.AsyncImage(model = cover, contentDescription = "Ảnh bìa",
-                        contentScale = androidx.compose.ui.layout.ContentScale.Crop,
-                        modifier = Modifier.fillMaxWidth().height(140.dp)
-                            .clip(androidx.compose.foundation.shape.RoundedCornerShape(12.dp)))
-                    Spacer(Modifier.height(10.dp))
-                }
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(profile.photos.ifEmpty { listOf("") }) { photo ->
-                        ProfilePhoto(profile.copy(photoUrl = photo.ifBlank { null }), modifier = Modifier.width(260.dp).height(330.dp), blurLevel = 0.86f,
-                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp))
-                    }
-                }
-                Text(profile.nickname, style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(top = 12.dp))
-                Text(ageCohortLabel(profile.age, profile.academicYear), style = MaterialTheme.typography.titleMedium)
-                Text(profile.bio, modifier = Modifier.padding(vertical = 12.dp))
-                InfoRow(Icons.Rounded.School, "Trường", profile.school)
-                InfoRow(Icons.Rounded.School, "Khoa", profile.faculty)
-                InfoRow(Icons.Rounded.School, "Ngành", profile.major)
-                if (profile.showGpa) GpaBadge(profile.gpaTier, gpa = profile.gpa)
-                profile.questionMatch?.let { Text("Hợp gu $it% (${profile.commonQuestions} câu hỏi chung)", color = PtitRed, modifier = Modifier.padding(top = 8.dp)) }
-                Text(profile.interests.joinToString(" · "), modifier = Modifier.padding(vertical = 12.dp))
-                TextButton(onClick = vm::block, enabled = !state.busy) { Text("Chặn người dùng", color = PtitRed) }
-                Text("Báo cáo kết nối được thực hiện trong cuộc trò chuyện đã match.", style = MaterialTheme.typography.bodySmall)
+            Box(Modifier.weight(1f).padding(start = 14.dp, end = 14.dp, bottom = 12.dp)) {
+                // Cùng một thẻ với Hôm nay: ảnh + câu trả lời xen kẽ, 3 nút nổi.
+                SwipeCard(
+                    ranked = RankedProfile(dto.displayProfile(), dto.compatibility ?: 0, dto.rankingReasons.orEmpty(), "FwP"),
+                    me = null, busy = state.busy, modifier = Modifier.fillMaxSize(),
+                    actionsEnabled = !state.busy && state.match == null,
+                    onLike = { vm.swipe(SwipeAction.LIKE) }, onPass = { vm.swipe(SwipeAction.PASS) }, onSuperLike = { vm.swipe(SwipeAction.SUPER_LIKE) }
+                )
             }
-            state.notice?.let { Text(it, modifier = Modifier.padding(12.dp)) }
-            Row(Modifier.fillMaxWidth().padding(12.dp), horizontalArrangement = Arrangement.SpaceEvenly) {
-                if (state.match != null) Button(onClick = { onOpenChat(state.match!!.id) }) { Text("Mở trò chuyện") }
-                else {
-                    TextButton(onClick = { vm.swipe(SwipeAction.PASS) }, enabled = !state.busy) { Text("Bỏ qua") }
-                    TextButton(onClick = { vm.swipe(SwipeAction.SUPER_LIKE) }, enabled = !state.busy) { Text("Super Like") }
-                    Button(onClick = { vm.swipe(SwipeAction.LIKE) }, enabled = !state.busy) { Text("Thích") }
-                }
+            state.notice?.let { Text(it, modifier = Modifier.padding(horizontal = 16.dp)) }
+            state.match?.let { match ->
+                Button(onClick = { onOpenChat(match.id) }, modifier = Modifier.fillMaxWidth().padding(16.dp)) { Text("Nhắn tin") }
             }
         }
     }

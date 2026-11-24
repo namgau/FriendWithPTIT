@@ -68,7 +68,8 @@ import androidx.compose.ui.layout.ContentScale
 fun ProfileScreen(
     onEditProfile: () -> Unit,
     onSettings: () -> Unit,
-    onOpenMatches: () -> Unit
+    onOpenMatches: () -> Unit,
+    onOpenQuestions: () -> Unit = {}
 ) {
     val container = appContainer()
     val settings by container.settingsStore.settings.collectAsState(initial = AppSettings())
@@ -294,6 +295,21 @@ fun ProfileScreen(
                         }
                     }
                 }
+                if (state.backendProfile) {
+                    if (me.photos.size > 1) {
+                        Spacer(Modifier.height(22.dp))
+                        SectionHeader(title = "Ảnh của bạn")
+                        Spacer(Modifier.height(9.dp))
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(me.photos) { photo ->
+                                AsyncImage(model = photo, contentDescription = null, contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(width = 110.dp, height = 140.dp).clip(RoundedCornerShape(12.dp)))
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(22.dp))
+                    MyAnswersSection(identity, onOpenQuestions)
+                }
                 Spacer(Modifier.height(22.dp))
                 if (!state.backendProfile) SectionHeader(title = "Huy hiệu", subtitle = "Những cột mốc nhỏ trên hành trình kết nối.")
                 Spacer(Modifier.height(10.dp))
@@ -314,7 +330,7 @@ fun ProfileScreen(
         item {
             Column(Modifier.padding(horizontal = 18.dp)) {
                 Spacer(Modifier.height(22.dp))
-                Surface(
+                if (!state.backendProfile) Surface(
                     shape = RoundedCornerShape(20.dp),
                     color = PtitGold.copy(alpha = 0.12f),
                     border = androidx.compose.foundation.BorderStroke(1.dp, PtitGold.copy(alpha = 0.3f)),
@@ -387,3 +403,29 @@ private fun AchievementCard(achievement: Achievement) {
 }
 
 private fun Modifier.offsetProfileCard(): Modifier = this.padding(top = 0.dp)
+
+/** Các câu hỏi hợp gu mình đã trả lời, hiển thị như người khác sẽ thấy trên thẻ của mình. */
+@Composable
+private fun MyAnswersSection(identity: vn.ptit.fwp.core.data.PresentationIdentity, onOpenQuestions: () -> Unit) {
+    val container = vn.ptit.fwp.core.util.appContainer()
+    val vm = vn.ptit.fwp.core.util.fwpViewModel(key = "my-answers:$identity") { vn.ptit.fwp.feature.social.BackendQuestionsViewModel(container, identity) }
+    val state by vm.state.collectAsState()
+    val answered = state.items.filter { it.myAnswer != null }
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.weight(1f)) {
+            Text("Câu hỏi hợp gu", style = MaterialTheme.typography.titleMedium)
+            Text("Đã trả lời ${answered.size}/${state.items.size} · hiện xen kẽ với ảnh trên thẻ của bạn",
+                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        TextButton(onClick = onOpenQuestions) { Text("Trả lời thêm") }
+    }
+    Spacer(Modifier.height(8.dp))
+    answered.take(6).forEach { q ->
+        Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surfaceContainer, modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)) {
+            Column(Modifier.padding(14.dp)) {
+                Text(q.text, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(q.options.getOrNull(q.myAnswer ?: -1).orEmpty(), style = MaterialTheme.typography.titleMedium)
+            }
+        }
+    }
+}

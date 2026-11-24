@@ -1,5 +1,8 @@
 package vn.ptit.fwp.feature.main
 
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.layout.offset
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.Column
@@ -104,7 +107,15 @@ fun MainScreen(
                                     }
                                 }
                             ) {
-                                Icon(tab.icon, contentDescription = tab.label)
+                                // Icon nảy lên khi được chọn (lò xo, không bật nảy quá đà).
+                                val isSelected = selected == index
+                                val scale by androidx.compose.animation.core.animateFloatAsState(
+                                    if (isSelected) 1.18f else 1f,
+                                    androidx.compose.animation.core.spring(dampingRatio = 0.45f, stiffness = 500f), label = "tabScale")
+                                val lift by androidx.compose.animation.core.animateDpAsState(
+                                    if (isSelected) (-2).dp else 0.dp, androidx.compose.animation.core.spring(dampingRatio = 0.5f), label = "tabLift")
+                                Icon(tab.icon, contentDescription = tab.label,
+                                    modifier = Modifier.offset(y = lift).graphicsLayer { scaleX = scale; scaleY = scale })
                             }
                         },
                         label = { Text(tab.label) },
@@ -126,36 +137,47 @@ fun MainScreen(
                 .padding(padding)
                 .consumeWindowInsets(padding)
         ) {
-            when (selected) {
-                0 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications, onOpenQuestions) else Column {
-                  Text("Khám phá demo trên thiết bị · không đồng bộ tài khoản backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
-                  DiscoverScreen(
-                    onOpenChat = onOpenChat,
-                    onOpenNotifications = onOpenNotifications
-                  )
+            androidx.compose.animation.AnimatedContent(
+                targetState = selected,
+                transitionSpec = {
+                    (androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
+                        androidx.compose.animation.slideInVertically(androidx.compose.animation.core.tween(220)) { it / 24 })
+                        .togetherWith(androidx.compose.animation.fadeOut(androidx.compose.animation.core.tween(120)))
+                },
+                label = "tabContent"
+            ) { current ->
+                when (current) {
+                    0 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications, onOpenQuestions) else Column {
+                      Text("Khám phá demo trên thiết bị · không đồng bộ tài khoản backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                      DiscoverScreen(
+                        onOpenChat = onOpenChat,
+                        onOpenNotifications = onOpenNotifications
+                      )
+                    }
+                    1 -> if (!demo) vn.ptit.fwp.feature.social.BackendExploreScreen(identity, onOpenProfile) else Column {
+                      Text("Hồ sơ gợi ý demo trên thiết bị", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                      ExploreScreen(
+                        onOpenProfile = onOpenProfile,
+                        onOpenMatches = { selected = 3 },
+                        onOpenNearby = onOpenNearby
+                      )
+                    }
+                    2 -> CampusScreen(onOpenChat = onOpenChat)
+                    3 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile) else Column {
+                      Text("Match demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
+                      MatchesScreen(
+                        onOpenChat = onOpenChat,
+                        onOpenProfile = onOpenProfile,
+                        onOpenDoubleDate = onOpenDoubleDate
+                      )
+                    }
+                    else -> ProfileScreen(
+                        onEditProfile = onEditProfile,
+                        onSettings = onOpenSettings,
+                        onOpenMatches = { selected = 3 },
+                        onOpenQuestions = onOpenQuestions
+                    )
                 }
-                1 -> if (!demo) BackendDiscoverScreen(identity, onOpenChat, onOpenProfile, onOpenNotifications, onOpenQuestions) else Column {
-                  Text("Hồ sơ gợi ý demo trên thiết bị", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
-                  ExploreScreen(
-                    onOpenProfile = onOpenProfile,
-                    onOpenMatches = { selected = 3 },
-                    onOpenNearby = onOpenNearby
-                  )
-                }
-                2 -> CampusScreen(onOpenChat = onOpenChat)
-                3 -> if (!demo) BackendMatchesScreen(identity, onOpenChat, onOpenProfile) else Column {
-                  Text("Match demo trên thiết bị · chưa đồng bộ backend", modifier = Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall)
-                  MatchesScreen(
-                    onOpenChat = onOpenChat,
-                    onOpenProfile = onOpenProfile,
-                    onOpenDoubleDate = onOpenDoubleDate
-                  )
-                }
-                else -> ProfileScreen(
-                    onEditProfile = onEditProfile,
-                    onSettings = onOpenSettings,
-                    onOpenMatches = { selected = 3 }
-                )
             }
         }
     }

@@ -351,11 +351,10 @@ export class ProfilesService {
       where: [{ id: profileId }, { userId: profileId }],
     });
     if (!profile) throw new NotFoundException('Profile not found');
-    const excluded = await this.excludedUserIds(userId);
-    if (
-      profile.userId !== userId &&
-      excluded.has(profile.userId)
-    ) {
+    // Chỉ chặn hai chiều mới ẩn hồ sơ ; người đã quẹt/đã match vẫn xem được trang hồ sơ.
+    const blocks = await this.blocks.find({ where: [{ blockerId: userId }, { blockedId: userId }] });
+    const blocked = new Set(blocks.map((b) => (b.blockerId === userId ? b.blockedId : b.blockerId)));
+    if (profile.userId !== userId && blocked.has(profile.userId)) {
       throw new NotFoundException('Profile not found');
     }
     const view = toProfileView(

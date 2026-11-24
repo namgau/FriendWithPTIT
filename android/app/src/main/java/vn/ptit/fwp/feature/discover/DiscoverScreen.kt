@@ -1,5 +1,6 @@
 package vn.ptit.fwp.feature.discover
 
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
@@ -298,8 +299,21 @@ internal fun SwipeCard(
     onOpenProfile: (() -> Unit)? = null
 ) {
     val profile = ranked.profile
-    val offsetX = remember(profile.id) { Animatable(0f) }
     val scope = rememberCoroutineScope()
+    val offsetX = remember(profile.id) { Animatable(0f) }
+    val offsetY = remember(profile.id) { Animatable(0f) }
+    // Thẻ mới phóng nhẹ từ phía sau lên (lò xo), như thẻ dưới cùng của chồng thẻ.
+    val enter = remember(profile.id) { Animatable(0.93f) }
+    LaunchedEffect(profile.id) { enter.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.7f, stiffness = 300f)) }
+    /** Nút bấm cũng cho thẻ bay ra theo hướng như khi kéo. */
+    fun fly(dx: Float, dy: Float, then: () -> Unit) {
+        scope.launch {
+            launch { offsetY.animateTo(dy, tween(260)) }
+            offsetX.animateTo(dx, tween(260))
+            then()
+            offsetX.snapTo(0f); offsetY.snapTo(0f)
+        }
+    }
     val scroll = rememberScrollState()
     val shared = me?.interests?.intersect(profile.interests.toSet())?.toList().orEmpty()
     val showGpa = profile.isDemo || profile.showGpa
@@ -307,8 +321,12 @@ internal fun SwipeCard(
 
     androidx.compose.foundation.layout.BoxWithConstraints(
         modifier = modifier
-            .offset { IntOffset(offsetX.value.roundToInt(), 0) }
-            .graphicsLayer { rotationZ = offsetX.value / 55f }
+            .offset { IntOffset(offsetX.value.roundToInt(), offsetY.value.roundToInt()) }
+            .graphicsLayer {
+                rotationZ = offsetX.value / 55f
+                scaleX = enter.value; scaleY = enter.value
+                alpha = ((enter.value - 0.93f) / 0.07f).coerceIn(0.4f, 1f)
+            }
             .pointerInput(profile.id, busy) {
                 if (busy) return@pointerInput
                 detectHorizontalDragGestures(
@@ -502,9 +520,31 @@ internal fun SwipeCard(
             horizontalArrangement = Arrangement.spacedBy(22.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            CircleAction(Icons.Rounded.Close, PtitRed, actionsEnabled, 60, onPass)
-            CircleAction(Icons.Rounded.Star, PtitGold, actionsEnabled, 50, onSuperLike)
-            CircleAction(Icons.Rounded.Favorite, Color(0xFFD81B60), actionsEnabled, 60, onLike)
+            CircleAction(Icons.Rounded.Close, PtitRed, actionsEnabled, 60) { fly(-1400f, 0f, onPass) }
+            CircleAction(Icons.Rounded.Star, PtitGold, actionsEnabled, 50) { fly(0f, -2200f, onSuperLike) }
+            CircleAction(Icons.Rounded.Favorite, Color(0xFFD81B60), actionsEnabled, 60) { fly(1400f, 0f, onLike) }
+        }
+        // Dấu "THÍCH" / "BỎ QUA" hiện rõ dần theo độ kéo.
+        val drag = offsetX.value
+        if (drag != 0f) {
+            val stampAlpha = (kotlin.math.abs(drag) / 280f).coerceIn(0f, 1f)
+            val liking = drag > 0
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = Color.Transparent,
+                border = androidx.compose.foundation.BorderStroke(3.dp, if (liking) Color(0xFF2E7D32) else PtitRed),
+                modifier = Modifier
+                    .align(if (liking) Alignment.TopStart else Alignment.TopEnd)
+                    .padding(top = 56.dp, start = 24.dp, end = 24.dp)
+                    .graphicsLayer { alpha = stampAlpha; rotationZ = if (liking) -14f else 14f }
+            ) {
+                Text(
+                    if (liking) "THÍCH" else "BỎ QUA",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = if (liking) Color(0xFF2E7D32) else PtitRed,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                )
+            }
         }
     }
 }
@@ -548,13 +588,19 @@ private fun CircleAction(
     size: Int,
     onClick: () -> Unit
 ) {
+    // Nhún khi bấm: phản hồi tức thì ~120ms.
+    val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+    val pressed by interaction.collectIsPressedAsState()
+    val press by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.88f else 1f,
+        androidx.compose.animation.core.spring(dampingRatio = 0.5f, stiffness = 800f), label = "press")
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = if (enabled) 8.dp else 0.dp,
         modifier = Modifier
             .size(size.dp)
-            .clickable(enabled = enabled, onClick = onClick)
+            .graphicsLayer { scaleX = press; scaleY = press }
+            .clickable(interactionSource = interaction, indication = androidx.compose.material3.ripple(), enabled = enabled, onClick = onClick)
     ) {
         Box(contentAlignment = Alignment.Center) {
             Icon(

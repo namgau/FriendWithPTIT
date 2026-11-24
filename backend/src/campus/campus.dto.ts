@@ -1,4 +1,3 @@
-import { COMMUNITY_IDS } from './communities';
 import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -73,7 +72,8 @@ export class CreateCampusPostDto {
   anonymousMode: (typeof CAMPUS_ANONYMOUS_MODES)[number];
 
   @IsOptional()
-  @IsIn(COMMUNITY_IDS)
+  @IsString()
+  @MaxLength(40)
   community?: string;
 
   @IsOptional()
@@ -94,7 +94,8 @@ export class ListCampusQueryDto {
   category?: (typeof CAMPUS_CATEGORIES)[number];
 
   @IsOptional()
-  @IsIn(COMMUNITY_IDS)
+  @IsString()
+  @MaxLength(40)
   community?: string;
 
   @IsOptional()

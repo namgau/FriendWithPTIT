@@ -195,7 +195,8 @@ fun ProfilePhoto(
                     )
                 )
         )
-        if (!revealed) {
+        // Không có nhãn thì không vẽ cả nền pill (trước đây để lại một vệt xám rỗng).
+        if (!revealed && showAnonBadge) {
             Row(
                 Modifier
                     .align(Alignment.TopStart)

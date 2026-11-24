@@ -1,5 +1,6 @@
 package vn.ptit.fwp.feature.campus
 
+import androidx.compose.material.icons.rounded.Groups
 import android.content.Context
 import android.graphics.BitmapFactory
 import android.net.Uri
@@ -126,6 +127,7 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
     val scope = rememberCoroutineScope()
     var composerOpen by remember { mutableStateOf(false) }
     var settingsOpen by remember { mutableStateOf(false) }
+    var communitiesOpen by remember { mutableStateOf(false) }
     var editingPost by remember { mutableStateOf<CampusPost?>(null) }
     var resolvingMatch by remember(identity) { mutableStateOf(false) }
     var matchError by remember(identity) { mutableStateOf<String?>(null) }
@@ -152,6 +154,9 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
+                IconButton(onClick = { viewModel.loadCommunities(); communitiesOpen = true }) {
+                    Icon(Icons.Rounded.Groups, contentDescription = "Cộng đồng")
+                }
                 IconButton(onClick = { viewModel.loadSettings(); settingsOpen = true }) {
                     Icon(Icons.Rounded.Settings, contentDescription = "Cài đặt riêng tư Trang chủ")
                 }
@@ -174,58 +179,28 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                     )
                 }
             }
-            if (state.communities.isNotEmpty()) {
+            val joinedCommunities = state.communities.filter { it.joined }
+            LazyRow(
+                Modifier.fillMaxWidth().padding(top = 6.dp),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                item { FwpChip(text = "Mọi bài", selected = state.community == null, onClick = { viewModel.selectCommunity(null) }) }
+                items(joinedCommunities, key = { it.id }) { c ->
+                    FwpChip(text = c.name, selected = state.community == c.id, onClick = { viewModel.selectCommunity(c.id) })
+                }
+                item {
+                    FwpChip(text = "Cộng đồng…", selected = false, leadingIcon = Icons.Rounded.Groups, onClick = { communitiesOpen = true })
+                }
+            }
+            state.communities.firstOrNull { it.id == state.community }?.let { c ->
                 Text(
-                    "Cộng đồng",
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(start = 20.dp, top = 10.dp, bottom = 6.dp)
+                    if (c.joined) "Bài bạn đăng lúc này sẽ vào ${c.name}." else "Tham gia ${c.name} để đăng bài vào đây.",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
                 )
-                LazyRow(
-                    Modifier.fillMaxWidth(),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 18.dp),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    item {
-                        FwpChip(text = "Tất cả", selected = state.community == null, onClick = { viewModel.selectCommunity(null) })
-                    }
-                    items(state.communities, key = { it.id }) { c ->
-                        val selected = state.community == c.id
-                        Surface(
-                            shape = RoundedCornerShape(12.dp),
-                            color = if (selected) PtitRed.copy(alpha = 0.10f) else MaterialTheme.colorScheme.surface,
-                            border = androidx.compose.foundation.BorderStroke(1.dp, if (selected) PtitRed else MaterialTheme.colorScheme.outline),
-                            modifier = Modifier.width(220.dp).clickable { viewModel.selectCommunity(if (selected) null else c.id) }
-                        ) {
-                            Column(Modifier.padding(12.dp)) {
-                                Text(c.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                                Text(c.description, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2, minLines = 2)
-                                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 6.dp)) {
-                                    Text("${c.memberCount} thành viên", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(1f))
-                                    if (c.joined) androidx.compose.material3.OutlinedButton(
-                                        onClick = { viewModel.toggleJoin(c.id) },
-                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 12.dp),
-                                        modifier = Modifier.height(36.dp)
-                                    ) { Text("Đã tham gia", style = MaterialTheme.typography.labelMedium) }
-                                    else androidx.compose.material3.Button(
-                                        onClick = { viewModel.toggleJoin(c.id) },
-                                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 14.dp),
-                                        modifier = Modifier.height(36.dp)
-                                    ) { Text("Tham gia", style = MaterialTheme.typography.labelMedium) }
-                                }
-                            }
-                        }
-                    }
-                }
-                state.communities.firstOrNull { it.id == state.community }?.let { c ->
-                    Text(
-                        if (c.joined) "Bài bạn đăng lúc này sẽ vào ${c.name}." else "Tham gia ${c.name} để đăng bài vào đây.",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 6.dp)
-                    )
-                }
-                Spacer(Modifier.height(6.dp))
             }
 
             when {
@@ -286,7 +261,8 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                             onEdit = { editingPost = post },
                             onRefreshMedia = viewModel::refresh,
                             onDelete = { viewModel.deletePost(post) },
-                            onReport = { reason -> viewModel.report(post, reason) }
+                            onReport = { reason -> viewModel.report(post, reason) },
+                            communityLabel = { id -> state.communities.firstOrNull { it.id == id }?.name ?: "khác" }
                         )
                     }
                     item {
@@ -327,6 +303,20 @@ fun CampusScreen(onOpenChat: (String) -> Unit = {}) {
                 .align(Alignment.BottomCenter)
                 .padding(bottom = 84.dp, start = 16.dp, end = 16.dp)
         )
+    }
+
+    if (communitiesOpen) {
+        CommunitiesSheet(
+            communities = state.communities,
+            onDismiss = { communitiesOpen = false },
+            onToggleJoin = viewModel::toggleJoin,
+            onCreate = viewModel::createCommunity,
+            onOpenRequests = viewModel::openRequests,
+            onOpenFeed = { id -> communitiesOpen = false; viewModel.selectCommunity(id) }
+        )
+    }
+    state.requestsFor?.let { c ->
+        CommunityRequestsSheet(c, state.requests, onDismiss = viewModel::closeRequests, onDecide = viewModel::decide)
     }
 
     if (composerOpen) {
@@ -423,7 +413,7 @@ private fun CampusSettingsSheet(
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).padding(bottom = 28.dp)) {
             Text("Riêng tư Trang chủ", style = MaterialTheme.typography.headlineSmall)
-            Text("Cài đặt được lưu trên backend. Tắt khám phá sẽ thu hồi các liên kết tác giả hiện có.", style = MaterialTheme.typography.bodySmall)
+            Text("Tắt "Cho phép khám phá tác giả" thì người khác không còn mở được hồ sơ của bạn từ bài đăng cũ.", style = MaterialTheme.typography.bodySmall)
             if (state.settingsLoading) {
                 CircularProgressIndicator(Modifier.padding(16.dp).size(24.dp))
             } else if (state.settings == null) {
@@ -470,7 +460,8 @@ private fun CampusPostCard(
     onEdit: () -> Unit,
     onRefreshMedia: () -> Unit,
     onDelete: () -> Unit,
-    onReport: (String) -> Unit
+    onReport: (String) -> Unit,
+    communityLabel: (String) -> String = { it }
 ) {
     var menuOpen by remember { mutableStateOf(false) }
     var showReport by remember { mutableStateOf(false) }
@@ -566,7 +557,7 @@ private fun CampusPostCard(
 
             post.community?.let { id ->
                 Spacer(Modifier.height(8.dp))
-                Text("Trong cộng đồng ${communityName(id)}", style = MaterialTheme.typography.labelMedium, color = PtitRed)
+                Text("Trong cộng đồng ${communityLabel(id)}", style = MaterialTheme.typography.labelMedium, color = PtitRed)
             }
             if (post.content.isNotBlank()) {
                 Spacer(Modifier.height(12.dp))
@@ -1256,15 +1247,3 @@ private fun formatCampusTime(value: Long): String {
     }
 }
 
-/** Tên hiển thị của cộng đồng (khớp backend campus/communities.ts). */
-private fun communityName(id: String): String = when (id) {
-    "code" -> "CLB Lập trình"
-    "study" -> "Ôn thi cuối kỳ"
-    "music" -> "Hội mê nhạc"
-    "cats" -> "Hội con sen"
-    "food" -> "Ăn gì quanh trường"
-    "sport" -> "Thể thao PTIT"
-    "game" -> "Game thủ"
-    "photo" -> "Nhiếp ảnh"
-    else -> id
-}
