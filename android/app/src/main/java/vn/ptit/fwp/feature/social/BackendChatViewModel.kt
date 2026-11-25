@@ -110,6 +110,8 @@ class BackendChatViewModel(container: AppContainer, identity: PresentationIdenti
                         reconcilePending(it.pending, listOf(confirmed))
                     else it.pending.map { p -> if (p.request.clientMessageId == confirmed.clientMessageId) p.copy(status = SendStatus.CONFIRMED) else p }) }
                     refresh()
+                    // Tải lại sớm để câu trả lời (vd. nhân vật demo trả lời sau ~2 giây) hiện ngay, không đợi chu kỳ 8 giây.
+                    viewModelScope.launch { repeat(2) { kotlinx.coroutines.delay(2_500); if (valid) refresh() } }
                 }
             } catch (e: CancellationException) { throw e }
             catch (e: Exception) {
