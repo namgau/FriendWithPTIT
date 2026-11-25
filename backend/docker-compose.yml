@@ -39,6 +39,8 @@ services:
       AI_BASE_URL: http://host.docker.internal:8000
       # Key Gemini cho nhân vật demo Phùng Thanh Mộ: đặt trong backend/.env (không commit), compose tự đọc.
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      XAI_MODEL: ${XAI_MODEL:-grok-3-mini}
     ports:
       - "3000:3000"
     volumes:

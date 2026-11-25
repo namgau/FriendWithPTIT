@@ -54,8 +54,10 @@ export class BotService {
     }));
   }
 
-  /** Gemini generateContent ; trả '' khi chưa có key hoặc lỗi (dùng câu dự phòng). */
+  /** Có XAI_API_KEY thì dùng Grok, không thì Gemini ; '' khi chưa có key hoặc lỗi (dùng câu dự phòng). */
   private async generate(turns: Array<{ mine: boolean; text: string }>): Promise<string> {
+    const xai = this.config.get<string>('XAI_API_KEY', '').trim();
+    if (xai) return this.generateGrok(xai, turns);
     const key = this.config.get<string>('GEMINI_API_KEY', '').trim();
     if (!key) return '';
     const model = this.config.get<string>('GEMINI_MODEL', 'gemini-2.5-flash');
@@ -85,5 +87,30 @@ export class BotService {
     }
     const data = (await response.json()) as { candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }> };
     return (data.candidates?.[0]?.content?.parts ?? []).map((p) => p.text ?? '').join('').trim().slice(0, 1000);
+  }
+
+  /** xAI Grok, API dạng OpenAI chat completions. */
+  private async generateGrok(key: string, turns: Array<{ mine: boolean; text: string }>): Promise<string> {
+    const model = this.config.get<string>('XAI_MODEL', 'grok-3-mini');
+    const response = await fetch('https://api.x.ai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+      body: JSON.stringify({
+        model,
+        temperature: 0.9,
+        max_tokens: 400,
+        messages: [
+          { role: 'system', content: PERSONA },
+          ...turns.map((t) => ({ role: t.mine ? 'assistant' : 'user', content: t.text })),
+        ],
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+      this.logger.warn(`Grok ${response.status}: ${(await response.text()).slice(0, 200)}`);
+      return '';
+    }
+    const data = (await response.json()) as { choices?: Array<{ message?: { content?: string } }> };
+    return (data.choices?.[0]?.message?.content ?? '').trim().slice(0, 1000);
   }
 }
