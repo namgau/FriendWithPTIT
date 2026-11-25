@@ -693,6 +693,7 @@ private fun CampusEditDialog(
     onDismiss: () -> Unit,
     onSave: (String, CampusCategory) -> Unit
 ) {
+    val telex = vn.ptit.fwp.core.util.rememberTelexFilter()
     var content by remember(post.id) { mutableStateOf(post.content) }
     var category by remember(post.id) { mutableStateOf(post.category) }
     AlertDialog(
@@ -701,7 +702,8 @@ private fun CampusEditDialog(
         text = {
             Column {
                 Text("Chỉ sửa nội dung và chủ đề. Bài không còn hoạt động có thể không sửa được.", style = MaterialTheme.typography.bodySmall)
-                OutlinedTextField(value = content, onValueChange = { content = it.take(2000) }, label = { Text("Nội dung") })
+                OutlinedTextField(value = content, onValueChange = vn.ptit.fwp.core.util.telexOnValueChange(content) { content = it.take(2000) }, label = { Text("Nội dung") },
+                    keyboardOptions = vn.ptit.fwp.core.util.telexKeyboardOptions())
                 LazyRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     items(CampusCategory.entries) { item ->
                         FilterChip(selected = item == category, onClick = { category = item }, label = { Text(item.label) })

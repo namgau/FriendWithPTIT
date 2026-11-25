@@ -203,9 +203,14 @@ fun FwpTextField(
     isError: Boolean = false,
     supportingText: String? = null
 ) {
+    val telex = vn.ptit.fwp.core.util.rememberTelexFilter()
+    // Telex chỉ cho ô chữ thường: không áp cho mật khẩu, email, số, URL.
+    val telexOn = visualTransformation == VisualTransformation.None &&
+        keyboardOptions.keyboardType in setOf(androidx.compose.ui.text.input.KeyboardType.Text, androidx.compose.ui.text.input.KeyboardType.Unspecified)
+    val telexOptions = vn.ptit.fwp.core.util.telexKeyboardOptions(keyboardOptions)
     OutlinedTextField(
         value = value,
-        onValueChange = onValueChange,
+        onValueChange = vn.ptit.fwp.core.util.telexOnValueChange(value, telexOn, onValueChange),
         modifier = modifier.fillMaxWidth(),
         label = { Text(label) },
         placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)) },
@@ -214,7 +219,7 @@ fun FwpTextField(
         },
         trailingIcon = trailingContent,
         shape = RoundedCornerShape(16.dp),
-        keyboardOptions = keyboardOptions,
+        keyboardOptions = if (telexOn) telexOptions else keyboardOptions,
         visualTransformation = visualTransformation,
         singleLine = singleLine,
         maxLines = maxLines,
@@ -551,9 +556,11 @@ fun SearchField(
         ) {
             Icon(Icons.Rounded.Search, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.size(20.dp))
             Spacer(Modifier.width(9.dp))
+            val telex = vn.ptit.fwp.core.util.rememberTelexFilter()
             androidx.compose.foundation.text.BasicTextField(
                 value = value,
-                onValueChange = onValueChange,
+                onValueChange = vn.ptit.fwp.core.util.telexOnValueChange(value, onValueChange = onValueChange),
+                keyboardOptions = vn.ptit.fwp.core.util.telexKeyboardOptions(),
                 modifier = Modifier.weight(1f),
                 textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                 singleLine = true

@@ -735,10 +735,12 @@ internal fun Composer(
                             color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                         )
                     }
+                    val telex = vn.ptit.fwp.core.util.rememberTelexFilter()
                     BasicTextField(
                         value = value,
                         enabled = enabled,
-                        onValueChange = onValueChange,
+                        onValueChange = vn.ptit.fwp.core.util.telexOnValueChange(value, onValueChange = onValueChange),
+                        keyboardOptions = vn.ptit.fwp.core.util.telexKeyboardOptions(),
                         maxLines = 4,
                         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
                         modifier = Modifier.fillMaxWidth()
