@@ -60,7 +60,7 @@ export class BotService {
     if (xai) return this.generateGrok(xai, turns);
     const key = this.config.get<string>('GEMINI_API_KEY', '').trim();
     if (!key) return '';
-    const model = this.config.get<string>('GEMINI_MODEL', 'gemini-2.5-flash');
+    const model = this.config.get<string>('GEMINI_MODEL', 'gemini-3.5-flash-lite');
     // Gemini cần lượt đầu là user và gộp các lượt liên tiếp cùng vai.
     const contents: Array<{ role: string; parts: Array<{ text: string }> }> = [];
     for (const t of turns) {
@@ -77,7 +77,7 @@ export class BotService {
       body: JSON.stringify({
         system_instruction: { parts: [{ text: PERSONA }] },
         contents,
-        generationConfig: { temperature: 0.9, maxOutputTokens: 256, thinkingConfig: { thinkingBudget: 0 } },
+        generationConfig: { temperature: 0.9, maxOutputTokens: 1024 },
       }),
       signal: AbortSignal.timeout(20_000),
     });
