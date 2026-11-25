@@ -56,7 +56,7 @@ function seedAbout(seed: number, gender: string): Record<string, string> {
   };
 }
 
-const PORTRAIT: Record<string, number> = { p01: 5, p02: 14, p03: 39, p04: 55, p05: 24, p06: 6, p07: 25, p08: 59, p09: 31, p10: 60, p11: 32, p12: 30, p13: 57, p14: 22, p15: 53, p16: 9, p17: 54, p18: 28, p19: 12, p20: 45, demo: 8 };
+const PORTRAIT: Record<string, number> = { p01: 5, p02: 14, p03: 39, p04: 55, p05: 24, p06: 6, p07: 25, p08: 59, p09: 31, p10: 60, p11: 32, p12: 30, p13: 57, p14: 22, p15: 53, p16: 9, p17: 54, p18: 28, p19: 12, p20: 45, demo: 8, mo: 52 };
 export function seedPhotos(key: string, _gender: string, seed: number): string[] {
   return [
     `https://i.pravatar.cc/600?img=${PORTRAIT[key] ?? (seed % 40) + 5}`,
@@ -85,6 +85,7 @@ const SEED_PROFILES: SeedProfile[] = [
   { key: 'p18', nickname: 'Chộ Mô Mô', fullName: 'Phạm Diệu Linh', age: 22, gender: 'FEMALE', faculty: 'Kinh tế', major: 'Quản trị Kinh doanh', year: '2022', gpa: 3.24, bio: 'Yoga, nấu ăn và đi cà phê. Thích những buổi tối ấm áp với bạn bè và một nồi lẩu nhỏ.', interests: ['Yoga', 'Nấu ăn', 'Cà phê', 'Du lịch'], seed: 18, mode: 'DATING' },
   { key: 'p19', nickname: 'Gộ Lê Lê', fullName: 'Lâm Trung Hiếu', age: 20, gender: 'MALE', faculty: 'Công nghệ Thông tin', major: 'Kỹ thuật Phần mềm', year: '2024', gpa: 3.12, bio: 'Code, game và cà phê. Đang tập chạy bộ để bớt thức khuya. Rất thích làm quen với người mới.', interests: ['Lập trình', 'Game', 'Cà phê', 'Bóng rổ'], seed: 19, mode: 'FRIENDS' },
   { key: 'p20', nickname: 'Ngộ Kê Kê', fullName: 'Nguyễn Bích Ngọc', age: 21, gender: 'FEMALE', faculty: 'Viễn thông', major: 'Kỹ thuật Viễn thông', year: '2023', gpa: 3.57, bio: 'Guitar, sách và chạy bộ. Mình thích những người kiên nhẫn và biết giữ lời hứa.', interests: ['Âm nhạc', 'Guitar', 'Sách', 'Chạy bộ'], seed: 20, mode: 'STUDY' },
+  { key: 'mo', nickname: 'Phùng Thanh Mộ', fullName: 'Phùng Thanh Mộ', age: 22, gender: 'MALE', faculty: 'Đa phương tiện', major: 'Công nghệ Đa phương tiện', year: '2022', gpa: 3.15, bio: 'Nhân vật demo, trả lời bằng AI (Gemini). Mê game, bóng đá và trà sữa — nhắn thử đi, mình rep liền 😄', interests: ['Game', 'Bóng đá', 'Trà sữa', 'Âm nhạc', 'Xem phim'], seed: 22, mode: 'DATING' },
 ];
 
 @Injectable()
@@ -136,6 +137,15 @@ export class SeedService implements OnApplicationBootstrap {
       if (!profile) continue;
       await this.ensureSwipe(demoUser.id, profile.userId, 'LIKE');
       await this.ensureSwipe(profile.userId, demoUser.id, 'LIKE');
+    }
+    // Nhân vật demo trả lời bằng Gemini: match sẵn với tài khoản demo và chào trước.
+    const mo = profiles.get('mo');
+    if (mo) {
+      await this.ensureSwipe(demoUser.id, mo.userId, 'LIKE');
+      await this.ensureSwipe(mo.userId, demoUser.id, 'LIKE');
+      await this.seedConversation(demoUser, mo, 80, 'HEALTHY', [
+        [mo.userId, 'Ê match rồi nè! Mình là Mộ, dân Đa phương tiện. Cậu đang làm gì đó? 😄', 3],
+      ]);
     }
     for (const key of ['p07', 'p11', 'p16']) {
       const profile = profiles.get(key);

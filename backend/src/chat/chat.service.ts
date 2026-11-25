@@ -3,6 +3,7 @@ import {
   ConflictException,
   Injectable,
   NotFoundException,
+  Optional,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -16,6 +17,7 @@ import {
 import { isIdentityRevealed, maskedIdentityId, revealProgress } from '../common/anonymity';
 import { SendMessageDto } from './chat.dto';
 import { decodeChatCursor, encodeChatCursor } from './chat.cursor';
+import { BotService } from './bot.service';
 
 @Injectable()
 export class ChatService {
@@ -25,6 +27,7 @@ export class ChatService {
     @InjectRepository(Profile) private readonly profiles: Repository<Profile>,
     @InjectRepository(Notification)
     private readonly notifications: Repository<Notification>,
+    @Optional() private readonly bot?: BotService,
   ) {}
 
   async list(userId: string, matchId: string, before?: string, limit = 50) {
@@ -58,11 +61,18 @@ export class ChatService {
   async send(userId: string, matchId: string, dto: SendMessageDto) {
     // Serialize sends in a conversation and commit message + notification together.
     // The unique index is also enforced independently by PostgreSQL.
-    return this.messages.manager.transaction(async (manager) => {
+    const sent = await this.messages.manager.transaction(async (manager) => {
       const scoped = new ChatService(manager.getRepository(Message), manager.getRepository(Match),
         manager.getRepository(Profile), manager.getRepository(Notification));
       return scoped.sendInTransaction(userId, matchId, dto);
     });
+    // Nhân vật demo (Gemini) trả lời sau khi tin của người dùng đã commit.
+    if (this.bot) {
+      const match = await this.matches.findOne({ where: { id: matchId } });
+      const other = match ? (match.userAId === userId ? match.userBId : match.userAId) : null;
+      if (other && (await this.bot.isBot(other))) this.bot.scheduleReply(matchId, userId, other);
+    }
+    return sent;
   }
 
   private async sendInTransaction(userId: string, matchId: string, dto: SendMessageDto) {
