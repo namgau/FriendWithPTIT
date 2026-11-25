@@ -31,6 +31,12 @@ npm run start:dev
 - OTP: `123456`
 - Mật khẩu (nếu đăng nhập mật khẩu): `Fwp@123456`
 
+8 cộng đồng có sẵn được tạo lúc khởi động. Bài viết mẫu của Trang chủ (12 bài, 6 bài có ảnh) đăng qua API thật, chạy một lần sau khi backend lên (chạy lại không bị trùng):
+
+```bash
+python backend/scripts/seed_campus_posts.py   # mặc định http://localhost:3000
+```
+
 ## Endpoint chính
 
 | Method | Path | Mô tả |

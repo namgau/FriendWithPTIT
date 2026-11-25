@@ -24,6 +24,7 @@ POSTS = [
     ("p14", None, "MARKET", "Pass lại giáo trình Giải tích 1 và 2, còn mới 90%, giá sinh viên 🫡", "textbooks"),
     ("p16", "code", "QUESTION", "Có ai làm đồ án dùng PhoBERT chưa? Train trên CPU mất bao lâu vậy mọi người 😭", None),
     ("p18", "food", "GENERAL", "Nấu lẩu cho cả phòng tối nay, ai cần công thức nước dùng thì mình gửi", "hotpot-room"),
+    ("demo", None, "CONFESSION", "Cần tìm đội uống bia tối nay 🍺", None),
 ]
 
 
@@ -51,7 +52,8 @@ def main():
         if content in existing:
             print("bỏ qua (đã có):", content[:40])
             continue
-        token = call("POST", "/auth/login", {"email": f"{key}@demo.fwp.local", "password": PASSWORD})["accessToken"]
+        email = "demo@ptit.edu.vn" if key == "demo" else f"{key}@demo.fwp.local"
+        token = call("POST", "/auth/login", {"email": email, "password": PASSWORD})["accessToken"]
         if community:
             call("POST", f"/campus/communities/{community}/join", token=token)
         body = {"content": content, "category": category, "anonymousMode": "FULLY_ANONYMOUS"}
